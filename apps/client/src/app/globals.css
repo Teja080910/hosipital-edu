@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-slide-up: slide-up 0.5s ease-out;
+  --animate-slide-down: slide-down 0.3s ease-out;
+  --animate-scale-in: scale-in 0.3s ease-out;
+  --animate-slide-left: slide-left 0.5s ease-out;
+  --animate-slide-right: slide-right 0.5s ease-out;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-pulse-subtle: pulse-subtle 2s ease-in-out infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  --shadow-subtle: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  --shadow-medium: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.04), 0 0 0 1px rgb(0 0 0 / 0.02);
+  --shadow-heavy: 0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.04), 0 0 0 1px rgb(0 0 0 / 0.02);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04), 0 0 0 1px rgb(0 0 0 / 0.02);
+  --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.15), 0 0 0 1px rgb(0 0 0 / 0.02);
+  --shadow-glow: 0 0 20px rgb(59 130 246 / 0.15), 0 0 40px rgb(59 130 246 / 0.1);
+  --shadow-inner-subtle: inset 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 0 0 1px rgb(0 0 0 / 0.02);
+  --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.04), 0 0 0 1px rgb(0 0 0 / 0.02);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0b1120;
+  --card: #ffffff;
+  --card-foreground: #0b1120;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f4ff;
+  --secondary-foreground: #1e293b;
+  --muted: #f6f8fc;
+  --muted-foreground: #64748b;
+  --accent: #eef2ff;
+  --accent-foreground: #1e293b;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e6edf5;
+  --input: #e2e8f0;
+  --ring: #2563eb;
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: #0b1120;
+  --foreground: #edf2f7;
+  --card: #121b2d;
+  --card-foreground: #edf2f7;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #162040;
+  --secondary-foreground: #edf2f7;
+  --muted: #121b2d;
+  --muted-foreground: #8899b4;
+  --accent: #1a2648;
+  --accent-foreground: #edf2f7;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #fca5a5;
+  --border: #1e2d4a;
+  --input: #1e2d4a;
+  --ring: #3b82f6;
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 0 0 1px rgb(255 255 255 / 0.04);
+  --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-left {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-right {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes accordion-down {
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-accordion-content-height); opacity: 1; }
+}
+
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.bg-gradient-radial {
+  background-image: radial-gradient(var(--tw-gradient-stops));
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass {
+  background: rgba(11, 17, 32, 0.7);
+  backdrop-filter: blur(12px);
+}
+
+.glass-border {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass-border {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.card-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-heavy);
+  border-color: var(--primary);
+}

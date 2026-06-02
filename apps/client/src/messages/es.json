@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "dashboard": "Panel",
+    "questions": "Preguntas",
+    "flashcards": "Tarjetas",
+    "exams": "Exámenes",
+    "courses": "Cursos",
+    "progress": "Progreso",
+    "videos": "Videos",
+    "settings": "Configuración",
+    "admin": "Admin"
+  },
+  "landing": {
+    "hero_title": "Domina la Educación Médica con Hospital EDU",
+    "hero_subtitle": "Tu plataforma integral para preparación de exámenes médicos, tarjetas de estudio y aprendizaje interactivo.",
+    "hero_cta": "Empezar a Aprender",
+    "features_title": "Todo lo Que Necesitas para Tener Éxito",
+    "testimonials_title": "Lo Que Dicen Nuestros Estudiantes",
+    "pricing_title": "Elige Tu Plan",
+    "faq_title": "Preguntas Frecuentes",
+    "cta_title": "¿Listo para Transformar tu Educación Médica?"
+  },
+  "auth": {
+    "login_title": "Bienvenido de nuevo",
+    "login_submit": "Iniciar sesión",
+    "register_title": "Crear una cuenta",
+    "register_submit": "Crear cuenta",
+    "email_label": "Correo electrónico",
+    "password_label": "Contraseña",
+    "name_label": "Nombre completo",
+    "forgot_password": "¿Olvidaste tu contraseña?",
+    "no_account": "¿No tienes una cuenta?",
+    "has_account": "¿Ya tienes una cuenta?"
+  },
+  "questions": {
+    "title": "Banco de Preguntas",
+    "filter_specialty": "Especialidad",
+    "filter_topic": "Tema",
+    "filter_difficulty": "Dificultad",
+    "study_mode": "Modo Estudio",
+    "exam_mode": "Modo Examen",
+    "show_answer": "Mostrar Respuesta",
+    "next_question": "Siguiente",
+    "previous_question": "Anterior",
+    "flag_review": "Marcar para Revisar",
+    "timer": "Tiempo",
+    "results": "Resultados",
+    "score": "Puntaje",
+    "time_spent": "Tiempo Empleado",
+    "correct": "Correctas",
+    "incorrect": "Incorrectas"
+  },
+  "flashcards": {
+    "title": "Tarjetas de Estudio",
+    "review_now": "Repasar Ahora",
+    "cards_due": "Tarjetas Pendientes",
+    "mastered": "Dominadas",
+    "front": "Frente",
+    "back": "Reverso",
+    "rate_difficulty": "¿Qué tan bien lo sabías?",
+    "again": "Otra vez",
+    "hard": "Difícil",
+    "good": "Bien",
+    "easy": "Fácil"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "no_results": "Sin resultados",
+    "back": "Atrás",
+    "continue": "Continuar"
+  }
+}

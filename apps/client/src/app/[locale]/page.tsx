@@ -1,0 +1,411 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "@/routing";
+import { cn } from "@/lib/utils";
+import {
+  BookOpen,
+  Brain,
+  Video,
+  BarChart3,
+  Calendar,
+  GraduationCap,
+  ChevronDown,
+  Star,
+  Check,
+  ArrowRight,
+  Sparkles,
+  Shield,
+  TrendingUp,
+} from "lucide-react";
+
+const features = [
+  { icon: BookOpen, title: "Question Bank", desc: "Thousands of exam-style questions with detailed explanations and clinical pearls" },
+  { icon: Brain, title: "Smart Flashcards", desc: "Spaced repetition flashcards optimized for long-term retention" },
+  { icon: Video, title: "Video Classes", desc: "Expert-led video lectures on high-yield medical topics" },
+  { icon: GraduationCap, title: "Structured Courses", desc: "Comprehensive courses designed by board-certified physicians" },
+  { icon: BarChart3, title: "Performance Analytics", desc: "Track your progress with detailed stats and insights" },
+  { icon: Calendar, title: "Study Planner", desc: "AI-powered study plans tailored to your exam date" },
+];
+
+const testimonials = [
+  { name: "Dr. Maria Garcia", role: "Resident Physician", text: "Hospital EDU transformed my board preparation. The question bank is unmatched in quality and depth." },
+  { name: "Dr. James Wilson", role: "Medical Student", text: "The spaced repetition flashcards helped me memorize complex topics effortlessly. Game-changer." },
+  { name: "Dr. Sarah Chen", role: "Internal Medicine", text: "Best ENARM prep platform I've used. The analytics helped me identify and fix my weak areas." },
+];
+
+const plans = [
+  { name: "Monthly", price: "$29", period: "/month", features: ["Full question bank access", "Basic performance analytics", "Community discussion forum", "Mobile app access"], popular: false },
+  { name: "Quarterly", price: "$69", period: "/quarter", features: ["Everything in Monthly", "Advanced analytics & insights", "Priority email support", "Study planner integration", "Mock exam simulations"], popular: true },
+  { name: "Annual", price: "$199", period: "/year", features: ["Everything in Quarterly", "1-on-1 tutoring session", "Certificate of completion", "Early access to new features", "Lifetime question bank updates"], popular: false },
+];
+
+const faqs = [
+  { q: "How does the question bank work?", a: "Our question bank contains thousands of exam-style questions organized by specialty and topic. You can study in Study Mode with instant feedback and explanations, or Exam Mode for timed simulation." },
+  { q: "What is spaced repetition and how does it help?", a: "Spaced repetition is a scientifically proven learning technique that schedules reviews at optimal intervals. Our SM-2 algorithm ensures you review cards right when you're about to forget them, maximizing retention." },
+  { q: "Can I access content on mobile?", a: "Yes! Our platform is fully responsive and works seamlessly on all devices. Mobile app coming soon." },
+  { q: "Is there a money-back guarantee?", a: "Absolutely. We offer a 14-day money-back guarantee on all plans. If you're not satisfied, we'll refund your purchase — no questions asked." },
+];
+
+const fadeUp = {
+  initial: { opacity: 0, y: 30 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-50px" },
+  transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const },
+};
+
+const stagger = (i: number) => ({
+  ...fadeUp,
+  transition: { ...fadeUp.transition, delay: i * 0.08 },
+});
+
+export default function LandingPage() {
+  const t = useTranslations("landing");
+  const { scrollYProgress } = useScroll();
+  const opacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.15], [1, 0.95]);
+
+  return (
+    <div className="min-h-screen overflow-hidden">
+      {/* Nav */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-transparent bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-subtle">
+              <GraduationCap className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-bold tracking-tight">Hospital EDU</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/login">
+              <Button variant="ghost" size="sm" className="text-sm">Sign in</Button>
+            </Link>
+            <Link href="/register">
+              <Button size="sm" className="text-sm shadow-subtle">
+                Get Started
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+        <motion.div style={{ opacity, scale }} className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />
+          <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]" />
+        </motion.div>
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-32 lg:py-40">
+          <div className="text-center max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const }}
+            >
+              <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium animate-fade-in">
+                <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                Trusted by 10,000+ medical professionals
+              </Badge>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] as const }}
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]"
+            >
+              Master Your{" "}
+              <span className="bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent">
+                Medical Exams
+              </span>{" "}
+              with Confidence
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] as const }}
+              className="mx-auto mt-6 max-w-2xl text-lg sm:text-xl text-muted-foreground leading-relaxed"
+            >
+              {t("hero_subtitle")}
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] as const }}
+              className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+            >
+              <Link href="/register">
+                <Button size="xl" className="text-base shadow-heavy hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+                  Start Free Trial
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="#features">
+                <Button variant="outline" size="xl" className="text-base hover:shadow-subtle hover:-translate-y-0.5 transition-all duration-200">
+                  See How It Works
+                </Button>
+              </Link>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
+            >
+              {["ENARM", "MIR", "USMLE Step 1", "USMLE Step 2 CK", "ENURM"].map((exam) => (
+                <div key={exam} className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-primary" />
+                  <span>{exam}</span>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
+      </section>
+
+      {/* Features */}
+      <section id="features" className="relative py-24 lg:py-32">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] to-transparent" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center mb-16">
+            <Badge variant="secondary" className="mb-4">Everything you need</Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {t("features_title")}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              Comprehensive tools designed to help you ace your medical exams
+            </p>
+          </motion.div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map((feature, i) => (
+              <motion.div key={feature.title} {...stagger(i)}>
+                <Card className="group h-full border border-border/50 hover:border-primary/30 transition-all duration-300">
+                  <CardHeader>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+                      <feature.icon className="h-6 w-6" />
+                    </div>
+                    <CardTitle className="mt-4 text-xl">{feature.title}</CardTitle>
+                    <CardDescription className="mt-2 text-base leading-relaxed">
+                      {feature.desc}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="relative py-24 lg:py-32 bg-muted/30">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center mb-16">
+            <Badge variant="secondary" className="mb-4">Testimonials</Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {t("testimonials_title")}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Hear from our community of successful medical professionals
+            </p>
+          </motion.div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {testimonials.map((item, i) => (
+              <motion.div key={item.name} {...stagger(i)}>
+                <Card className="h-full border border-border/50 group transition-all duration-300">
+                  <CardContent className="pt-8">
+                    <div className="flex gap-1 mb-5">
+                      {[...Array(5)].map((_, j) => (
+                        <Star key={j} className="h-4 w-4 fill-primary text-primary" />
+                      ))}
+                    </div>
+                    <p className="text-muted-foreground leading-relaxed mb-6 italic">
+                      &ldquo;{item.text}&rdquo;
+                    </p>
+                    <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                        {item.name.split(" ").map(n => n[0]).join("")}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">{item.role}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="relative py-24 lg:py-32">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-primary/[0.02]" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center mb-16">
+            <Badge variant="secondary" className="mb-4">Pricing</Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {t("pricing_title")}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Choose the plan that fits your study journey
+            </p>
+          </motion.div>
+
+          <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
+            {plans.map((plan, i) => (
+              <motion.div key={plan.name} {...stagger(i)}>
+                <Card className={cn(
+                  "relative h-full flex flex-col border-border/50 transition-all duration-300",
+                  plan.popular && "border-primary shadow-card-hover scale-105 md:scale-105 z-10",
+                )}>
+                  {plan.popular && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                      <Badge className="px-4 py-1 text-xs font-semibold bg-primary text-primary-foreground shadow-subtle">
+                        Most Popular
+                      </Badge>
+                    </div>
+                  )}
+                  <CardHeader className={cn(plan.popular && "pt-8")}>
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <div className="mt-3">
+                      <span className="text-4xl font-bold">{plan.price}</span>
+                      <span className="text-muted-foreground ml-1">{plan.period}</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 space-y-4">
+                    {plan.features.map((f) => (
+                      <div key={f} className="flex items-start gap-3">
+                        <Check className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                        <span className="text-sm">{f}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      className="w-full"
+                      variant={plan.popular ? "default" : "outline"}
+                      size="lg"
+                    >
+                      Get Started
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-24 lg:py-32 bg-muted/30">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center mb-16">
+            <Badge variant="secondary" className="mb-4">FAQ</Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {t("faq_title")}
+            </h2>
+          </motion.div>
+
+          <div className="space-y-3">
+            {faqs.map((item, i) => (
+              <motion.div key={i} {...stagger(i)}>
+                <Collapsible>
+                  <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl border border-border/50 bg-card p-5 text-left font-medium hover:shadow-subtle transition-all duration-200 [&[data-state=open]>svg]:rotate-180">
+                    <span>{item.q}</span>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:text-foreground" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                    <div className="px-5 py-4 text-sm text-muted-foreground leading-relaxed border-x border-b border-border/50 rounded-b-xl bg-card/50">
+                      {item.a}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="relative py-24 lg:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[150px]" />
+        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div {...fadeUp}>
+            <Badge variant="secondary" className="mb-4">Get Started Today</Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {t("cta_title")}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              Join thousands of medical professionals who trust Hospital EDU for their exam preparation.
+              Start your journey to success today.
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/register">
+                <Button size="xl" className="text-base shadow-heavy hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 bg-primary">
+                  Start Free Trial
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="#features">
+                <Button variant="outline" size="xl" className="text-base hover:shadow-subtle transition-all duration-200">
+                  Talk to Sales
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 py-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary shadow-subtle">
+                <GraduationCap className="h-3.5 w-3.5 text-primary-foreground" />
+              </div>
+              <span className="font-semibold">Hospital EDU</span>
+            </Link>
+            <div className="flex gap-6 text-sm text-muted-foreground">
+              <Link href="#" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+              <Link href="#" className="hover:text-foreground transition-colors">Terms of Service</Link>
+              <Link href="#" className="hover:text-foreground transition-colors">Contact</Link>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              &copy; 2024 Hospital EDU. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

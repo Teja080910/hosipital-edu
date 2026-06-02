@@ -1,0 +1,57 @@
+import { Controller, Post, Get, Body, UseGuards, Req } from "@nestjs/common";
+import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { AuthService } from "./auth.service";
+import { RegisterDto } from "./dto/register.dto";
+import { LoginDto } from "./dto/login.dto";
+import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { LocalAuthGuard } from "../common/guards/local-auth.guard";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
+
+@ApiTags("auth")
+@Controller("auth")
+export class AuthController {
+  constructor(private authService: AuthService) {}
+
+  @Post("register")
+  @ApiOperation({ summary: "Register new user" })
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  @UseGuards(LocalAuthGuard)
+  @Post("login")
+  @ApiOperation({ summary: "Login with email and password" })
+  async login(@Body() _dto: LoginDto, @CurrentUser() user: any) {
+    return this.authService.login(_dto.email, _dto.password);
+  }
+
+  @Post("refresh")
+  @ApiOperation({ summary: "Refresh access token" })
+  async refresh(@Body("refreshToken") refreshToken: string) {
+    return this.authService.refreshToken(refreshToken);
+  }
+
+  @Post("logout")
+  @ApiOperation({ summary: "Logout" })
+  async logout() {
+    return { message: "Logged out successfully" };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("me")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get current user" })
+  async getMe(@CurrentUser() user: any) {
+    return user;
+  }
+
+  @Get("google")
+  @ApiOperation({ summary: "Google OAuth login" })
+  async googleAuth() {}
+
+  @Get("google/callback")
+  @ApiOperation({ summary: "Google OAuth callback" })
+  async googleAuthRedirect(@Req() req: any) {
+    return req.user;
+  }
+}

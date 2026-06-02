@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "questions": "Questions",
+    "flashcards": "Flashcards",
+    "exams": "Exams",
+    "courses": "Courses",
+    "progress": "Progress",
+    "videos": "Videos",
+    "settings": "Settings",
+    "admin": "Admin"
+  },
+  "landing": {
+    "hero_title": "Master Medical Education with Hospital EDU",
+    "hero_subtitle": "Your comprehensive platform for medical exam preparation, flashcards, and interactive learning.",
+    "hero_cta": "Start Learning",
+    "features_title": "Everything You Need to Succeed",
+    "testimonials_title": "What Our Students Say",
+    "pricing_title": "Choose Your Plan",
+    "faq_title": "Frequently Asked Questions",
+    "cta_title": "Ready to Transform Your Medical Education?"
+  },
+  "auth": {
+    "login_title": "Welcome back",
+    "login_submit": "Sign in",
+    "register_title": "Create an account",
+    "register_submit": "Create account",
+    "email_label": "Email",
+    "password_label": "Password",
+    "name_label": "Full name",
+    "forgot_password": "Forgot password?",
+    "no_account": "Don't have an account?",
+    "has_account": "Already have an account?"
+  },
+  "questions": {
+    "title": "Question Bank",
+    "filter_specialty": "Specialty",
+    "filter_topic": "Topic",
+    "filter_difficulty": "Difficulty",
+    "study_mode": "Study Mode",
+    "exam_mode": "Exam Mode",
+    "show_answer": "Show Answer",
+    "next_question": "Next",
+    "previous_question": "Previous",
+    "flag_review": "Flag for Review",
+    "timer": "Time",
+    "results": "Results",
+    "score": "Score",
+    "time_spent": "Time Spent",
+    "correct": "Correct",
+    "incorrect": "Incorrect"
+  },
+  "flashcards": {
+    "title": "Flashcards",
+    "review_now": "Review Now",
+    "cards_due": "Cards Due",
+    "mastered": "Mastered",
+    "front": "Front",
+    "back": "Back",
+    "rate_difficulty": "How well did you know?",
+    "again": "Again",
+    "hard": "Hard",
+    "good": "Good",
+    "easy": "Easy"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "no_results": "No results found",
+    "back": "Back",
+    "continue": "Continue"
+  }
+}
