@@ -5,7 +5,6 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 
 export function Shell({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -33,16 +32,7 @@ export function Shell({ children }: { children: ReactNode }) {
       >
         <Topbar onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} />
         <main className="min-h-[calc(100vh-4rem)] p-4 md:p-6 lg:p-8 pb-20 lg:pb-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          {children}
         </main>
       </div>
 

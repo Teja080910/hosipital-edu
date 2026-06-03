@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
 interface PageTransitionProps {
@@ -16,17 +16,14 @@ const variants = {
 
 export function PageTransition({ children, className }: PageTransitionProps) {
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        variants={variants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className={className}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      variants={variants}
+      initial="initial"
+      animate="animate"
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }

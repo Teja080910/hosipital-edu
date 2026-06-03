@@ -1,27 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-} from "recharts";
 import { TrendingUp, Target, Clock, BookOpen, Zap } from "lucide-react";
 
-const weeklyData = [
-  { day: "Mon", minutes: 45 }, { day: "Tue", minutes: 60 }, { day: "Wed", minutes: 30 },
-  { day: "Thu", minutes: 75 }, { day: "Fri", minutes: 50 }, { day: "Sat", minutes: 90 },
-  { day: "Sun", minutes: 20 },
-];
-
-const specialtyData = [
-  { specialty: "Cardiology", accuracy: 82 },
-  { specialty: "Internal Med", accuracy: 75 },
-  { specialty: "Pediatrics", accuracy: 88 },
-  { specialty: "Surgery", accuracy: 65 },
-  { specialty: "Neurology", accuracy: 70 },
-];
+const WeeklyChart = dynamic(() => import("./weekly-chart"), { ssr: false });
+const SpecialtyChart = dynamic(() => import("./specialty-chart"), { ssr: false });
 
 const overallStats = [
   { label: "Questions Answered", value: "1,247", icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
@@ -29,8 +14,6 @@ const overallStats = [
   { label: "Study Streak", value: "12 days", icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
   { label: "Total Hours", value: "48h", icon: Clock, color: "text-purple-500", bg: "bg-purple-500/10" },
 ];
-
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function ProgressPage() {
   return (
@@ -64,21 +47,7 @@ export default function ProgressPage() {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="day" className="text-xs text-muted-foreground" />
-                    <YAxis className="text-xs text-muted-foreground" />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--card)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "var(--radius)",
-                      }}
-                    />
-                    <Bar dataKey="minutes" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <WeeklyChart />
               </div>
             </CardContent>
           </Card>
@@ -89,21 +58,7 @@ export default function ProgressPage() {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={specialtyData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis type="number" domain={[0, 100]} className="text-xs text-muted-foreground" />
-                    <YAxis dataKey="specialty" type="category" className="text-xs text-muted-foreground" width={90} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--card)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "var(--radius)",
-                      }}
-                    />
-                    <Bar dataKey="accuracy" fill="var(--primary)" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <SpecialtyChart />
               </div>
             </CardContent>
           </Card>

@@ -2,8 +2,6 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
-import { AuthProvider } from "@/providers/auth-provider";
-import { Toaster } from "sonner";
 import type { ReactNode } from "react";
 import "../globals.css";
 
@@ -30,10 +28,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             <QueryProvider>
-              <AuthProvider>
-                {children}
-                <Toaster position="top-right" richColors closeButton />
-              </AuthProvider>
+              {children}
             </QueryProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
