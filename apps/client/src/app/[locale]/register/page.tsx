@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/routing";
 import { Link } from "@/routing";
@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   const passwordChecks = {
     length: password.length >= 8,
@@ -38,18 +39,22 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
+    submittingRef.current = true;
     setLoading(true);
     try {
       await register(name, email, password);
       toast.success("Account created!");
       router.push("/");
-    } catch {
-      toast.error("Registration failed");
+    } catch (error) {
+      const message = (error as any)?.response?.data?.message;
+      toast.error(Array.isArray(message) ? message.join(", ") : message || "Registration failed");
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
