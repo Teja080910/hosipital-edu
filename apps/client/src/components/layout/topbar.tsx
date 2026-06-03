@@ -13,17 +13,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "@/routing";
+import { usePathname, useRouter } from "@/routing";
 import {
   Search,
-  Moon,
-  Sun,
   Bell,
   LogOut,
   User,
   Settings,
   Menu,
   ChevronDown,
+  Moon,
+  Sun,
+  Languages,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -36,40 +37,68 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [searchFocused, setSearchFocused] = useState(false);
 
+  const currentLocale = pathname.startsWith("/es") ? "es" : "en";
+
+  const switchLocale = (locale: string) => {
+    const newPath = pathname.replace(/^\/(en|es)/, `/${locale}`);
+    router.push(newPath);
+  };
+
   return (
-    <header className="sticky top-0 right-0 left-0 lg:left-64 z-20 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-md px-4 lg:px-6 transition-all duration-300">
+    <header className="sticky top-0 right-0 z-20 flex h-16 items-center gap-4 border-b border-border/50 bg-background/60 backdrop-blur-xl px-4 lg:px-6 transition-all duration-300">
       <div className="flex items-center gap-3 lg:hidden">
-        <Button variant="ghost" size="icon-sm" onClick={onMenuClick}>
+        <Button variant="ghost" size="icon-sm" onClick={onMenuClick} className="text-foreground/70 hover:text-foreground">
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary shadow-subtle">
-          <span className="text-xs font-bold text-primary-foreground">HE</span>
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
+          <span className="text-[10px] font-bold text-white">HE</span>
         </div>
       </div>
 
       <div className={cn(
         "hidden md:flex items-center gap-2 flex-1 max-w-md transition-all duration-200",
-        searchFocused && "ring-1 ring-ring rounded-lg"
+        searchFocused && "scale-[1.02]"
       )}>
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search questions, courses..."
-            className="h-9 pl-9 bg-muted/50 border-none focus-visible:bg-background"
+            className={cn(
+              "h-9 pl-9 bg-muted/40 border-border/50 transition-all duration-200",
+              "placeholder:text-muted-foreground/60",
+              searchFocused && "bg-background border-primary/30 shadow-sm shadow-primary/5"
+            )}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-1 ml-auto">
+      <div className="flex items-center gap-0.5 ml-auto">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" className="text-foreground/60 hover:text-foreground hover:bg-accent/50">
+              <Languages className="h-4.5 w-4.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="rounded-xl border-border/50 shadow-lg mt-1 min-w-[130px]">
+            <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
+              🇺🇸 English {currentLocale === "en" && <span className="ml-auto text-xs text-primary">active</span>}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
+              🇪🇸 Español {currentLocale === "es" && <span className="ml-auto text-xs text-primary">active</span>}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-foreground/60 hover:text-foreground hover:bg-accent/50"
         >
           {theme === "dark" ? (
             <Sun className="h-4.5 w-4.5" />
@@ -78,27 +107,27 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           )}
         </Button>
 
-        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground relative">
+        <Button variant="ghost" size="icon-sm" className="text-foreground/60 hover:text-foreground hover:bg-accent/50 relative">
           <Bell className="h-4.5 w-4.5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
+          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500 ring-2 ring-background" />
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2.5 px-2.5 ml-1">
-              <Avatar className="h-7 w-7">
+            <Button variant="ghost" size="sm" className="gap-2.5 px-2.5 ml-2 hover:bg-accent/50 rounded-xl">
+              <Avatar className="h-7 w-7 ring-2 ring-border/50">
                 <AvatarImage src={user?.avatar} />
-                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-600 dark:text-blue-400 font-semibold">
                   {user?.name?.charAt(0)?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden md:inline text-sm font-medium max-w-[120px] truncate">
                 {user?.name || "User"}
               </span>
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              <ChevronDown className="h-3 w-3 text-foreground/40" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 animate-scale-in">
+          <DropdownMenuContent align="end" className="w-56 animate-scale-in rounded-xl border-border/50 shadow-lg mt-1">
             <DropdownMenuLabel>
               <div className="flex flex-col">
                 <span className="font-medium">{user?.name || "User"}</span>
@@ -108,16 +137,16 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/settings")}>
+            <DropdownMenuItem onClick={() => router.push("/settings")} className="rounded-lg">
               <User className="h-4 w-4 mr-2" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/settings")}>
+            <DropdownMenuItem onClick={() => router.push("/settings")} className="rounded-lg">
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive rounded-lg">
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </DropdownMenuItem>

@@ -1,6 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useTheme } from "next-themes";
+import { useAuth } from "@/hooks/use-auth";
+import { Shell } from "@/components/layout/shell";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +20,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "@/routing";
+import { usePathname, useRouter, Link } from "@/routing";
 import { cn } from "@/lib/utils";
 import {
   BookOpen,
@@ -33,7 +36,19 @@ import {
   Sparkles,
   Shield,
   TrendingUp,
+  Moon,
+  Sun,
+  Languages,
+  Target,
+  Clock,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PageTransition } from "@/components/page-transition";
 
 const features = [
   { icon: BookOpen, title: "Question Bank", desc: "Thousands of exam-style questions with detailed explanations and clinical pearls" },
@@ -77,9 +92,112 @@ const stagger = (i: number) => ({
 
 export default function LandingPage() {
   const t = useTranslations("landing");
+  const { theme, setTheme } = useTheme();
+  const { user, isLoading } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.15], [1, 0.95]);
+
+  const currentLocale = pathname.startsWith("/es") ? "es" : "en";
+  const switchLocale = (locale: string) => {
+    router.push(pathname.replace(/^\/(en|es)/, `/${locale}`));
+  };
+
+  if (isLoading) return null;
+
+  if (user) {
+    const stats = [
+      { label: "Questions Answered", value: "1,247", icon: BookOpen, trend: "+12%", color: "text-blue-500" },
+      { label: "Accuracy", value: "78%", icon: Target, trend: "+5%", color: "text-green-500" },
+      { label: "Day Streak", value: "12", icon: TrendingUp, trend: "+3", color: "text-orange-500" },
+      { label: "Study Time", value: "48h", icon: Clock, trend: "+8h", color: "text-purple-500" },
+    ];
+
+    const recentActivity = [
+      { action: "Completed ENARM Cardiology quiz", time: "2 hours ago", type: "quiz" },
+      { action: "Reviewed 20 flashcards", time: "4 hours ago", type: "flashcard" },
+      { action: "Started Internal Medicine course", time: "1 day ago", type: "course" },
+      { action: "Scored 85% on Anatomy exam", time: "2 days ago", type: "exam" },
+    ];
+
+    return (
+      <Shell>
+        <PageTransition>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Welcome back, {user?.name?.split(" ")[0] || "Student"}
+                </h1>
+                <p className="text-muted-foreground">Here&apos;s your learning overview</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {stats.map((stat) => (
+                <Card key={stat.label}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
+                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stat.value}</div>
+                    <p className="text-xs text-muted-foreground">{stat.trend} from last week</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {recentActivity.map((item, i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{item.action}</p>
+                          <p className="text-xs text-muted-foreground">{item.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Link href="/questions">
+                    <Button className="w-full justify-start" variant="outline">
+                      <Brain className="mr-2 h-4 w-4" /> Start Study
+                    </Button>
+                  </Link>
+                  <Link href="/exams">
+                    <Button className="w-full justify-start" variant="outline">
+                      <GraduationCap className="mr-2 h-4 w-4" /> Take Exam
+                    </Button>
+                  </Link>
+                  <Link href="/flashcards">
+                    <Button className="w-full justify-start" variant="outline">
+                      <BookOpen className="mr-2 h-4 w-4" /> Review Flashcards
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </PageTransition>
+      </Shell>
+    );
+  }
 
   return (
     <div className="min-h-screen overflow-hidden">
@@ -92,16 +210,43 @@ export default function LandingPage() {
             </div>
             <span className="text-lg font-bold tracking-tight">Hospital EDU</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="text-sm">Sign in</Button>
-            </Link>
-            <Link href="/register">
-              <Button size="sm" className="text-sm shadow-subtle">
-                Get Started
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
-            </Link>
+          <div className="flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+                  <Languages className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[130px] rounded-xl border-border/50 shadow-lg">
+                <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
+                  🇺🇸 English {currentLocale === "en" && <span className="ml-auto text-xs text-primary">active</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
+                  🇪🇸 Español {currentLocale === "es" && <span className="ml-auto text-xs text-primary">active</span>}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+
+            <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-3">
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="text-sm">Sign in</Button>
+              </Link>
+              <Link href="/register">
+                <Button size="sm" className="text-sm shadow-subtle">
+                  Get Started
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
