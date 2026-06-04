@@ -1,24 +1,22 @@
 {
   "name": "hospital-edu",
   "private": true,
-  "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "dev": "pnpm --parallel -r dev",
-    "dev:client": "pnpm --filter @hospital/client dev",
-    "dev:server": "pnpm --filter @hospital/server dev",
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "clean": "pnpm -r clean",
-    "db:generate": "pnpm --filter @hospital/server db:generate",
-    "db:migrate": "pnpm --filter @hospital/server db:migrate",
-    "db:push": "pnpm --filter @hospital/server db:push",
-    "db:studio": "pnpm --filter @hospital/server db:studio"
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:client": "npm run dev -w client",
+    "dev:server": "npm run dev -w server",
+    "build": "npm run build --workspaces --if-present",
+    "build:client": "npm run build -w client",
+    "build:server": "npm run build -w server",
+    "lint": "npm run lint -w client",
+    "typecheck": "npm run typecheck -w client",
+    "db:generate": "npm run db:generate -w server",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:push": "npm run db:push -w server",
+    "db:studio": "npm run db:studio -w server"
   },
+  "workspaces": ["client", "server"],
   "engines": {
     "node": ">=20.x"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["bcrypt", "@nestjs/core", "esbuild", "msgpackr-extract", "@swc/core"]
   }
 }
