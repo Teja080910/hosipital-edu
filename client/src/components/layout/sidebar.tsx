@@ -21,18 +21,18 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/questions", icon: FileQuestion, label: "Questions" },
-  { href: "/flashcards", icon: Library, label: "Flashcards" },
-  { href: "/exams", icon: GraduationCap, label: "Exams" },
-  { href: "/courses", icon: BookOpen, label: "Courses" },
-  { href: "/progress", icon: BarChart3, label: "Progress" },
-  { href: "/videos", icon: Video, label: "Videos" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/dashboard/questions", icon: FileQuestion, label: "Questions" },
+  { href: "/dashboard/flashcards", icon: Library, label: "Flashcards" },
+  { href: "/dashboard/exams", icon: GraduationCap, label: "Exams" },
+  { href: "/dashboard/courses", icon: BookOpen, label: "Courses" },
+  { href: "/dashboard/progress", icon: BarChart3, label: "Progress" },
+  { href: "/dashboard/videos", icon: Video, label: "Videos" },
 ];
 
 const bottomItems = [
-  { href: "/settings", icon: Settings, label: "Settings" },
-  { href: "/admin", icon: Shield, label: "Admin" },
+  { href: "/dashboard/settings", icon: Settings, label: "Settings" },
+  { href: "/dashboard/admin", icon: Shield, label: "Admin" },
 ];
 
 interface SidebarProps {

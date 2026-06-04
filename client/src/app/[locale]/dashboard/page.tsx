@@ -79,17 +79,17 @@ export default function DashboardPage() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Link href="/questions">
-                <Button className="w-full justify-start" variant="outline">
-                  <Brain className="mr-2 h-4 w-4" /> Start Study
-                </Button>
-              </Link>
-              <Link href="/exams">
-                <Button className="w-full justify-start" variant="outline">
-                  <GraduationCap className="mr-2 h-4 w-4" /> Take Exam
-                </Button>
-              </Link>
-              <Link href="/flashcards">
+<Link href="/dashboard/questions">
+                 <Button className="w-full justify-start" variant="outline">
+                   <Brain className="mr-2 h-4 w-4" /> Start Study
+                 </Button>
+               </Link>
+               <Link href="/dashboard/exams">
+                 <Button className="w-full justify-start" variant="outline">
+                   <GraduationCap className="mr-2 h-4 w-4" /> Take Exam
+                 </Button>
+               </Link>
+               <Link href="/dashboard/flashcards">
                 <Button className="w-full justify-start" variant="outline">
                   <BookOpen className="mr-2 h-4 w-4" /> Review Flashcards
                 </Button>

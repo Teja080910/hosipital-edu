@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { DRIZZLE } from "../database/database.provider";
 import { users, userQuestionProgress } from "../database/schema";
 import { and, eq, isNull } from "drizzle-orm";

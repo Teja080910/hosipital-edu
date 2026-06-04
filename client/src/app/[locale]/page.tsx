@@ -20,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { usePathname, useRouter, Link } from "@/routing";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 import {
   BookOpen,
   Brain,
@@ -93,6 +94,7 @@ export default function LandingPage() {
   const pathname = usePathname();
   const router = useRouter();
   const currentLocale = pathname.startsWith("/es") ? "es" : "en";
+  const { user } = useAuth();
 const switchLocale = (locale: string) => {
     router.push(pathname.replace(/^\/(en|es)/, `/${locale}`));
   };
@@ -135,7 +137,15 @@ const switchLocale = (locale: string) => {
             </Button>
 
             <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-3">
-              <Link href="/login">
+              {user ? (
+              <Link href="/dashboard">
+                <Button size="sm" className="text-sm shadow-subtle">
+                  Dashboard
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            ) : (
+              <><Link href="/login">
                 <Button variant="ghost" size="sm" className="text-sm">Sign in</Button>
               </Link>
               <Link href="/register">
@@ -143,7 +153,8 @@ const switchLocale = (locale: string) => {
                   Get Started
                   <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Button>
-              </Link>
+              </Link></>
+            )}
             </div>
           </div>
         </div>

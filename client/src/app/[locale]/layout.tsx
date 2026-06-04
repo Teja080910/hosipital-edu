@@ -2,6 +2,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { AuthProvider } from "@/providers/auth-provider";
 import type { ReactNode } from "react";
 import "../globals.css";
 
@@ -27,9 +28,11 @@ export default async function LocaleLayout({
       <body className="min-h-screen bg-background font-sans antialiased">
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
-            <QueryProvider>
-              {children}
-            </QueryProvider>
+            <AuthProvider>
+              <QueryProvider>
+                {children}
+              </QueryProvider>
+            </AuthProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

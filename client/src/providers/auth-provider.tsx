@@ -10,13 +10,14 @@ import {
 } from "react";
 import type { User } from "@/types";
 import api from "@/lib/api";
+import { useAuthStore } from "@/store/auth-store";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -25,9 +26,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const setTokens = useAuthStore((s) => s.setTokens);
+  const clearTokens = useAuthStore((s) => s.clearTokens);
+  const storedAccessToken = useAuthStore((s) => s.accessToken);
 
   const refreshUser = useCallback(async () => {
-    const token = localStorage.getItem("access_token");
+    const token = useAuthStore.getState().accessToken;
     if (!token) {
       setUser(null);
       setIsLoading(false);
@@ -37,11 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = await api.get("/auth/me");
       setUser(data);
     } catch {
+      clearTokens();
       setUser(null);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [clearTokens]);
 
   useEffect(() => {
     refreshUser();
@@ -50,8 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     const { data } = await api.post("/auth/login", { email: normalizedEmail, password });
-    localStorage.setItem("access_token", data.accessToken);
-    localStorage.setItem("refresh_token", data.refreshToken);
+    setTokens(data.access_token ?? data.accessToken, data.refresh_token ?? data.refreshToken);
     setUser(data.user);
   };
 
@@ -62,15 +66,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: normalizedEmail,
       password,
     });
-    localStorage.setItem("access_token", data.accessToken);
-    localStorage.setItem("refresh_token", data.refreshToken);
+    setTokens(data.access_token ?? data.accessToken, data.refresh_token ?? data.refreshToken);
     setUser(data.user);
   };
 
-  const logout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // server logout is best-effort
+    }
+    clearTokens();
     setUser(null);
+    const currentPath = window.location.pathname;
+    const locale = currentPath.startsWith("/es") ? "es" : "en";
+    window.location.href = `/${locale}/login`;
   };
 
   return (
