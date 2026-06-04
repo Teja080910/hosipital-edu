@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "@/types";
-import api from "@/lib/api";
+import { authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth-store";
 
 interface AuthContextType {
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const { data } = await api.get("/auth/me");
+      const { data } = await authApi.me();
       setUser(data);
     } catch {
       clearTokens();
@@ -54,14 +54,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    const { data } = await api.post("/auth/login", { email: normalizedEmail, password });
+    const { data } = await authApi.login({ email: normalizedEmail, password });
     setTokens(data.access_token ?? data.accessToken, data.refresh_token ?? data.refreshToken);
     setUser(data.user);
   };
 
   const register = async (name: string, email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    const { data } = await api.post("/auth/register", {
+    const { data } = await authApi.register({
       name: name.trim(),
       email: normalizedEmail,
       password,
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await api.post("/auth/logout");
+      await authApi.logout();
     } catch {
       // server logout is best-effort
     }

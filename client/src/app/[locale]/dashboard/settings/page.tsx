@@ -1,18 +1,48 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { PageTransition } from "@/components/page-transition";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PageTransition } from "@/components/page-transition";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageSwitcher } from "@/components/language-switcher";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/use-auth";
+import { usersApi } from "@/lib/api";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
+  const { user, refreshUser } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setEmail(user.email);
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      await usersApi.update(user.id, { name: name.trim() });
+      await refreshUser();
+      toast.success("Profile updated successfully");
+    } catch {
+      toast.error("Failed to update profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <PageTransition>
       <div className="space-y-6 max-w-2xl">
@@ -29,21 +59,31 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarImage src={user?.avatar} />
+                <AvatarFallback>
+                  {user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase() || "U"}
+                </AvatarFallback>
               </Avatar>
-              <Button variant="outline" size="sm">Change Avatar</Button>
+              <Button variant="outline" size="sm" disabled>Change Avatar</Button>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Full name</Label>
-                <Input id="name" defaultValue="John Doe" />
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue="john@example.com" />
+                <Input id="email" type="email" value={email} disabled />
               </div>
             </div>
-            <Button>Save Changes</Button>
+            <Button onClick={handleSave} disabled={isSaving || !name.trim()}>
+              {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
           </CardContent>
         </Card>
 
