@@ -31,22 +31,22 @@ function localized(obj: Record<string, string> | string | null | undefined, loca
 }
 
 export default function CoursesPage() {
-  const t = useTranslations("nav");
+  const t = useTranslations("courses");
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState<string | null>(null);
 
   useEffect(() => {
-    coursesApi.list().then(({ data }) => setCourses(data)).catch(() => toast.error("Failed to load courses")).finally(() => setLoading(false));
-  }, []);
+    coursesApi.list().then(({ data }) => setCourses(data)).catch(() => toast.error(t("load_failed"))).finally(() => setLoading(false));
+  }, [t]);
 
   const handleEnroll = async (courseId: string) => {
     setEnrolling(courseId);
     try {
       await coursesApi.enroll(courseId);
-      toast.success("Enrolled successfully!");
+      toast.success(t("enrolled"));
     } catch {
-      toast.error("Failed to enroll");
+      toast.error(t("enroll_failed"));
     } finally {
       setEnrolling(null);
     }
@@ -64,10 +64,10 @@ export default function CoursesPage() {
     <PageTransition>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">{t("courses")}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
         </div>
         {courses.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">No courses available yet.</div>
+          <div className="text-center py-12 text-muted-foreground">{t("no_courses")}</div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {courses.map((course) => (
@@ -81,7 +81,7 @@ export default function CoursesPage() {
                   thumbnail: course.coverImage || "",
                   progress: 0,
                   lessons: 0,
-                  duration: `${course.durationDays} days`,
+                  duration: `${course.durationDays} ${t("days")}`,
                 }}
                 onEnroll={() => handleEnroll(course.id)}
                 isEnrolling={enrolling === course.id}

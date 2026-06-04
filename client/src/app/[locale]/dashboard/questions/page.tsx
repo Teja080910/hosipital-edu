@@ -65,7 +65,7 @@ export default function QuestionsPage() {
             </div>
 
             {filtered.length === 0 ? (
-              <EmptyState icon={FileQuestion} title="No questions found" description="Try adjusting your filters" />
+              <EmptyState icon={FileQuestion} title={t("no_questions")} description={t("adjust_filters")} />
             ) : viewingId && selectedQuestion ? (
               <QuestionCard
                 question={selectedQuestion}

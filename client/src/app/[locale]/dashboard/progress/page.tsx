@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTransition } from "@/components/page-transition";
@@ -9,26 +10,28 @@ const WeeklyChart = dynamic(() => import("./weekly-chart"), { ssr: false });
 const SpecialtyChart = dynamic(() => import("./specialty-chart"), { ssr: false });
 
 const overallStats = [
-  { label: "Questions Answered", value: "1,247", icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { label: "Overall Accuracy", value: "78%", icon: Target, color: "text-green-500", bg: "bg-green-500/10" },
-  { label: "Study Streak", value: "12 days", icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
-  { label: "Total Hours", value: "48h", icon: Clock, color: "text-purple-500", bg: "bg-purple-500/10" },
+  { key: "questions_answered" as const, value: "1,247", icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { key: "overall_accuracy" as const, value: "78%", icon: Target, color: "text-green-500", bg: "bg-green-500/10" },
+  { key: "study_streak" as const, value: "12 days", icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
+  { key: "total_hours" as const, value: "48h", icon: Clock, color: "text-purple-500", bg: "bg-purple-500/10" },
 ];
 
 export default function ProgressPage() {
+  const t = useTranslations("progress");
+
   return (
     <PageTransition>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Progress</h1>
-          <p className="text-muted-foreground">Track your learning journey</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {overallStats.map((stat) => (
-            <Card key={stat.label}>
+            <Card key={stat.key}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
+                <CardTitle className="text-sm font-medium">{t(stat.key)}</CardTitle>
                 <div className={`rounded-full p-2 ${stat.bg}`}>
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
@@ -43,7 +46,7 @@ export default function ProgressPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Weekly Activity</CardTitle>
+              <CardTitle>{t("weekly_activity")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -54,7 +57,7 @@ export default function ProgressPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Accuracy by Specialty</CardTitle>
+              <CardTitle>{t("accuracy_by_specialty")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -66,7 +69,7 @@ export default function ProgressPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Streak Calendar</CardTitle>
+            <CardTitle>{t("streak_calendar")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-1">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { usePathname } from "@/routing";
 import { Link } from "@/routing";
 import { cn } from "@/lib/utils";
@@ -21,18 +22,18 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/dashboard/questions", icon: FileQuestion, label: "Questions" },
-  { href: "/dashboard/flashcards", icon: Library, label: "Flashcards" },
-  { href: "/dashboard/exams", icon: GraduationCap, label: "Exams" },
-  { href: "/dashboard/courses", icon: BookOpen, label: "Courses" },
-  { href: "/dashboard/progress", icon: BarChart3, label: "Progress" },
-  { href: "/dashboard/videos", icon: Video, label: "Videos" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "dashboard" },
+  { href: "/dashboard/questions", icon: FileQuestion, label: "questions" },
+  { href: "/dashboard/flashcards", icon: Library, label: "flashcards" },
+  { href: "/dashboard/exams", icon: GraduationCap, label: "exams" },
+  { href: "/dashboard/courses", icon: BookOpen, label: "courses" },
+  { href: "/dashboard/progress", icon: BarChart3, label: "progress" },
+  { href: "/dashboard/videos", icon: Video, label: "videos" },
 ];
 
 const bottomItems = [
-  { href: "/dashboard/settings", icon: Settings, label: "Settings" },
-  { href: "/dashboard/admin", icon: Shield, label: "Admin" },
+  { href: "/dashboard/settings", icon: Settings, label: "settings" },
+  { href: "/dashboard/admin", icon: Shield, label: "admin" },
 ];
 
 interface SidebarProps {
@@ -41,6 +42,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+  const sb = useTranslations("sidebar");
+  const n = useTranslations("nav");
   const pathname = usePathname();
 
   const isActive = (href: string) => {
@@ -69,7 +72,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           </div>
           {!isCollapsed && (
             <span className="text-lg font-bold bg-gradient-to-r from-foreground via-blue-500 to-foreground dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent">
-              Hospital EDU
+              {sb("brand")}
             </span>
           )}
         </Link>
@@ -95,7 +98,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-primary shadow-sm shadow-primary/50" />
                   )}
                   <item.icon className={cn("h-4.5 w-4.5 flex-shrink-0", active && "drop-shadow-sm")} />
-                  {!isCollapsed && <span>{item.label}</span>}
+                  {!isCollapsed && <span>{n(item.label)}</span>}
                 </span>
               </Link>
             );
@@ -123,7 +126,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-primary shadow-sm shadow-primary/50" />
                   )}
                   <item.icon className={cn("h-4.5 w-4.5 flex-shrink-0", active && "drop-shadow-sm")} />
-                  {!isCollapsed && <span>{item.label}</span>}
+                  {!isCollapsed && <span>{n(item.label)}</span>}
                 </span>
               </Link>
             );

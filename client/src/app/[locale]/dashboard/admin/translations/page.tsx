@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ interface TranslationRow {
 }
 
 export default function AdminTranslationsPage() {
+  const t = useTranslations("admin");
   const [rows, setRows] = useState<TranslationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -47,11 +49,11 @@ export default function AdminTranslationsPage() {
       setNamespaces(Array.from(ns).sort());
       setRows(Object.values(grouped));
     } catch {
-      toast.error("Failed to load translations");
+      toast.error(t("translations_load_failed"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { fetchTranslations(); }, [fetchTranslations]);
 
@@ -64,24 +66,24 @@ export default function AdminTranslationsPage() {
     try {
       if (row.enId) await translationsApi.update(row.enId, { value: row.en });
       if (row.esId) await translationsApi.update(row.esId, { value: row.es });
-      toast.success("Saved");
+      toast.success(t("translations_saved"));
     } catch {
-      toast.error("Failed to save");
+      toast.error(t("translations_save_failed"));
     } finally {
       setSavingId(null);
     }
   };
 
   const addNew = async () => {
-    const key = prompt("Enter translation key (e.g. nav.home):");
+    const key = prompt(t("enter_key"));
     if (!key) return;
     try {
       await translationsApi.create({ key, locale: "en", value: "", namespace: "custom" });
       await translationsApi.create({ key, locale: "es", value: "", namespace: "custom" });
-      toast.success("Translation key added");
+      toast.success(t("key_added"));
       fetchTranslations();
     } catch {
-      toast.error("Failed to add key");
+      toast.error(t("key_add_failed"));
     }
   };
 
@@ -95,37 +97,37 @@ export default function AdminTranslationsPage() {
       a.download = "translations.json";
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Exported");
+      toast.success(t("exported"));
     } catch {
-      toast.error("Export failed");
+      toast.error(t("export_failed"));
     }
   };
 
   const autoTranslate = async () => {
     try {
       await translationsApi.autoTranslate("en", "es", namespaceFilter === "all" ? undefined : namespaceFilter);
-      toast.success("Auto-translate complete");
+      toast.success(t("auto_translate_done"));
       fetchTranslations();
     } catch {
-      toast.error("Auto-translate failed");
+      toast.error(t("auto_translate_failed"));
     }
   };
 
   const filteredRows = namespaceFilter === "all" ? rows : rows.filter((r) => r.namespace === namespaceFilter);
 
   const columns = [
-    { key: "key", header: "Key", sortable: true },
-    { key: "namespace", header: "Namespace", render: (row: TranslationRow) => <Badge variant="outline">{row.namespace}</Badge> },
+    { key: "key", header: t("key"), sortable: true },
+    { key: "namespace", header: t("namespace"), render: (row: TranslationRow) => <Badge variant="outline">{row.namespace}</Badge> },
     {
       key: "en",
-      header: "English",
+      header: t("english"),
       render: (row: TranslationRow) => (
         <Input value={row.en} onChange={(e) => updateValue(row.key, "en", e.target.value)} className="h-8 text-sm" />
       ),
     },
     {
       key: "es",
-      header: "Spanish",
+      header: t("spanish"),
       render: (row: TranslationRow) => (
         <Input value={row.es} onChange={(e) => updateValue(row.key, "es", e.target.value)} className="h-8 text-sm" />
       ),
@@ -154,24 +156,24 @@ export default function AdminTranslationsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Translations</h1>
-            <p className="text-muted-foreground">Manage i18n translation strings</p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("translations_title")}</h1>
+            <p className="text-muted-foreground">{t("translations_subtitle")}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExport}><Download className="h-4 w-4 mr-2" /> Export</Button>
-            <Button variant="outline" onClick={autoTranslate}><Languages className="h-4 w-4 mr-2" /> Auto-Translate</Button>
-            <Button onClick={addNew}><Plus className="h-4 w-4 mr-2" /> Add Key</Button>
+            <Button variant="outline" onClick={handleExport}><Download className="h-4 w-4 mr-2" /> {t("export")}</Button>
+            <Button variant="outline" onClick={autoTranslate}><Languages className="h-4 w-4 mr-2" /> {t("auto_translate")}</Button>
+            <Button onClick={addNew}><Plus className="h-4 w-4 mr-2" /> {t("add_key")}</Button>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Filter by namespace:</span>
+          <span className="text-sm text-muted-foreground">{t("filter_namespace")}</span>
           <Select value={namespaceFilter} onValueChange={setNamespaceFilter}>
             <SelectTrigger className="w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="all">{t("all")}</SelectItem>
               {namespaces.map((ns) => (
                 <SelectItem key={ns} value={ns}>{ns}</SelectItem>
               ))}

@@ -18,7 +18,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { usePathname, useRouter, Link } from "@/routing";
+import { usePathname, Link } from "@/routing";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -90,13 +90,15 @@ const stagger = (i: number) => ({
 
 export default function LandingPage() {
   const t = useTranslations("landing");
+  const a = useTranslations("auth");
+  const n = useTranslations("nav");
+  const c = useTranslations("common");
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
-  const router = useRouter();
-  const currentLocale = pathname.startsWith("/es") ? "es" : "en";
+  const currentLocale = typeof window !== "undefined" ? window.location.pathname.split("/")[1] || "en" : "en";
   const { user } = useAuth();
 const switchLocale = (locale: string) => {
-    router.push(pathname.replace(/^\/(en|es)/, `/${locale}`));
+    window.location.assign(window.location.pathname.replace(/^\/(en|es)/, `/${locale}`));
   };
 
   return (
@@ -118,11 +120,11 @@ const switchLocale = (locale: string) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[130px] rounded-xl border-border/50 shadow-lg">
-                <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
-                  🇺🇸 English {currentLocale === "en" && <span className="ml-auto text-xs text-primary">active</span>}
+                <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
+                  🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">active</span>}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
-                  🇪🇸 Español {currentLocale === "es" && <span className="ml-auto text-xs text-primary">active</span>}
+                <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
+                  🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">active</span>}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -146,11 +148,11 @@ const switchLocale = (locale: string) => {
               </Link>
             ) : (
               <><Link href="/login">
-                <Button variant="ghost" size="sm" className="text-sm">Sign in</Button>
+                <Button variant="ghost" size="sm" className="text-sm">{a("login_submit")}</Button>
               </Link>
               <Link href="/register">
                 <Button size="sm" className="text-sm shadow-subtle">
-                  Get Started
+                  {t("get_started")}
                   <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Button>
               </Link></>
@@ -177,7 +179,7 @@ const switchLocale = (locale: string) => {
             >
               <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium animate-fade-in">
                 <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary" />
-                Trusted by 10,000+ medical professionals
+                {t("trusted_badge")}
               </Badge>
             </motion.div>
 
@@ -187,11 +189,11 @@ const switchLocale = (locale: string) => {
               transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] as const }}
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]"
             >
-              Master Your{" "}
+              {t("hero_heading_1")}{" "}
               <span className="bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent">
-                Medical Exams
+                {t("hero_heading_2")}
               </span>{" "}
-              with Confidence
+              {t("hero_heading_3")}
             </motion.h1>
 
             <motion.p
@@ -211,13 +213,13 @@ const switchLocale = (locale: string) => {
             >
               <Link href="/register">
                 <Button size="xl" className="text-base shadow-heavy hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
-                  Start Free Trial
+                  {t("start_trial")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link href="#features">
                 <Button variant="outline" size="xl" className="text-base hover:shadow-subtle hover:-translate-y-0.5 transition-all duration-200">
-                  See How It Works
+                  {t("see_how")}
                 </Button>
               </Link>
             </motion.div>
@@ -246,12 +248,12 @@ const switchLocale = (locale: string) => {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] to-transparent" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div {...fadeUp} className="text-center mb-16">
-            <Badge variant="secondary" className="mb-4">Everything you need</Badge>
+            <Badge variant="secondary" className="mb-4">{t("everything_need")}</Badge>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
               {t("features_title")}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Comprehensive tools designed to help you ace your medical exams
+              {t("features_subtitle")}
             </p>
           </motion.div>
 
@@ -279,12 +281,12 @@ const switchLocale = (locale: string) => {
       <section className="relative py-24 lg:py-32 bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div {...fadeUp} className="text-center mb-16">
-            <Badge variant="secondary" className="mb-4">Testimonials</Badge>
+            <Badge variant="secondary" className="mb-4">{t("testimonials_title")}</Badge>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
               {t("testimonials_title")}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Hear from our community of successful medical professionals
+              {t("testimonials_subtitle")}
             </p>
           </motion.div>
 
@@ -323,12 +325,12 @@ const switchLocale = (locale: string) => {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-primary/[0.02]" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div {...fadeUp} className="text-center mb-16">
-            <Badge variant="secondary" className="mb-4">Pricing</Badge>
+            <Badge variant="secondary" className="mb-4">{t("pricing_title")}</Badge>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
               {t("pricing_title")}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Choose the plan that fits your study journey
+              {t("pricing_subtitle")}
             </p>
           </motion.div>
 
@@ -342,7 +344,7 @@ const switchLocale = (locale: string) => {
                   {plan.popular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                       <Badge className="px-4 py-1 text-xs font-semibold bg-primary text-primary-foreground shadow-subtle">
-                        Most Popular
+                        {t("most_popular")}
                       </Badge>
                     </div>
                   )}
@@ -367,7 +369,7 @@ const switchLocale = (locale: string) => {
                       variant={plan.popular ? "default" : "outline"}
                       size="lg"
                     >
-                      Get Started
+                      {t("get_started")}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardFooter>
@@ -386,6 +388,9 @@ const switchLocale = (locale: string) => {
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
               {t("faq_title")}
             </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              {t("faq_subtitle")}
+            </p>
           </motion.div>
 
           <div className="space-y-3">
@@ -414,24 +419,23 @@ const switchLocale = (locale: string) => {
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[150px]" />
         <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
           <motion.div {...fadeUp}>
-            <Badge variant="secondary" className="mb-4">Get Started Today</Badge>
+            <Badge variant="secondary" className="mb-4">{t("start_trial")}</Badge>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
               {t("cta_title")}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of medical professionals who trust Hospital EDU for their exam preparation.
-              Start your journey to success today.
+              {t("cta_subtitle")}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/register">
                 <Button size="xl" className="text-base shadow-heavy hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 bg-primary">
-                  Start Free Trial
+                  {t("start_trial")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link href="#features">
                 <Button variant="outline" size="xl" className="text-base hover:shadow-subtle transition-all duration-200">
-                  Talk to Sales
+                  {t("talk_to_sales")}
                 </Button>
               </Link>
             </div>
@@ -450,12 +454,12 @@ const switchLocale = (locale: string) => {
               <span className="font-semibold">Hospital EDU</span>
             </Link>
             <div className="flex gap-6 text-sm text-muted-foreground">
-              <Link href="#" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-              <Link href="#" className="hover:text-foreground transition-colors">Terms of Service</Link>
-              <Link href="#" className="hover:text-foreground transition-colors">Contact</Link>
+              <Link href="#" className="hover:text-foreground transition-colors">{t("privacy")}</Link>
+              <Link href="#" className="hover:text-foreground transition-colors">{t("terms")}</Link>
+              <Link href="#" className="hover:text-foreground transition-colors">{t("contact")}</Link>
             </div>
             <p className="text-sm text-muted-foreground">
-              &copy; 2024 Hospital EDU. All rights reserved.
+              {t("copyright")}
             </p>
           </div>
         </div>

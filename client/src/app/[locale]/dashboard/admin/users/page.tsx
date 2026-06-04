@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,8 @@ import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 
 export default function AdminUsersPage() {
+  const t = useTranslations("admin");
+  const c = useTranslations("common");
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [changingRole, setChangingRole] = useState<string | null>(null);
@@ -27,11 +30,11 @@ export default function AdminUsersPage() {
       const { data } = await usersApi.list();
       setUsers(data);
     } catch {
-      toast.error("Failed to load users");
+      toast.error(t("load_failed"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -39,21 +42,21 @@ export default function AdminUsersPage() {
     setChangingRole(userId);
     try {
       await usersApi.changeRole(userId, role);
-      toast.success(`Role changed to ${role}`);
+      toast.success(t("role_changed", { role }));
       fetchUsers();
     } catch {
-      toast.error("Failed to change role");
+      toast.error(t("role_change_failed"));
     } finally {
       setChangingRole(null);
     }
   };
 
   const columns = [
-    { key: "name", header: "Name", sortable: true },
-    { key: "email", header: "Email", sortable: true },
+    { key: "name", header: t("name_col"), sortable: true },
+    { key: "email", header: t("email_col"), sortable: true },
     {
       key: "role",
-      header: "Role",
+      header: t("role"),
       render: (row: any) => (
         <div className="flex items-center gap-2">
           <Select
@@ -75,14 +78,14 @@ export default function AdminUsersPage() {
     },
     {
       key: "status",
-      header: "Status",
+      header: t("status"),
       render: (row: any) => (
         <Badge variant={row.deletedAt ? "destructive" : "default"}>
-          {row.deletedAt ? "deleted" : "active"}
+          {row.deletedAt ? "deleted" : c("active")}
         </Badge>
       ),
     },
-    { key: "createdAt", header: "Joined", sortable: true },
+    { key: "createdAt", header: t("joined"), sortable: true },
     {
       key: "actions",
       header: "",
@@ -93,17 +96,17 @@ export default function AdminUsersPage() {
             variant="ghost"
             className="text-destructive"
             onClick={async () => {
-              if (!confirm("Delete this user?")) return;
+              if (!confirm(t("delete_confirm"))) return;
               try {
                 await usersApi.remove(row.id);
-                toast.success("User deleted");
+                toast.success(t("user_deleted"));
                 fetchUsers();
               } catch {
-                toast.error("Failed to delete");
+                toast.error(t("delete_failed"));
               }
             }}
           >
-            Delete
+            {t("delete_user")}
           </Button>
         ),
     },
@@ -124,8 +127,8 @@ export default function AdminUsersPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-            <p className="text-muted-foreground">Manage platform users</p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("user_mgmt_title")}</h1>
+            <p className="text-muted-foreground">{t("user_mgmt_subtitle")}</p>
           </div>
         </div>
         <Card>

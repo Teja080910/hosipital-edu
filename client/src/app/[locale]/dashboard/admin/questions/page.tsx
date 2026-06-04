@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,11 +17,14 @@ const mockQuestions = [
 ];
 
 export default function AdminQuestionsPage() {
+  const t = useTranslations("admin");
+  const c = useTranslations("common");
+
   const columns = [
-    { key: "text", header: "Question", sortable: true },
-    { key: "specialty", header: "Specialty", sortable: true },
-    { key: "difficulty", header: "Difficulty" },
-    { key: "status", header: "Status", render: (row: any) => <Badge variant={row.status === "active" ? "default" : "secondary"}>{row.status}</Badge> },
+    { key: "text", header: t("question_col"), sortable: true },
+    { key: "specialty", header: t("specialty"), sortable: true },
+    { key: "difficulty", header: t("difficulty") },
+    { key: "status", header: t("status"), render: (row: any) => <Badge variant={row.status === "active" ? "default" : "secondary"}>{c("active")}</Badge> },
   ];
 
   return (
@@ -28,11 +32,11 @@ export default function AdminQuestionsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Question Management</h1>
-            <p className="text-muted-foreground">Create and manage question bank</p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("question_mgmt_title")}</h1>
+            <p className="text-muted-foreground">{t("question_mgmt_subtitle")}</p>
           </div>
           <Button>
-            <Plus className="h-4 w-4 mr-2" /> Add Question
+            <Plus className="h-4 w-4 mr-2" /> {t("add_question")}
           </Button>
         </div>
         <Card>

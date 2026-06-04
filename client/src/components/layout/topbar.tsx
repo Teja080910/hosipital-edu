@@ -1,6 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,24 +29,24 @@ import {
   Languages,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 
 interface TopbarProps {
   onMenuClick?: () => void;
 }
 
 export function Topbar({ onMenuClick }: TopbarProps) {
+  const tb = useTranslations("topbar");
+  const c = useTranslations("common");
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [searchFocused, setSearchFocused] = useState(false);
 
-  const currentLocale = pathname.startsWith("/es") ? "es" : "en";
+const currentLocale = typeof window !== "undefined" ? window.location.pathname.split("/")[1] || "en" : "en";
 
   const switchLocale = (locale: string) => {
-    const newPath = pathname.replace(/^\/(en|es)/, `/${locale}`);
-    router.push(newPath);
+    window.location.assign(window.location.pathname.replace(/^\/(en|es)/, `/${locale}`));
   };
 
   return (
@@ -65,7 +67,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search questions, courses..."
+            placeholder={tb("search")}
             className={cn(
               "h-9 pl-9 bg-muted/40 border-border/50 transition-all duration-200",
               "placeholder:text-muted-foreground/60",
@@ -85,11 +87,11 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="rounded-xl border-border/50 shadow-lg mt-1 min-w-[130px]">
-            <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
-              🇺🇸 English {currentLocale === "en" && <span className="ml-auto text-xs text-primary">active</span>}
+            <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
+              🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">active</span>}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
-              🇪🇸 Español {currentLocale === "es" && <span className="ml-auto text-xs text-primary">active</span>}
+            <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
+              🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">active</span>}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -122,7 +124,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                 </AvatarFallback>
               </Avatar>
               <span className="hidden md:inline text-sm font-medium max-w-[120px] truncate">
-                {user?.name || "User"}
+                {user?.name || tb("user")}
               </span>
               <ChevronDown className="h-3 w-3 text-foreground/40" />
             </Button>
@@ -130,7 +132,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           <DropdownMenuContent align="end" className="w-56 animate-scale-in rounded-xl border-border/50 shadow-lg mt-1">
             <DropdownMenuLabel>
               <div className="flex flex-col">
-                <span className="font-medium">{user?.name || "User"}</span>
+                <span className="font-medium">{user?.name || tb("user")}</span>
                 <span className="text-xs text-muted-foreground font-normal mt-0.5">
                   {user?.email || "user@example.com"}
                 </span>
@@ -139,16 +141,16 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             <DropdownMenuSeparator />
 <DropdownMenuItem onClick={() => router.push("/dashboard/settings")} className="rounded-lg">
                <User className="h-4 w-4 mr-2" />
-               Profile
+               {tb("profile")}
              </DropdownMenuItem>
              <DropdownMenuItem onClick={() => router.push("/dashboard/settings")} className="rounded-lg">
               <Settings className="h-4 w-4 mr-2" />
-              Settings
+              {tb("settings")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive rounded-lg">
               <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              {tb("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

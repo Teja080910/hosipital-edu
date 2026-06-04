@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +15,14 @@ const mockCourses = [
 ];
 
 export default function AdminCoursesPage() {
+  const t = useTranslations("admin");
+  const c = useTranslations("common");
+
   const columns = [
-    { key: "title", header: "Title", sortable: true },
-    { key: "lessons", header: "Lessons" },
-    { key: "students", header: "Students" },
-    { key: "status", header: "Status", render: (row: any) => <Badge variant={row.status === "published" ? "default" : "secondary"}>{row.status}</Badge> },
+    { key: "title", header: t("title_col"), sortable: true },
+    { key: "lessons", header: t("lessons_col") },
+    { key: "students", header: t("students") },
+    { key: "status", header: t("status"), render: (row: any) => <Badge variant={row.status === "published" ? "default" : "secondary"}>{row.status === "published" ? c("published") : c("draft")}</Badge> },
   ];
 
   return (
@@ -26,10 +30,10 @@ export default function AdminCoursesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Course Management</h1>
-            <p className="text-muted-foreground">Manage courses and lessons</p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("course_mgmt_title")}</h1>
+            <p className="text-muted-foreground">{t("course_mgmt_subtitle")}</p>
           </div>
-          <Button><Plus className="h-4 w-4 mr-2" /> Add Course</Button>
+          <Button><Plus className="h-4 w-4 mr-2" /> {t("add_course")}</Button>
         </div>
         <Card>
           <CardContent className="pt-6">

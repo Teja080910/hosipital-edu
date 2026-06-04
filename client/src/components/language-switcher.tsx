@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter, usePathname } from "@/routing";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,7 +8,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Globe } from "lucide-react";
-import { useLocale } from "next-intl";
 
 const locales = [
   { code: "en", label: "EN" },
@@ -17,12 +15,11 @@ const locales = [
 ];
 
 export function LanguageSwitcher() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const currentLocale = useLocale();
+  const currentLocale = typeof window !== "undefined" ? window.location.pathname.split("/")[1] || "en" : "en";
 
   const switchLocale = (locale: string) => {
-    router.replace(pathname, { locale });
+    const current = window.location.pathname;
+    window.location.assign(current.replace(/^\/(en|es)/, `/${locale}`));
   };
 
   return (
@@ -36,7 +33,7 @@ export function LanguageSwitcher() {
         {locales.map((l) => (
           <DropdownMenuItem
             key={l.code}
-            onClick={() => switchLocale(l.code)}
+            onSelect={() => switchLocale(l.code)}
             disabled={l.code === currentLocale}
           >
             {l.label}

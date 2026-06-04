@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { PageTransition } from "@/components/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function LessonPage() {
+  const t = useTranslations("lessons");
+  const c = useTranslations("common");
   const { slug, lessonId } = useParams<{ slug: string; lessonId: string }>();
   const router = useRouter();
   const [lesson, setLesson] = useState<any>(null);
@@ -26,9 +29,9 @@ export default function LessonPage() {
         });
       });
       if (found.length > 0) setLesson(found[0]);
-      else toast.error("Lesson not found");
-    }).catch(() => toast.error("Failed to load lesson")).finally(() => setLoading(false));
-  }, [slug, lessonId]);
+      else toast.error(t("not_found"));
+    }).catch(() => toast.error(t("load_failed"))).finally(() => setLoading(false));
+  }, [slug, lessonId, t]);
 
   if (loading) {
     return (
@@ -42,8 +45,8 @@ export default function LessonPage() {
     return (
       <PageTransition>
         <div className="text-center py-12">
-          <h2 className="text-xl font-semibold">Lesson not found</h2>
-          <Button variant="link" onClick={() => router.back()}>Go back</Button>
+          <h2 className="text-xl font-semibold">{t("not_found")}</h2>
+          <Button variant="link" onClick={() => router.back()}>{t("go_back")}</Button>
         </div>
       </PageTransition>
     );
@@ -55,7 +58,7 @@ export default function LessonPage() {
     <PageTransition>
       <div className="space-y-6 max-w-4xl">
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="h-4 w-4" /> {t("back")}
         </Button>
 
         <div className="flex items-start justify-between">
@@ -69,7 +72,7 @@ export default function LessonPage() {
                   {Math.floor(lesson.duration / 60)}:{(lesson.duration % 60).toString().padStart(2, "0")}
                 </span>
               )}
-              {lesson.isFreePreview && <Badge variant="outline">Free Preview</Badge>}
+              {lesson.isFreePreview && <Badge variant="outline">{t("free_preview")}</Badge>}
             </div>
           </div>
         </div>
@@ -90,7 +93,7 @@ export default function LessonPage() {
           {lesson.contentType === "pdf" && lesson.pdfUrl && (
             <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
               <FileText className="h-16 w-16 text-muted-foreground" />
-              <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-primary underline">Open PDF</a>
+              <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-primary underline">{t("open_pdf")}</a>
             </div>
           )}
 
@@ -100,15 +103,15 @@ export default function LessonPage() {
 
           {lesson.contentType === "quiz" && (
             <div className="text-center py-16 text-muted-foreground">
-              <p>Quiz content will be available in the lesson viewer.</p>
+              <p>{t("quiz_coming")}</p>
             </div>
           )}
         </div>
 
         <div className="flex justify-between pt-4">
-          <Button variant="outline" onClick={() => router.back()}>Back to Course</Button>
+          <Button variant="outline" onClick={() => router.back()}>{t("back_to_course")}</Button>
           <Button>
-            <CheckCircle className="h-4 w-4 mr-2" /> Mark as Complete
+            <CheckCircle className="h-4 w-4 mr-2" /> {t("mark_complete")}
           </Button>
         </div>
       </div>

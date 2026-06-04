@@ -29,10 +29,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      toast.success("Welcome back!");
+      toast.success(t("welcome_back"));
       router.push("/");
     } catch {
-      toast.error("Invalid credentials");
+      toast.error(t("invalid_credentials"));
     } finally {
       setLoading(false);
     }
@@ -68,7 +68,7 @@ export default function LoginPage() {
               </div>
             </motion.div>
             <CardTitle className="text-2xl font-bold tracking-tight">{t("login_title")}</CardTitle>
-            <CardDescription className="text-sm mt-1.5">Enter your credentials to access your account</CardDescription>
+            <CardDescription className="text-sm mt-1.5">{t("login_subtitle")}</CardDescription>
           </CardHeader>
 
           <CardContent className="pb-8 px-7">
@@ -85,7 +85,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t("email_placeholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setFocusedField("email")}
@@ -109,14 +109,14 @@ export default function LoginPage() {
                     {t("password_label")}
                   </Label>
                   <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                    Forgot password?
+                    {t("forgot_password")}
                   </Link>
                 </div>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder={t("password_placeholder")}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setFocusedField("password")}
@@ -151,7 +151,7 @@ export default function LoginPage() {
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                      Signing in...
+                      {t("signing_in")}
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
@@ -178,8 +178,8 @@ export default function LoginPage() {
         </Card>
 
         <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground/60">
-          <span className="flex items-center gap-1.5"><Sparkles className="h-3 w-3" /> Trusted by 10k+ doctors</span>
-          <span className="flex items-center gap-1.5"><GraduationCap className="h-3 w-3" /> ENARM & USMLE prep</span>
+          <span className="flex items-center gap-1.5"><Sparkles className="h-3 w-3" /> {t("trusted_by")}</span>
+          <span className="flex items-center gap-1.5"><GraduationCap className="h-3 w-3" /> {t("exam_prep")}</span>
         </div>
       </motion.div>
     </div>

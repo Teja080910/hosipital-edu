@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
@@ -15,12 +16,14 @@ const mockVideos = [
 ];
 
 export default function VideosPage() {
+  const t = useTranslations("videos");
+
   return (
     <PageTransition>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Video Classes</h1>
-          <p className="text-muted-foreground">Expert-led video lectures on key medical topics</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -43,7 +46,7 @@ export default function VideosPage() {
                     <Clock className="h-3 w-3" /> {video.duration}
                   </span>
                   <Badge variant="secondary" className="text-xs">{video.category}</Badge>
-                  <span>{video.views} views</span>
+                  <span>{video.views} {t("views")}</span>
                 </div>
               </CardContent>
             </Card>

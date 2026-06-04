@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { PageTransition } from "@/components/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function CourseDetailPage() {
+  const t = useTranslations("courses");
+  const c = useTranslations("common");
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -24,8 +27,8 @@ export default function CourseDetailPage() {
   useEffect(() => {
     coursesApi.get(slug).then(({ data }) => {
       setCourse(data);
-    }).catch(() => toast.error("Course not found")).finally(() => setLoading(false));
-  }, [slug]);
+    }).catch(() => toast.error(t("not_found"))).finally(() => setLoading(false));
+  }, [slug, t]);
 
   const handleEnroll = async () => {
     if (!course) return;
@@ -33,9 +36,9 @@ export default function CourseDetailPage() {
     try {
       await coursesApi.enroll(course.id);
       setIsEnrolled(true);
-      toast.success("Enrolled successfully!");
+      toast.success(t("enrolled"));
     } catch {
-      toast.error("Failed to enroll");
+      toast.error(t("enroll_failed"));
     } finally {
       setEnrolling(false);
     }
@@ -53,8 +56,8 @@ export default function CourseDetailPage() {
     return (
       <PageTransition>
         <div className="text-center py-12">
-          <h2 className="text-xl font-semibold">Course not found</h2>
-          <Button variant="link" onClick={() => router.back()}>Go back</Button>
+          <h2 className="text-xl font-semibold">{t("not_found")}</h2>
+          <Button variant="link" onClick={() => router.back()}>{t("go_back")}</Button>
         </div>
       </PageTransition>
     );
@@ -76,9 +79,9 @@ export default function CourseDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">{totalLessons} lessons</Badge>
-          <Badge variant="secondary">{course.durationDays} days access</Badge>
-          {course.hasCertificate && <Badge variant="outline">Certificate</Badge>}
+          <Badge variant="secondary">{totalLessons} {t("lessons")}</Badge>
+          <Badge variant="secondary">{course.durationDays} {t("days_access")}</Badge>
+          {course.hasCertificate && <Badge variant="outline">{t("certificate")}</Badge>}
           {parseFloat(course.price) > 0 && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <DollarSign className="h-3 w-3" /> ${course.price}
@@ -89,17 +92,17 @@ export default function CourseDetailPage() {
         {!isEnrolled && (
           <Button size="lg" onClick={handleEnroll} disabled={enrolling}>
             {enrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {parseFloat(course.price) > 0 ? `Enroll - $${course.price}` : "Enroll Free"}
+            {parseFloat(course.price) > 0 ? `Enroll - $${course.price}` : t("enroll_free")}
           </Button>
         )}
-        {isEnrolled && <Badge className="text-sm px-3 py-1">Enrolled</Badge>}
+        {isEnrolled && <Badge className="text-sm px-3 py-1">{t("enrolled_badge")}</Badge>}
 
         <Separator />
 
         <div>
-          <h2 className="text-xl font-semibold mb-4">Course Content</h2>
+          <h2 className="text-xl font-semibold mb-4">{t("course_content")}</h2>
           {course.modules?.length === 0 && (
-            <p className="text-muted-foreground">No content available yet.</p>
+            <p className="text-muted-foreground">{t("no_content")}</p>
           )}
           <div className="space-y-4">
             {course.modules?.map((mod: any, mi: number) => {
@@ -108,7 +111,7 @@ export default function CourseDetailPage() {
                 <Card key={mod.id}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <span className="text-muted-foreground">Module {mi + 1}</span>
+                      <span className="text-muted-foreground">{t("module")} {mi + 1}</span>
                       <Separator orientation="vertical" className="h-4" />
                       {modTitle}
                     </CardTitle>

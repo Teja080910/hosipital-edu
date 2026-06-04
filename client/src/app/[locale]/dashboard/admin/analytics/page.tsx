@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTransition } from "@/components/page-transition";
 import { StatsCard } from "@/components/admin/stats-card";
@@ -27,25 +28,27 @@ const examCompletion = [
 ];
 
 export default function AdminAnalyticsPage() {
+  const t = useTranslations("admin");
+
   return (
     <PageTransition>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground">Platform performance metrics</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("analytics_title")}</h1>
+          <p className="text-muted-foreground">{t("analytics_subtitle")}</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard icon={Users} label="Total Users" value="12,450" trend="+12%" color="text-blue-500" />
-          <StatsCard icon={FileQuestion} label="Questions Answered" value="89,234" trend="+15%" color="text-green-500" />
-          <StatsCard icon={GraduationCap} label="Exams Taken" value="3,210" trend="+8%" color="text-orange-500" />
-          <StatsCard icon={DollarSign} label="MRR" value="$38,400" trend="+22%" color="text-purple-500" />
+          <StatsCard icon={Users} label={t("total_users")} value="12,450" trend="+12%" color="text-blue-500" />
+          <StatsCard icon={FileQuestion} label={t("questions_answered")} value="89,234" trend="+15%" color="text-green-500" />
+          <StatsCard icon={GraduationCap} label={t("exams_taken")} value="3,210" trend="+8%" color="text-orange-500" />
+          <StatsCard icon={DollarSign} label={t("mrr")} value="$38,400" trend="+22%" color="text-purple-500" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>User Growth</CardTitle>
+              <CardTitle>{t("user_growth")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -64,7 +67,7 @@ export default function AdminAnalyticsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Revenue</CardTitle>
+              <CardTitle>{t("revenue")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -84,7 +87,7 @@ export default function AdminAnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Exam Completion Rates</CardTitle>
+            <CardTitle>{t("exam_completion")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -94,8 +97,8 @@ export default function AdminAnalyticsPage() {
                   <XAxis dataKey="name" className="text-xs text-muted-foreground" />
                   <YAxis className="text-xs text-muted-foreground" />
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }} />
-                  <Bar dataKey="started" name="Started" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="completed" name="Completed" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="started" name={t("started")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="completed" name={t("completed")} fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
