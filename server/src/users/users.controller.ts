@@ -58,4 +58,16 @@ export class UsersController {
   async remove(@Param("id") id: string) {
     return this.usersService.softDelete(id);
   }
+
+  @Patch(":id/role")
+  @UseGuards(RolesGuard)
+  @Roles("admin")
+  @ApiOperation({ summary: "Change user role (admin)" })
+  async changeRole(
+    @Param("id") id: string,
+    @Body("role") role: string,
+    @CurrentUser() admin: any,
+  ) {
+    return this.usersService.update(id, { role });
+  }
 }

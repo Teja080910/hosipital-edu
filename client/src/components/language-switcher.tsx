@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Globe } from "lucide-react";
+import { useLocale } from "next-intl";
 
 const locales = [
   { code: "en", label: "EN" },
@@ -18,12 +19,10 @@ const locales = [
 export function LanguageSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
-
-  const currentLocale = locales.find((l) => pathname.startsWith(`/${l.code}`)) || locales[0];
+  const currentLocale = useLocale();
 
   const switchLocale = (locale: string) => {
-    const newPath = pathname.replace(/^\/[a-z]{2}/, `/${locale}`);
-    router.push(newPath);
+    router.replace(pathname, { locale });
   };
 
   return (
@@ -38,7 +37,7 @@ export function LanguageSwitcher() {
           <DropdownMenuItem
             key={l.code}
             onClick={() => switchLocale(l.code)}
-            disabled={l.code === currentLocale.code}
+            disabled={l.code === currentLocale}
           >
             {l.label}
           </DropdownMenuItem>

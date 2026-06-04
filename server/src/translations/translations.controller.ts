@@ -16,14 +16,13 @@ import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("translations")
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles("admin")
-@ApiBearerAuth()
 @Controller("translations")
 export class TranslationsController {
   constructor(private translationsService: TranslationsService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "List translations with filters" })
   async findAll(
     @Query("locale") locale?: string,
@@ -33,12 +32,18 @@ export class TranslationsController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Create new translation key" })
-  async create(@Body() data: any) {
-    return this.translationsService.create(data);
+  async create(@Body() data: any, @CurrentUser() user: any) {
+    return this.translationsService.create({ ...data, updatedBy: user.id });
   }
 
   @Put(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Update translation" })
   async update(
     @Param("id") id: string,
@@ -49,12 +54,18 @@ export class TranslationsController {
   }
 
   @Post("export")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Export all translations to JSON" })
   async exportAll() {
     return this.translationsService.exportAll();
   }
 
   @Post("auto-translate")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
   @ApiOperation({ summary: "AI auto-translate to new locale" })
   async autoTranslate(
     @Body("sourceLocale") sourceLocale: string,
