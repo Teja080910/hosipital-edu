@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
@@ -21,9 +22,9 @@ export class CoursesController {
   constructor(private coursesService: CoursesService) {}
 
   @Get()
-  @ApiOperation({ summary: "List active courses" })
-  async findAll() {
-    return this.coursesService.findAll();
+  @ApiOperation({ summary: "List courses" })
+  async findAll(@Query("all") all?: string) {
+    return this.coursesService.findAll(all !== "true");
   }
 
   @Get(":slug")

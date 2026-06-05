@@ -5,7 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
-  useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import type { User } from "@/types";
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearTokens = useAuthStore((s) => s.clearTokens);
   const storedAccessToken = useAuthStore((s) => s.accessToken);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = async () => {
     const token = useAuthStore.getState().accessToken;
     if (!token) {
       setUser(null);
@@ -46,11 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [clearTokens]);
+  };
 
+  const fetched = useRef(false);
   useEffect(() => {
+    if (fetched.current) return;
+    fetched.current = true;
     refreshUser();
-  }, [refreshUser]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();

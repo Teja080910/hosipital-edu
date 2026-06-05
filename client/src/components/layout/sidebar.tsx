@@ -19,7 +19,15 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Users,
+  FileText,
+  CreditCard,
+  Languages,
+  BarChart,
+  BookOpenCheck,
 } from "lucide-react";
+import { useState } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "dashboard" },
@@ -31,9 +39,15 @@ const navItems = [
   { href: "/dashboard/videos", icon: Video, label: "videos" },
 ];
 
-const bottomItems = [
-  { href: "/dashboard/settings", icon: Settings, label: "settings" },
-  { href: "/dashboard/admin", icon: Shield, label: "admin" },
+const adminItems = [
+  { href: "/dashboard/admin", icon: BarChart, label: "dashboard_title" },
+  { href: "/dashboard/admin/courses", icon: BookOpenCheck, label: "course_mgmt_title" },
+  { href: "/dashboard/admin/questions", icon: FileQuestion, label: "question_mgmt_title" },
+  { href: "/dashboard/admin/articles", icon: FileText, label: "articles_title" },
+  { href: "/dashboard/admin/users", icon: Users, label: "user_mgmt_title" },
+  { href: "/dashboard/admin/subscriptions", icon: CreditCard, label: "subscription_mgmt_title" },
+  { href: "/dashboard/admin/translations", icon: Languages, label: "translations_title" },
+  { href: "/dashboard/admin/analytics", icon: BarChart, label: "analytics_title" },
 ];
 
 interface SidebarProps {
@@ -44,11 +58,13 @@ interface SidebarProps {
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const sb = useTranslations("sidebar");
   const n = useTranslations("nav");
+  const a = useTranslations("admin");
   const pathname = usePathname();
+  const [adminOpen, setAdminOpen] = useState(true);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
-    if (href.startsWith("/admin")) return pathname.startsWith("/admin");
+    if (href.startsWith("/admin")) return pathname.startsWith(href);
     return pathname === href || pathname.startsWith(href + "/");
   };
 
@@ -107,30 +123,68 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
         <Separator className="my-4 bg-border/50" />
 
+        {!isCollapsed && (
+          <button
+            onClick={() => setAdminOpen(!adminOpen)}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
+          >
+            <Shield className="h-4.5 w-4.5 flex-shrink-0" />
+            <span className="flex-1 text-left">{n("admin")}</span>
+            <ChevronDown className={cn("h-4 w-4 transition-transform", adminOpen && "rotate-180")} />
+          </button>
+        )}
+
+        {isCollapsed && (
+          <Link href="/dashboard/admin">
+            <span className="flex items-center justify-center rounded-xl px-3 py-2.5 text-muted-foreground hover:text-foreground hover:bg-accent/50">
+              <Shield className="h-4.5 w-4.5" />
+            </span>
+          </Link>
+        )}
+
+        {adminOpen && (
+          <nav className="flex flex-col gap-1 mt-1">
+            {adminItems.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link key={item.href} href={item.href}>
+                  <span
+                    className={cn(
+                      "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
+                      "hover:bg-accent/30 hover:scale-[1.01] active:scale-[0.98]",
+                      active
+                        ? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                      isCollapsed && "justify-center px-2"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    {!isCollapsed && <span>{a(item.label)}</span>}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+        )}
+
+        <Separator className="my-4 bg-border/50" />
+
         <nav className="flex flex-col gap-1">
-          {bottomItems.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link key={item.href} href={item.href}>
-                <span
-                  className={cn(
-                    "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                    "hover:bg-accent/50 hover:scale-[1.02] active:scale-[0.98]",
-                    active
-                      ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                    isCollapsed && "justify-center px-2 hover:scale-100"
-                  )}
-                >
-                  {active && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-primary shadow-sm shadow-primary/50" />
-                  )}
-                  <item.icon className={cn("h-4.5 w-4.5 flex-shrink-0", active && "drop-shadow-sm")} />
-                  {!isCollapsed && <span>{n(item.label)}</span>}
-                </span>
-              </Link>
-            );
-          })}
+          <Link href="/dashboard/settings">
+            <span
+              className={cn(
+                "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                "hover:bg-accent/50 hover:scale-[1.02] active:scale-[0.98]",
+                isActive("/dashboard/settings")
+                  ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+                isCollapsed && "justify-center px-2"
+              )}
+            >
+              <Settings className="h-4.5 w-4.5 flex-shrink-0" />
+              {!isCollapsed && <span>{n("settings")}</span>}
+            </span>
+          </Link>
         </nav>
       </ScrollArea>
 
