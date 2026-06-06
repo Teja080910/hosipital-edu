@@ -42,10 +42,10 @@ export default function FlashcardsPage() {
           <div className="flex gap-2">
             <Select defaultValue="all">
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="Specialty" />
+                <SelectValue placeholder={t("all_specialties")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Specialties</SelectItem>
+                <SelectItem value="all">{t("all_specialties")}</SelectItem>
                 <SelectItem value="cardiology">Cardiology</SelectItem>
                 <SelectItem value="neurology">Neurology</SelectItem>
               </SelectContent>
@@ -93,7 +93,7 @@ export default function FlashcardsPage() {
             {isFlipped && <FlashcardReview onRate={handleRate} />}
           </div>
         ) : (
-          <EmptyState icon={Library} title="All caught up!" description="No cards to review right now" />
+          <EmptyState icon={Library} title={t("all_caught_up")} description={t("no_cards")} />
         )}
       </div>
     </PageTransition>

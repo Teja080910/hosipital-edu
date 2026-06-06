@@ -117,10 +117,8 @@ export const questions = pgTable("questions", {
   id: uuid("id").defaultRandom().primaryKey(),
   examId: uuid("exam_id").references(() => exams.id, { onDelete: "set null" }),
   specialtyId: uuid("specialty_id")
-    .notNull()
     .references(() => specialties.id),
   topicId: uuid("topic_id")
-    .notNull()
     .references(() => topics.id),
   subtopicId: uuid("subtopic_id").references(() => subtopics.id, {
     onDelete: "set null",

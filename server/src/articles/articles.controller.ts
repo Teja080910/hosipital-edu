@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  Req,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { ArticlesService } from "./articles.service";
@@ -22,13 +23,18 @@ export class ArticlesController {
   constructor(private articlesService: ArticlesService) {}
 
   @Get()
-  @ApiOperation({ summary: "List published articles (public)" })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "List articles" })
   async findAll(
     @Query("categoryId") categoryId?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
+    @Query("all") all?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.articlesService.findAll({ categoryId, page, limit });
+    const isAdmin = user?.role === "admin";
+    return this.articlesService.findAll({ categoryId, page, limit, publishedOnly: !(all === "true" && isAdmin) });
   }
 
   @Get(":slug")

@@ -16,13 +16,14 @@ const mockExams = [
 ];
 
 export default function ExamsPage() {
-  const t = useTranslations("nav");
+  const t = useTranslations("exams");
+  const n = useTranslations("nav");
 
   return (
     <PageTransition>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">{t("exams")}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{n("exams")}</h1>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -36,21 +37,21 @@ export default function ExamsPage() {
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <GraduationCap className="h-4 w-4" />
-                    <span>{exam.questionCount} questions</span>
+                    <span>{t("questions_count", { count: exam.questionCount })}</span>
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    <span>{exam.timeLimit} min</span>
+                    <span>{t("minutes", { count: exam.timeLimit })}</span>
                   </div>
                 </div>
-                <Button className="w-full">Start Exam</Button>
+                <Button className="w-full">{t("start")}</Button>
               </CardContent>
             </Card>
           ))}
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold mb-4">Exam History</h2>
+          <h2 className="text-xl font-semibold mb-4">{t("history")}</h2>
           <ExamHistory />
         </div>
       </div>

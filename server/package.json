@@ -6,13 +6,14 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/src/main",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "create:admin": "node scripts/create-admin.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
@@ -29,6 +30,7 @@
     "@nestjs/swagger": "^8.1.1",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/websockets": "^10.4.15",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "bull": "^4.12.9",
     "class-transformer": "^0.5.1",

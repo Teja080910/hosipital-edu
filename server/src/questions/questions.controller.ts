@@ -14,6 +14,7 @@ import { QuestionsService } from "./questions.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("questions")
 @Controller("questions")
@@ -52,8 +53,8 @@ export class QuestionsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create question (admin)" })
-  async create(@Body() data: any) {
-    return this.questionsService.create(data);
+  async create(@Body() data: any, @CurrentUser() user: any) {
+    return this.questionsService.create({ ...data, createdBy: user.id });
   }
 
   @Patch(":id")

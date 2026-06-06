@@ -7,3 +7,4 @@ dist/
 .DS_Store
 drizzle/
 drizzle-meta/
+my-part*

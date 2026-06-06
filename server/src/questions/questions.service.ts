@@ -85,15 +85,19 @@ export class QuestionsService {
   }
 
   async update(id: string, data: any) {
-    const { options, images, ...questionData } = data;
+    const { options, images, createdBy, examId, specialtyId, topicId, ...questionData } = data;
+    const cleanData: any = { ...questionData, updatedAt: new Date() };
+    if (examId !== undefined) cleanData.examId = examId || null;
+    if (specialtyId !== undefined) cleanData.specialtyId = specialtyId || null;
+    if (topicId !== undefined) cleanData.topicId = topicId || null;
     const [question] = await this.db
       .update(questions)
-      .set({ ...questionData, updatedAt: new Date() })
+      .set(cleanData)
       .where(eq(questions.id, id))
       .returning();
     if (!question) throw new NotFoundException("Question not found");
 
-    if (options) {
+    if (options && options.length > 0) {
       await this.db
         .delete(questionOptions)
         .where(eq(questionOptions.questionId, id));

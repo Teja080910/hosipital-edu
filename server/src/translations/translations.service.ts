@@ -1,4 +1,4 @@
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject, ConflictException } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { translations } from "../database/schema";
 import { eq, and, type SQL } from "drizzle-orm";
@@ -15,6 +15,12 @@ export class TranslationsService {
   }
 
   async create(data: { key: string; locale: string; value: string; namespace?: string }) {
+    const [existing] = await this.db
+      .select()
+      .from(translations)
+      .where(and(eq(translations.key, data.key), eq(translations.locale, data.locale)))
+      .limit(1);
+    if (existing) throw new ConflictException("A translation with this key and locale already exists");
     const [t] = await this.db.insert(translations).values(data).returning();
     return t;
   }

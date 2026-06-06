@@ -41,18 +41,18 @@ export default function RegisterPage() {
     e.preventDefault();
     if (submittingRef.current) return;
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t("passwords_mismatch"));
       return;
     }
     submittingRef.current = true;
     setLoading(true);
     try {
       await register(name, email, password);
-      toast.success("Account created!");
+      toast.success(t("account_created"));
       router.push("/");
     } catch (error) {
       const message = (error as any)?.response?.data?.message;
-      toast.error(Array.isArray(message) ? message.join(", ") : message || "Registration failed");
+      toast.error(Array.isArray(message) ? message.join(", ") : message || t("registration_failed"));
     } finally {
       submittingRef.current = false;
       setLoading(false);
@@ -89,7 +89,7 @@ export default function RegisterPage() {
               </div>
             </motion.div>
             <CardTitle className="text-2xl font-bold tracking-tight">{t("register_title")}</CardTitle>
-            <CardDescription className="text-sm mt-1.5">Create your account to get started</CardDescription>
+            <CardDescription className="text-sm mt-1.5">{t("register_subtitle")}</CardDescription>
           </CardHeader>
 
           <CardContent className="pb-8 px-7">
@@ -106,7 +106,7 @@ export default function RegisterPage() {
                 <div className="relative">
                   <Input
                     id="name"
-                    placeholder="John Doe"
+                    placeholder={t("name_placeholder")}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onFocus={() => setFocusedField("name")}
@@ -133,7 +133,7 @@ export default function RegisterPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder={t("email_placeholder")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => setFocusedField("email")}
@@ -160,7 +160,7 @@ export default function RegisterPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder={t("password_placeholder")}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setFocusedField("password")}
@@ -187,15 +187,15 @@ export default function RegisterPage() {
                   >
                     <div className="flex items-center gap-1.5 text-xs">
                       {passwordChecks.length ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-destructive" />}
-                      <span className={passwordChecks.length ? "text-green-500" : "text-muted-foreground"}>At least 8 characters</span>
+                      <span className={passwordChecks.length ? "text-green-500" : "text-muted-foreground"}>{t("min_chars")}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs">
                       {passwordChecks.hasUpper ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-destructive" />}
-                      <span className={passwordChecks.hasUpper ? "text-green-500" : "text-muted-foreground"}>One uppercase letter</span>
+                      <span className={passwordChecks.hasUpper ? "text-green-500" : "text-muted-foreground"}>{t("one_uppercase")}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs">
                       {passwordChecks.hasNumber ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-destructive" />}
-                      <span className={passwordChecks.hasNumber ? "text-green-500" : "text-muted-foreground"}>One number</span>
+                      <span className={passwordChecks.hasNumber ? "text-green-500" : "text-muted-foreground"}>{t("one_number")}</span>
                     </div>
                   </motion.div>
                 )}
@@ -208,13 +208,13 @@ export default function RegisterPage() {
                 transition={{ delay: 0.3 }}
               >
                 <Label htmlFor="confirmPassword" className={cn("text-sm font-medium transition-colors duration-200", focusedField === "confirm" ? "text-primary" : "text-foreground/80")}>
-                  Confirm Password
+                  {t("confirm_password")}
                 </Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
                     type={showConfirm ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder={t("password_placeholder")}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     onFocus={() => setFocusedField("confirm")}
@@ -249,7 +249,7 @@ export default function RegisterPage() {
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                      Creating account...
+                      {t("creating_account")}
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
@@ -276,9 +276,9 @@ export default function RegisterPage() {
         </Card>
 
         <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground/60">
-          <span className="flex items-center gap-1.5"><Sparkles className="h-3 w-3" /> 14-day free trial</span>
-          <span className="flex items-center gap-1.5"><Check className="h-3 w-3" /> No credit card</span>
-          <span className="flex items-center gap-1.5"><X className="h-3 w-3" /> Cancel anytime</span>
+          <span className="flex items-center gap-1.5"><Sparkles className="h-3 w-3" /> {t("free_trial")}</span>
+          <span className="flex items-center gap-1.5"><Check className="h-3 w-3" /> {t("no_credit_card")}</span>
+          <span className="flex items-center gap-1.5"><X className="h-3 w-3" /> {t("cancel_anytime")}</span>
         </div>
       </motion.div>
     </div>

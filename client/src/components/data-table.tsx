@@ -88,24 +88,26 @@ export function DataTable<T extends Record<string, any>>({
         </div>
       )}
 
-      <div className="rounded-md border">
+      <div className="rounded-lg border border-border/50 overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="border-b border-border/50">
               {columns.map((col) => (
                 <TableHead
                   key={col.key}
-                  className={cn(col.sortable && "cursor-pointer select-none")}
+                  className={cn(col.sortable && "cursor-pointer", "px-4 py-3")}
                   onClick={() => col.sortable && toggleSort(col.key)}
                 >
                   <div className="flex items-center gap-1">
                     {col.header}
                     {col.sortable && (
-                      sortKey === col.key ? (
-                        sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                      ) : (
-                        <ChevronsUpDown className="h-3 w-3 text-muted-foreground" />
-                      )
+                      <span className="select-none">
+                        {sortKey === col.key ? (
+                          sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                        ) : (
+                          <ChevronsUpDown className="h-3 w-3 text-muted-foreground" />
+                        )}
+                      </span>
                     )}
                   </div>
                 </TableHead>
@@ -115,7 +117,7 @@ export function DataTable<T extends Record<string, any>>({
           <TableBody>
             {paged.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground px-4">
                   No results found
                 </TableCell>
               </TableRow>
@@ -123,12 +125,12 @@ export function DataTable<T extends Record<string, any>>({
               paged.map((item, i) => (
                 <TableRow
                   key={item.id || i}
-                  className={cn(onRowClick && "cursor-pointer hover:bg-muted/50")}
+                  className={cn("border-b border-border/30 hover:bg-muted/50 transition-colors", onRowClick && "cursor-pointer")}
                   onClick={() => onRowClick?.(item)}
                 >
                   {columns.map((col) => (
-                    <TableCell key={col.key}>
-                      {col.render ? col.render(item) : item[col.key]}
+                    <TableCell key={col.key} className="px-4 py-3 max-w-[280px] truncate">
+                      {col.render ? col.render(item) : String(item[col.key] ?? "")}
                     </TableCell>
                   ))}
                 </TableRow>

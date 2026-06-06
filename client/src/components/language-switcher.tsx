@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter, usePathname } from "@/routing";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,14 +15,11 @@ const locales = [
 ];
 
 export function LanguageSwitcher() {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const currentLocale = locales.find((l) => pathname.startsWith(`/${l.code}`)) || locales[0];
+  const currentLocale = typeof window !== "undefined" ? window.location.pathname.split("/")[1] || "en" : "en";
 
   const switchLocale = (locale: string) => {
-    const newPath = pathname.replace(/^\/[a-z]{2}/, `/${locale}`);
-    router.push(newPath);
+    const current = window.location.pathname;
+    window.location.assign(current.replace(/^\/(en|es)/, `/${locale}`));
   };
 
   return (
@@ -37,8 +33,8 @@ export function LanguageSwitcher() {
         {locales.map((l) => (
           <DropdownMenuItem
             key={l.code}
-            onClick={() => switchLocale(l.code)}
-            disabled={l.code === currentLocale.code}
+            onSelect={() => switchLocale(l.code)}
+            disabled={l.code === currentLocale}
           >
             {l.label}
           </DropdownMenuItem>

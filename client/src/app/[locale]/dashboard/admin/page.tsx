@@ -1,30 +1,33 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTransition } from "@/components/page-transition";
 import { StatsCard } from "@/components/admin/stats-card";
 import { Users, FileQuestion, GraduationCap, DollarSign, Activity, TrendingUp } from "lucide-react";
 
 export default function AdminPage() {
+  const t = useTranslations("admin");
+
   return (
     <PageTransition>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Platform overview and management</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("dashboard_title")}</h1>
+          <p className="text-muted-foreground">{t("dashboard_subtitle")}</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard icon={Users} label="Total Users" value="12,450" trend="+12%" color="text-blue-500" />
-          <StatsCard icon={FileQuestion} label="Questions" value="8,230" trend="+180" color="text-green-500" />
-          <StatsCard icon={GraduationCap} label="Active Exams" value="24" trend="+3" color="text-orange-500" />
-          <StatsCard icon={DollarSign} label="Revenue" value="$45,200" trend="+8%" color="text-purple-500" />
+          <StatsCard icon={Users} label={t("total_users")} value="12,450" trend="+12%" color="text-blue-500" />
+          <StatsCard icon={FileQuestion} label={t("questions")} value="8,230" trend="+180" color="text-green-500" />
+          <StatsCard icon={GraduationCap} label={t("active_exams")} value="24" trend="+3" color="text-orange-500" />
+          <StatsCard icon={DollarSign} label={t("revenue")} value="$45,200" trend="+8%" color="text-purple-500" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+              <CardTitle>{t("recent_activity")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -50,14 +53,14 @@ export default function AdminPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>{t("quick_actions")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: "Manage Questions", href: "/admin/questions" },
-                { label: "Manage Users", href: "/admin/users" },
-                { label: "View Analytics", href: "/admin/analytics" },
-                { label: "Manage Subscriptions", href: "/admin/subscriptions" },
+                { label: t("manage_questions"), href: "/admin/questions" },
+                { label: t("manage_users"), href: "/admin/users" },
+                { label: t("view_analytics"), href: "/admin/analytics" },
+                { label: t("manage_subscriptions"), href: "/admin/subscriptions" },
               ].map((item) => (
                 <a key={item.label} href={item.href}>
                   <Card className="p-4 hover:bg-muted/50 transition-colors cursor-pointer">
