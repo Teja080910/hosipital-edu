@@ -26,6 +26,7 @@ import {
   Languages,
   BarChart,
   BookOpenCheck,
+  BookOpenText,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -53,9 +54,11 @@ const adminItems = [
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
 }
 
-export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
   const sb = useTranslations("sidebar");
   const n = useTranslations("nav");
   const a = useTranslations("admin");
@@ -65,6 +68,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     if (href.startsWith("/admin")) return pathname.startsWith(href);
+    if (href === "/dashboard") return pathname === "/dashboard";
     return pathname === href || pathname.startsWith(href + "/");
   };
 
@@ -75,7 +79,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         "bg-gradient-to-b from-background via-background to-muted dark:from-slate-900 dark:via-slate-900 dark:to-slate-950",
         "rounded-r-2xl shadow-card",
         "border-r border-border/50",
-        isCollapsed ? "w-16" : "w-64"
+        isCollapsed ? "w-16" : "w-64",
+        mobileOpen
+          ? "translate-x-0"
+          : "-translate-x-full lg:translate-x-0"
       )}
     >
       <div className={cn(
@@ -101,6 +108,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             return (
               <Link key={item.href} href={item.href}>
                 <span
+                  onClick={onMobileClose}
                   className={cn(
                     "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     "hover:bg-accent/50 hover:scale-[1.02] active:scale-[0.98]",
@@ -149,6 +157,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               return (
                 <Link key={item.href} href={item.href}>
                   <span
+                    onClick={onMobileClose}
                     className={cn(
                       "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
                       "hover:bg-accent/30 hover:scale-[1.01] active:scale-[0.98]",
@@ -172,6 +181,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         <nav className="flex flex-col gap-1">
           <Link href="/dashboard/settings">
             <span
+              onClick={onMobileClose}
               className={cn(
                 "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 "hover:bg-accent/50 hover:scale-[1.02] active:scale-[0.98]",
@@ -183,6 +193,22 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             >
               <Settings className="h-4.5 w-4.5 flex-shrink-0" />
               {!isCollapsed && <span>{n("settings")}</span>}
+            </span>
+          </Link>
+          <Link href="/dashboard/guides">
+            <span
+              onClick={onMobileClose}
+              className={cn(
+                "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                "hover:bg-accent/50 hover:scale-[1.02] active:scale-[0.98]",
+                isActive("/dashboard/guides")
+                  ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+                isCollapsed && "justify-center px-2"
+              )}
+            >
+              <BookOpenText className="h-4.5 w-4.5 flex-shrink-0" />
+              {!isCollapsed && <span>{n("guides")}</span>}
             </span>
           </Link>
         </nav>
