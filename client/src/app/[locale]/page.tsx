@@ -96,7 +96,7 @@ export default function LandingPage() {
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const currentLocale = typeof window !== "undefined" ? window.location.pathname.split("/")[1] || "en" : "en";
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 const switchLocale = (locale: string) => {
     window.location.assign(window.location.pathname.replace(/^\/(en|es)/, `/${locale}`));
   };
@@ -139,7 +139,7 @@ const switchLocale = (locale: string) => {
             </Button>
 
             <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-3">
-              {user ? (
+              {isLoading ? null : user ? (
               <Link href="/dashboard">
                 <Button size="sm" className="text-sm shadow-subtle">
                   Dashboard
@@ -454,6 +454,7 @@ const switchLocale = (locale: string) => {
               <span className="font-semibold">Hospital EDU</span>
             </Link>
             <div className="flex gap-6 text-sm text-muted-foreground">
+              <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
               <Link href="#" className="hover:text-foreground transition-colors">{t("privacy")}</Link>
               <Link href="#" className="hover:text-foreground transition-colors">{t("terms")}</Link>
               <Link href="#" className="hover:text-foreground transition-colors">{t("contact")}</Link>

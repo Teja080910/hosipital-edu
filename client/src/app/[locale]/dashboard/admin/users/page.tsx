@@ -13,10 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageTransition } from "@/components/page-transition";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataGrid } from "@/components/admin/data-grid";
 import { usersApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function AdminUsersPage() {
   const t = useTranslations("admin");
@@ -24,6 +25,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [changingRole, setChangingRole] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -37,6 +39,18 @@ export default function AdminUsersPage() {
   }, [t]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+const deleteUser = async () => {
+    if (!deleteTarget) return;
+    try {
+      await usersApi.remove(deleteTarget.id);
+      toast.success(t("user_deleted"));
+      setDeleteTarget(null);
+      fetchUsers();
+    } catch {
+      toast.error(t("delete_failed"));
+    }
+  };
 
   const changeRole = async (userId: string, role: string) => {
     setChangingRole(userId);
@@ -95,16 +109,7 @@ export default function AdminUsersPage() {
             size="sm"
             variant="ghost"
             className="text-destructive"
-            onClick={async () => {
-              if (!confirm(t("delete_confirm"))) return;
-              try {
-                await usersApi.remove(row.id);
-                toast.success(t("user_deleted"));
-                fetchUsers();
-              } catch {
-                toast.error(t("delete_failed"));
-              }
-            }}
+            onClick={() => setDeleteTarget(row)}
           >
             {t("delete_user")}
           </Button>
@@ -137,6 +142,16 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title={t("delete_user")}
+        description={t("delete_confirm")}
+        confirmLabel={t("delete_user")}
+        variant="destructive"
+        onConfirm={deleteUser}
+      />
     </PageTransition>
   );
 }

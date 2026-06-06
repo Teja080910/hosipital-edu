@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  ConflictException,
   Inject,
 } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
@@ -38,6 +39,12 @@ export class ArticlesService {
   }
 
   async create(data: any) {
+    const existing = await this.db
+      .select()
+      .from(articles)
+      .where(and(eq(articles.slug, data.slug), isNull(articles.deletedAt)))
+      .limit(1);
+    if (existing.length) throw new ConflictException("An article with this slug already exists");
     const [article] = await this.db.insert(articles).values(data).returning();
     return article;
   }

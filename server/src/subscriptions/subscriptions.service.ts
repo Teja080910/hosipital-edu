@@ -29,6 +29,29 @@ export class SubscriptionsService {
     return plan;
   }
 
+  async createPlan(data: any) {
+    const [plan] = await this.db.insert(subscriptionPlans).values(data).returning();
+    return plan;
+  }
+
+  async updatePlan(id: string, data: any) {
+    const [plan] = await this.db
+      .update(subscriptionPlans)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(subscriptionPlans.id, id))
+      .returning();
+    return plan;
+  }
+
+  async softDeletePlan(id: string) {
+    const [plan] = await this.db
+      .update(subscriptionPlans)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(subscriptionPlans.id, id))
+      .returning();
+    return plan;
+  }
+
   async getUserSubscription(userId: string) {
     const [sub] = await this.db
       .select()

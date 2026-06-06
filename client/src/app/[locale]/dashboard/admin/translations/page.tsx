@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { translationsApi } from "@/lib/api";
@@ -49,13 +50,40 @@ export default function AdminTranslationsPage() {
       setNamespaces(Array.from(ns).sort());
       setRows(Object.values(grouped));
     } catch {
-      toast.error(t("translations_load_failed"));
+      toast.error("Failed to load translations");
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
-  useEffect(() => { fetchTranslations(); }, [fetchTranslations]);
+  const fetched = useRef(false);
+  useEffect(() => {
+    if (fetched.current) return;
+    fetched.current = true;
+    fetchTranslations();
+  }, [fetchTranslations]);
+
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addForm, setAddForm] = useState({ key: "", namespace: "custom" });
+  const [adding, setAdding] = useState(false);
+
+  const handleAdd = async () => {
+    if (!addForm.key.trim()) return;
+    setAdding(true);
+    try {
+      await translationsApi.create({ key: addForm.key, locale: "en", value: "", namespace: addForm.namespace });
+      await translationsApi.create({ key: addForm.key, locale: "es", value: "", namespace: addForm.namespace });
+      toast.success(t("key_added"));
+      setAddDialogOpen(false);
+      setAddForm({ key: "", namespace: "custom" });
+      fetchTranslations();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message?.[0] || err?.response?.data?.message || t("key_add_failed");
+      toast.error(msg);
+    } finally {
+      setAdding(false);
+    }
+  };
 
   const updateValue = (key: string, locale: "en" | "es", value: string) => {
     setRows((prev) => prev.map((r) => r.key === key ? { ...r, [locale]: value } : r));
@@ -74,17 +102,9 @@ export default function AdminTranslationsPage() {
     }
   };
 
-  const addNew = async () => {
-    const key = prompt(t("enter_key"));
-    if (!key) return;
-    try {
-      await translationsApi.create({ key, locale: "en", value: "", namespace: "custom" });
-      await translationsApi.create({ key, locale: "es", value: "", namespace: "custom" });
-      toast.success(t("key_added"));
-      fetchTranslations();
-    } catch {
-      toast.error(t("key_add_failed"));
-    }
+  const addNew = () => {
+    setAddForm({ key: "", namespace: "custom" });
+    setAddDialogOpen(true);
   };
 
   const handleExport = async () => {
@@ -187,6 +207,48 @@ export default function AdminTranslationsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl border border-border/80 bg-background/95 backdrop-blur-xl shadow-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b border-border/60">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Plus className="h-5 w-5" />
+              </div>
+              <div className="text-left">
+                <DialogTitle className="text-xl font-bold tracking-tight">Add Translation</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Create a new translation key for all locales</p>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="p-6 space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Key</label>
+              <Input
+                autoFocus
+                value={addForm.key}
+                onChange={(e) => setAddForm({ ...addForm, key: e.target.value })}
+                placeholder="e.g. common.save"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Namespace</label>
+              <Input
+                value={addForm.namespace}
+                onChange={(e) => setAddForm({ ...addForm, namespace: e.target.value })}
+                placeholder="e.g. common, admin, auth"
+              />
+            </div>
+          </div>
+          <DialogFooter className="p-6 pt-4 border-t border-border/60 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)} className="rounded-xl px-6 h-10 text-sm font-medium">Cancel</Button>
+            <Button onClick={handleAdd} disabled={adding || !addForm.key.trim()} className="rounded-xl px-6 h-10 text-sm font-medium shadow-md">
+              {adding && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Add
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }

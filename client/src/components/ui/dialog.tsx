@@ -40,11 +40,6 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <div className="flex justify-end">
-        <DialogPrimitive.Close className="rounded-lg border border-border/50 px-4 py-1.5 text-sm text-muted-foreground hover:bg-accent/50 transition-colors">
-          Close
-        </DialogPrimitive.Close>
-      </div>
     </DialogPrimitive.Content>
   </DialogPortal>
 ));

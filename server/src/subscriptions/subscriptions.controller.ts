@@ -2,7 +2,11 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
+  Param,
+  Query,
   UseGuards,
   Req,
   Headers,
@@ -10,6 +14,8 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { SubscriptionsService } from "./subscriptions.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { RolesGuard } from "../common/guards/roles.guard";
+import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("subscriptions")
@@ -18,9 +24,38 @@ export class SubscriptionsController {
   constructor(private subscriptionsService: SubscriptionsService) {}
 
   @Get("subscription-plans")
-  @ApiOperation({ summary: "List visible subscription plans" })
-  async findPlans() {
-    return this.subscriptionsService.findPlans();
+  @ApiOperation({ summary: "List subscription plans" })
+  async findPlans(@Query("all") all?: string, @Req() req?: any) {
+    const user = req.user;
+    const isAdmin = user?.role === "admin";
+    return this.subscriptionsService.findPlans(!(all === "true" && isAdmin));
+  }
+
+  @Post("subscription-plans")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Create plan (admin)" })
+  async createPlan(@Body() data: any) {
+    return this.subscriptionsService.createPlan(data);
+  }
+
+  @Patch("subscription-plans/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Update plan (admin)" })
+  async updatePlan(@Param("id") id: string, @Body() data: any) {
+    return this.subscriptionsService.updatePlan(id, data);
+  }
+
+  @Delete("subscription-plans/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete plan (admin)" })
+  async removePlan(@Param("id") id: string) {
+    return this.subscriptionsService.softDeletePlan(id);
   }
 
   @Post("subscriptions/create-checkout")
