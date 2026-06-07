@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { usePathname } from "@/routing";
 import { Link } from "@/routing";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -90,9 +91,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
         isCollapsed ? "justify-center px-0" : "px-5"
       )}>
         <Link href="/" className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
-            <GraduationCap className="h-4 w-4 text-white" />
-          </div>
+          <Image src="/logo.png" alt="MD Exams" width={32} height={32} className="rounded-lg" />
           {!isCollapsed && (
             <span className="text-lg font-bold bg-gradient-to-r from-foreground via-blue-500 to-foreground dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent">
               {sb("brand")}

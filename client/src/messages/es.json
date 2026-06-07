@@ -9,10 +9,11 @@
     "videos": "Videos",
     "settings": "Configuración",
     "admin": "Admin",
-    "guides": "Guías"
+    "guides": "Guías",
+    "blog": "Blog"
   },
   "landing": {
-    "hero_title": "Domina la Educación Médica con Hospital EDU",
+    "hero_title": "Domina la Educación Médica con MD Exams",
     "hero_subtitle": "Tu plataforma integral para preparación de exámenes médicos, tarjetas de estudio y aprendizaje interactivo.",
     "hero_cta": "Empezar a Aprender",
     "features_title": "Todo lo Que Necesitas para Tener Éxito",
@@ -38,7 +39,16 @@
     "privacy": "Política de Privacidad",
     "terms": "Términos del Servicio",
     "contact": "Contacto",
-    "copyright": "© 2024 Hospital EDU. Todos los derechos reservados."
+    "copyright": "© 2024 MD Exams. Todos los derechos reservados."
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Artículos educativos y actualizaciones",
+    "no_articles": "Aún no hay artículos publicados.",
+    "subscribers_only": "Solo suscriptores",
+    "read_more": "Leer más",
+    "back_to_blog": "Volver al Blog",
+    "not_found": "Artículo no encontrado"
   },
   "auth": {
     "login_title": "Bienvenido de nuevo",
@@ -291,7 +301,7 @@
     "minutes": "{count} min"
   },
   "sidebar": {
-    "brand": "Hospital EDU"
+    "brand": "MD Exams"
   },
   "topbar": {
     "search": "Buscar preguntas, cursos...",

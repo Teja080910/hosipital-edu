@@ -12,3 +12,4 @@ export { calendarApi } from "./calendar";
 export { translationsApi } from "./translations";
 export { landingApi } from "./landing";
 export { uploadApi } from "./upload";
+export { analyticsApi } from "./analytics";
