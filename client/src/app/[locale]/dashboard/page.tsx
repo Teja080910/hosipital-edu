@@ -1,31 +1,42 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { BookOpen, Brain, Clock, GraduationCap, Target, TrendingUp } from "lucide-react";
+import { BookOpen, Brain, GraduationCap, Target, Loader2 } from "lucide-react";
 import { PageTransition } from "@/components/page-transition";
 import { Link } from "@/routing";
+import { analyticsApi } from "@/lib/api";
 
 export default function DashboardPage() {
   const t = useTranslations("nav");
   const { user } = useAuth();
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
-    { label: "Questions Answered", value: "1,247", icon: BookOpen, trend: "+12%", color: "text-blue-500" },
-    { label: "Accuracy", value: "78%", icon: Target, trend: "+5%", color: "text-green-500" },
-    { label: "Day Streak", value: "12", icon: TrendingUp, trend: "+3", color: "text-orange-500" },
-    { label: "Study Time", value: "48h", icon: Clock, trend: "+8h", color: "text-purple-500" },
-  ];
+  useEffect(() => {
+    if (!user) return;
+    analyticsApi.userStats().then(({ data }) => setStats(data)).catch(() => {}).finally(() => setLoading(false));
+  }, [user]);
 
-  const recentActivity = [
-    { action: "Completed ENARM Cardiology quiz", time: "2 hours ago", type: "quiz" },
-    { action: "Reviewed 20 flashcards", time: "4 hours ago", type: "flashcard" },
-    { action: "Started Internal Medicine course", time: "1 day ago", type: "course" },
-    { action: "Scored 85% on Anatomy exam", time: "2 days ago", type: "exam" },
-  ];
+  const statCards = stats
+    ? [
+        { label: "Questions Answered", value: stats.questions?.totalAnswered ?? "—", icon: BookOpen, color: "text-blue-500" },
+        { label: "Accuracy", value: stats.questions?.totalAnswered ? `${Math.round((stats.questions.totalCorrect / stats.questions.totalAnswered) * 100)}%` : "—", icon: Target, color: "text-green-500" },
+        { label: "Exams Completed", value: stats.attempts?.completed ?? "—", icon: GraduationCap, color: "text-orange-500" },
+        { label: "Flashcards Reviewed", value: stats.flashcards?.totalReviewed ?? "—", icon: Brain, color: "text-purple-500" },
+      ]
+    : [];
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
@@ -40,7 +51,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
+          {statCards.map((stat) => (
             <Card key={stat.label}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
@@ -48,7 +59,6 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.trend} from last week</p>
               </CardContent>
             </Card>
           ))}
@@ -60,17 +70,7 @@ export default function DashboardPage() {
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((item, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{item.action}</p>
-                      <p className="text-xs text-muted-foreground">{item.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm text-muted-foreground">Activity tracking coming soon</p>
             </CardContent>
           </Card>
 
@@ -79,17 +79,17 @@ export default function DashboardPage() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-<Link href="/dashboard/questions">
-                 <Button className="w-full justify-start" variant="outline">
-                   <Brain className="mr-2 h-4 w-4" /> Start Study
-                 </Button>
-               </Link>
-               <Link href="/dashboard/exams">
-                 <Button className="w-full justify-start" variant="outline">
-                   <GraduationCap className="mr-2 h-4 w-4" /> Take Exam
-                 </Button>
-               </Link>
-               <Link href="/dashboard/flashcards">
+              <Link href="/dashboard/questions">
+                <Button className="w-full justify-start" variant="outline">
+                  <Brain className="mr-2 h-4 w-4" /> Start Study
+                </Button>
+              </Link>
+              <Link href="/dashboard/exams">
+                <Button className="w-full justify-start" variant="outline">
+                  <GraduationCap className="mr-2 h-4 w-4" /> Take Exam
+                </Button>
+              </Link>
+              <Link href="/dashboard/flashcards">
                 <Button className="w-full justify-start" variant="outline">
                   <BookOpen className="mr-2 h-4 w-4" /> Review Flashcards
                 </Button>

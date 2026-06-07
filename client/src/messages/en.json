@@ -9,10 +9,11 @@
     "videos": "Videos",
     "settings": "Settings",
     "admin": "Admin",
-    "guides": "Guides"
+    "guides": "Guides",
+    "blog": "Blog"
   },
   "landing": {
-    "hero_title": "Master Medical Education with Hospital EDU",
+    "hero_title": "Master Medical Education with MD Exams",
     "hero_subtitle": "Your comprehensive platform for medical exam preparation, flashcards, and interactive learning.",
     "hero_cta": "Start Learning",
     "features_title": "Everything You Need to Succeed",
@@ -38,7 +39,16 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "contact": "Contact",
-    "copyright": "© 2024 Hospital EDU. All rights reserved."
+    "copyright": "© 2024 MD Exams. All rights reserved."
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Educational articles and updates",
+    "no_articles": "No articles published yet.",
+    "subscribers_only": "Subscribers only",
+    "read_more": "Read more",
+    "back_to_blog": "Back to Blog",
+    "not_found": "Article not found"
   },
   "auth": {
     "login_title": "Welcome back",
@@ -291,7 +301,7 @@
     "minutes": "{count} min"
   },
   "sidebar": {
-    "brand": "Hospital EDU"
+    "brand": "MD Exams"
   },
   "topbar": {
     "search": "Search questions, courses...",

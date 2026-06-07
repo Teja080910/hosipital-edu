@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { articlesApi } from "@/lib/api";
-import { Loader2, ArrowLeft, Calendar, GraduationCap, Sun, Moon } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Sun, Moon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function ArticlePage() {
+  const t = useTranslations("blog");
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
   const [article, setArticle] = useState<any>(null);
@@ -25,17 +28,15 @@ export default function ArticlePage() {
   }, [slug]);
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
-  if (!article) return <div className="text-center py-16"><h2 className="text-xl font-semibold">Article not found</h2><Button variant="link" onClick={() => router.push("/blog")}>Back to blog</Button></div>;
+  if (!article) return <div className="text-center py-16"><h2 className="text-xl font-semibold">{t("not_found")}</h2><Button variant="link" onClick={() => router.push("/blog")}>{t("back_to_blog")}</Button></div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-subtle">
-              <GraduationCap className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-bold tracking-tight">Hospital EDU</span>
+            <Image src="/logo.png" alt="MD Exams" width={32} height={32} className="rounded-lg" />
+            <span className="text-lg font-bold tracking-tight">MD Exams</span>
           </Link>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild><Link href="/blog">Blog</Link></Button>
@@ -50,7 +51,7 @@ export default function ArticlePage() {
       </nav>
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <Button variant="ghost" size="sm" onClick={() => router.push("/blog")} className="gap-2 mb-8">
-          <ArrowLeft className="h-4 w-4" /> Back to Blog
+          <ArrowLeft className="h-4 w-4" /> {t("back_to_blog")}
         </Button>
 
         <article>
@@ -61,7 +62,7 @@ export default function ArticlePage() {
                 {new Date(article.publishedAt).toLocaleDateString()}
               </span>
             )}
-            {article.isSubscriberOnly && <Badge variant="secondary">Subscribers only</Badge>}
+            {article.isSubscriberOnly && <Badge variant="secondary">{t("subscribers_only")}</Badge>}
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight mb-4">{article.title?.en || article.title}</h1>

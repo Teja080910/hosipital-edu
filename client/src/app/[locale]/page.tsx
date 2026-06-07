@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
@@ -21,13 +22,15 @@ import { Badge } from "@/components/ui/badge";
 import { usePathname, Link } from "@/routing";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { TypewriterText } from "@/components/typewriter-text";
+import Image from "next/image";
 import {
   BookOpen,
   Brain,
   Video,
+  Library,
   BarChart3,
   Calendar,
-  GraduationCap,
   ChevronDown,
   Star,
   Check,
@@ -52,13 +55,13 @@ const features = [
   { icon: BookOpen, title: "Question Bank", desc: "Thousands of exam-style questions with detailed explanations and clinical pearls" },
   { icon: Brain, title: "Smart Flashcards", desc: "Spaced repetition flashcards optimized for long-term retention" },
   { icon: Video, title: "Video Classes", desc: "Expert-led video lectures on high-yield medical topics" },
-  { icon: GraduationCap, title: "Structured Courses", desc: "Comprehensive courses designed by board-certified physicians" },
+  { icon: Library, title: "Structured Courses", desc: "Comprehensive courses designed by board-certified physicians" },
   { icon: BarChart3, title: "Performance Analytics", desc: "Track your progress with detailed stats and insights" },
   { icon: Calendar, title: "Study Planner", desc: "AI-powered study plans tailored to your exam date" },
 ];
 
 const testimonials = [
-  { name: "Dr. Maria Garcia", role: "Resident Physician", text: "Hospital EDU transformed my board preparation. The question bank is unmatched in quality and depth." },
+  { name: "Dr. Maria Garcia", role: "Resident Physician", text: "MD Exams transformed my board preparation. The question bank is unmatched in quality and depth." },
   { name: "Dr. James Wilson", role: "Medical Student", text: "The spaced repetition flashcards helped me memorize complex topics effortlessly. Game-changer." },
   { name: "Dr. Sarah Chen", role: "Internal Medicine", text: "Best ENARM prep platform I've used. The analytics helped me identify and fix my weak areas." },
 ];
@@ -79,7 +82,7 @@ const faqs = [
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-50px" },
+  viewport: { once: false, margin: "-50px" },
   transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const },
 };
 
@@ -93,11 +96,13 @@ export default function LandingPage() {
   const a = useTranslations("auth");
   const n = useTranslations("nav");
   const c = useTranslations("common");
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const pathname = usePathname();
-  const currentLocale = typeof window !== "undefined" ? window.location.pathname.split("/")[1] || "en" : "en";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const currentLocale = pathname.split("/")[1] || "en";
   const { user, isLoading } = useAuth();
-const switchLocale = (locale: string) => {
+  const switchLocale = (locale: string) => {
     window.location.assign(window.location.pathname.replace(/^\/(en|es)/, `/${locale}`));
   };
 
@@ -107,10 +112,8 @@ const switchLocale = (locale: string) => {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-transparent bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-subtle">
-              <GraduationCap className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-bold tracking-tight">Hospital EDU</span>
+            <Image src="/logo.png" alt="MD Exams" width={32} height={32} className="rounded-lg" />
+            <span className="text-lg font-bold tracking-tight">MD Exams</span>
           </Link>
           <div className="flex items-center gap-1">
             <DropdownMenu>
@@ -132,31 +135,31 @@ const switchLocale = (locale: string) => {
             <Button
               variant="ghost"
               size="icon-sm"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               className="text-muted-foreground hover:text-foreground"
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {mounted && (resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />)}
             </Button>
 
             <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-3">
               {isLoading ? null : user ? (
-              <Link href="/dashboard">
-                <Button size="sm" className="text-sm shadow-subtle">
-                  Dashboard
-                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            ) : (
-              <><Link href="/login">
-                <Button variant="ghost" size="sm" className="text-sm">{a("login_submit")}</Button>
-              </Link>
-              <Link href="/register">
-                <Button size="sm" className="text-sm shadow-subtle">
-                  {t("get_started")}
-                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
-              </Link></>
-            )}
+                <Link href="/dashboard">
+                  <Button size="sm" className="text-sm shadow-subtle">
+                    Dashboard
+                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              ) : (
+                <><Link href="/login">
+                  <Button variant="ghost" size="sm" className="text-sm">{a("login_submit")}</Button>
+                </Link>
+                  <Link href="/register">
+                    <Button size="sm" className="text-sm shadow-subtle">
+                      {t("get_started")}
+                      <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                    </Button>
+                  </Link></>
+              )}
             </div>
           </div>
         </div>
@@ -165,9 +168,15 @@ const switchLocale = (locale: string) => {
       {/* Hero */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />
-          <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-[100px]" />
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]" />
+          <Image
+            src="/hero-1.jpg"
+            alt=""
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/60" />
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-32 lg:py-40">
@@ -187,13 +196,19 @@ const switchLocale = (locale: string) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] as const }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-normal mb-6"
             >
-              {t("hero_heading_1")}{" "}
-              <span className="bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent">
-                {t("hero_heading_2")}
-              </span>{" "}
-              {t("hero_heading_3")}
+              <TypewriterText
+                parts={[
+                  { text: t("hero_heading_1") + " " },
+                  { text: t("hero_heading_2"), className: "bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent" },
+                  { text: " " + t("hero_heading_3") },
+                ]}
+                speed={60}
+                deleteSpeed={25}
+                pauseEnd={2500}
+                pauseStart={1000}
+              />
             </motion.h1>
 
             <motion.p
@@ -243,6 +258,32 @@ const switchLocale = (locale: string) => {
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </section>
 
+      {/* Platform Showcase */}
+      {/* <section className="relative py-16 lg:py-24 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-primary/[0.01] to-transparent" />
+        <div className="absolute top-40 left-20 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px]" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px]" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.7, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            whileHover={{ y: -4, scale: 1.005 }}
+            className="group relative mt-8 max-w-3xl mx-auto"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <Image
+              src="/hero-3.jpg"
+              alt="MD Exams Study Interface"
+              width={800}
+              height={534}
+              className="w-full h-auto rounded-xl border border-border/50 shadow-lg group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-500 relative"
+            />
+          </motion.div>
+        </div>
+      </section> */}
+
       {/* Features */}
       <section id="features" className="relative py-24 lg:py-32">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] to-transparent" />
@@ -278,8 +319,10 @@ const switchLocale = (locale: string) => {
       </section>
 
       {/* Testimonials */}
-      <section className="relative py-24 lg:py-32 bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="relative py-24 lg:py-32 overflow-hidden">
+        <Image src="/hero-3.jpg" alt="" fill className="object-cover" />
+        <div className="absolute inset-0 bg-background/65 backdrop-blur-[2px]" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div {...fadeUp} className="text-center mb-16">
             <Badge variant="secondary" className="mb-4">{t("testimonials_title")}</Badge>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
@@ -382,33 +425,57 @@ const switchLocale = (locale: string) => {
 
       {/* FAQ */}
       <section className="py-24 lg:py-32 bg-muted/30">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <motion.div {...fadeUp} className="text-center mb-16">
-            <Badge variant="secondary" className="mb-4">FAQ</Badge>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-              {t("faq_title")}
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              {t("faq_subtitle")}
-            </p>
-          </motion.div>
-
-          <div className="space-y-3">
-            {faqs.map((item, i) => (
-              <motion.div key={i} {...stagger(i)}>
-                <Collapsible>
-                  <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl border border-border/50 bg-card p-5 text-left font-medium hover:shadow-subtle transition-all duration-200 [&[data-state=open]>svg]:rotate-180">
-                    <span>{item.q}</span>
-                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:text-foreground" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                    <div className="px-5 py-4 text-sm text-muted-foreground leading-relaxed border-x border-b border-border/50 rounded-b-xl bg-card/50">
-                      {item.a}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
+            <div>
+              <motion.div {...fadeUp} className="text-center lg:text-left mb-16">
+                <Badge variant="secondary" className="mb-4">FAQ</Badge>
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+                  {t("faq_title")}
+                </h2>
+                <p className="mt-4 text-lg text-muted-foreground">
+                  {t("faq_subtitle")}
+                </p>
               </motion.div>
-            ))}
+
+              <div className="space-y-3 max-w-3xl">
+                {faqs.map((item, i) => (
+                  <motion.div key={i} {...stagger(i)}>
+                    <Collapsible>
+                      <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl border border-border/50 bg-card p-5 text-left font-medium hover:shadow-subtle transition-all duration-200 [&[data-state=open]>svg]:rotate-180">
+                        <span>{item.q}</span>
+                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:text-foreground" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                        <div className="px-5 py-4 text-sm text-muted-foreground leading-relaxed border-x border-b border-border/50 rounded-b-xl bg-card/50">
+                          {item.a}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <div className="hidden lg:block">
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: false, margin: "-50px" }}
+                transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
+                whileHover={{ y: -6, scale: 1.02 }}
+                className="group relative"
+              >
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <Image
+                  src="/hero-2.jpg"
+                  alt="MD Exams Mobile View"
+                  width={900}
+                  height={1280}
+                  className="w-[450px] max-w-[450px] h-[550px] rounded-xl border border-border/50 shadow-lg group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-500 relative mx-auto"
+                />
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -448,10 +515,8 @@ const switchLocale = (locale: string) => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary shadow-subtle">
-                <GraduationCap className="h-3.5 w-3.5 text-primary-foreground" />
-              </div>
-              <span className="font-semibold">Hospital EDU</span>
+              <Image src="/logo.png" alt="MD Exams" width={28} height={28} className="rounded-lg" />
+              <span className="font-semibold">MD Exams</span>
             </Link>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>

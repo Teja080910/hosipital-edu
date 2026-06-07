@@ -78,7 +78,7 @@ export default function SettingsPage() {
                 <Input id="email" type="email" value={email} disabled />
               </div>
             </div>
-            <Button onClick={handleSave} disabled={isSaving || !name.trim()}>
+            <Button onClick={handleSave} disabled={isSaving || !name?.trim()}>
               {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {t("save_changes")}
             </Button>
@@ -97,14 +97,6 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">{t("theme_desc")}</p>
               </div>
               <ThemeToggle />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>{t("compact_mode")}</Label>
-                <p className="text-sm text-muted-foreground">{t("compact_desc")}</p>
-              </div>
-              <Switch />
             </div>
           </CardContent>
         </Card>
