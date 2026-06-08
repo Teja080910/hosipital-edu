@@ -28,8 +28,12 @@ import {
   BarChart,
   BookOpenCheck,
   BookOpenText,
+  Crown,
+  Sparkles,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { subscriptionsApi } from "@/lib/api";
+import { useAuth } from "@/hooks/use-auth";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "dashboard" },
@@ -65,6 +69,20 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const a = useTranslations("admin");
   const pathname = usePathname();
   const [adminOpen, setAdminOpen] = useState(true);
+  const { user } = useAuth();
+  const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
+
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      subscriptionsApi.mySubscription().then(({ data }) => {
+        if (data) {
+          subscriptionsApi.plans().then(({ data: plans }) => {
+            setSubData({ sub: data, allPlans: (plans || []).sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) });
+          });
+        }
+      }).catch(() => {});
+    }
+  }, [user]);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -130,7 +148,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
 
         <Separator className="my-4 bg-border/50" />
 
-        {!isCollapsed && (
+        {user?.role === "admin" && !isCollapsed && (
           <button
             onClick={() => setAdminOpen(!adminOpen)}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
@@ -141,7 +159,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
           </button>
         )}
 
-        {isCollapsed && (
+        {user?.role === "admin" && isCollapsed && (
           <Link href="/dashboard/admin">
             <span className="flex items-center justify-center rounded-xl px-3 py-2.5 text-muted-foreground hover:text-foreground hover:bg-accent/50">
               <Shield className="h-4.5 w-4.5" />
@@ -149,7 +167,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
           </Link>
         )}
 
-        {adminOpen && (
+        {user?.role === "admin" && adminOpen && (
           <nav className="flex flex-col gap-1 mt-1">
             {adminItems.map((item) => {
               const active = isActive(item.href);
@@ -173,6 +191,50 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
               );
             })}
           </nav>
+        )}
+
+        <Separator className="my-4 bg-border/50" />
+
+        {subData && !isCollapsed && (
+          <div className="px-3 space-y-3">
+            <Link href="/dashboard/subscribe">
+              <span className="block rounded-xl border border-primary/20 bg-primary/5 p-3 hover:bg-primary/10 transition-colors">
+                <div className="flex items-center gap-2 mb-1">
+                  <Crown className="h-4 w-4 text-amber-500" />
+                  <span className="text-xs font-semibold text-foreground">
+                    {subData.sub?.plan?.name?.en || "Active Plan"}
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  {subData.sub?.plan?.interval} &middot; ${subData.sub?.plan?.price}
+                </div>
+              </span>
+            </Link>
+            {subData.allPlans.filter(p => p.sortOrder !== subData.sub?.plan?.sortOrder).length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Other Plans</p>
+                {subData.allPlans.filter(p => p.sortOrder !== subData.sub?.plan?.sortOrder).map((plan: any) => {
+                  const isDowngrade = plan.sortOrder < subData.sub?.plan?.sortOrder;
+                  return (
+                    <Link key={plan.id} href="/dashboard/subscribe">
+                      <span className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-foreground hover:bg-accent/50 transition-colors">
+                        <Sparkles className={cn("h-3.5 w-3.5", isDowngrade ? "text-muted-foreground" : "text-primary")} />
+                        {isDowngrade ? "Downgrade" : "Upgrade"} to {plan.name?.en || plan.interval} &middot; ${plan.price}/{plan.interval === "year" ? "yr" : plan.interval === "quarter" ? "3mo" : "mo"}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {isCollapsed && subData?.allPlans && subData.allPlans.length > 0 && (
+          <Link href="/dashboard/subscribe">
+            <span className="flex items-center justify-center rounded-xl px-3 py-2.5 text-amber-500 hover:bg-accent/50">
+              <Sparkles className="h-4.5 w-4.5" />
+            </span>
+          </Link>
         )}
 
         <Separator className="my-4 bg-border/50" />

@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { usePathname, Link } from "@/routing";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { subscriptionsApi } from "@/lib/api";
 import { TypewriterText } from "@/components/typewriter-text";
 import Image from "next/image";
 import {
@@ -43,6 +44,7 @@ import {
   Languages,
   Target,
   Clock,
+  Crown,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -67,9 +69,9 @@ const testimonials = [
 ];
 
 const plans = [
-  { name: "Monthly", price: "$29", period: "/month", features: ["Full question bank access", "Basic performance analytics", "Community discussion forum", "Mobile app access"], popular: false },
-  { name: "Quarterly", price: "$69", period: "/quarter", features: ["Everything in Monthly", "Advanced analytics & insights", "Priority email support", "Study planner integration", "Mock exam simulations"], popular: true },
-  { name: "Annual", price: "$199", period: "/year", features: ["Everything in Quarterly", "1-on-1 tutoring session", "Certificate of completion", "Early access to new features", "Lifetime question bank updates"], popular: false },
+  { name: "Monthly", price: "$29", period: "/month", sortOrder: 0, features: ["Full question bank access", "Basic performance analytics", "Community discussion forum", "Mobile app access"], popular: false },
+  { name: "Quarterly", price: "$69", period: "/quarter", sortOrder: 1, features: ["Everything in Monthly", "Advanced analytics & insights", "Priority email support", "Study planner integration", "Mock exam simulations"], popular: true },
+  { name: "Annual", price: "$199", period: "/year", sortOrder: 2, features: ["Everything in Quarterly", "1-on-1 tutoring session", "Certificate of completion", "Early access to new features", "Lifetime question bank updates"], popular: false },
 ];
 
 const faqs = [
@@ -102,6 +104,58 @@ export default function LandingPage() {
   useEffect(() => setMounted(true), []);
   const currentLocale = pathname.split("/")[1] || "en";
   const { user, isLoading } = useAuth();
+  const [subData, setSubData] = useState<{ planSortOrder: number } | null>(null);
+
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      subscriptionsApi.mySubscription().then(({ data }) => {
+        if (data?.plan?.sortOrder !== undefined && data?.plan?.sortOrder !== null) {
+          setSubData({ planSortOrder: data.plan.sortOrder });
+        }
+      }).catch(() => {});
+    }
+  }, [user]);
+
+  const getPlanButton = (plan: typeof plans[0]) => {
+    if (!user) {
+      return (
+        <Link href="/register" className="w-full">
+          <Button className="w-full" variant={plan.popular ? "default" : "outline"} size="lg">
+            {t("get_started")}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
+      );
+    }
+    if (!subData) {
+      return (
+        <Link href="/dashboard/subscribe" className="w-full">
+          <Button className="w-full" variant={plan.popular ? "default" : "outline"} size="lg">
+            Subscribe
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
+      );
+    }
+    const currentOrder = subData.planSortOrder;
+    if (currentOrder === plan.sortOrder) {
+      return (
+        <Button className="w-full" variant="secondary" size="lg" disabled>
+          <Crown className="mr-2 h-4 w-4 text-amber-500" />
+          Current Plan
+        </Button>
+      );
+    }
+    const isDowngrade = plan.sortOrder < currentOrder;
+    return (
+      <Link href="/dashboard/subscribe" className="w-full">
+        <Button className="w-full" variant={plan.popular ? "default" : "outline"} size="lg">
+          {isDowngrade ? "Downgrade" : "Upgrade"}
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </Link>
+    );
+  };
   const switchLocale = (locale: string) => {
     window.location.assign(window.location.pathname.replace(/^\/(en|es)/, `/${locale}`));
   };
@@ -192,24 +246,26 @@ export default function LandingPage() {
               </Badge>
             </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] as const }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-normal mb-6"
-            >
-              <TypewriterText
-                parts={[
-                  { text: t("hero_heading_1") + " " },
-                  { text: t("hero_heading_2"), className: "bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent" },
-                  { text: " " + t("hero_heading_3") },
-                ]}
-                speed={60}
-                deleteSpeed={25}
-                pauseEnd={2500}
-                pauseStart={1000}
-              />
-            </motion.h1>
+            <div className="h-[7rem] sm:h-[9rem] md:h-[11rem] lg:h-[14rem] flex items-center justify-center">
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] as const }}
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-normal mb-6"
+              >
+                <TypewriterText
+                  parts={[
+                    { text: t("hero_heading_1") + " " },
+                    { text: t("hero_heading_2"), className: "bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent" },
+                    { text: " " + t("hero_heading_3") },
+                  ]}
+                  speed={60}
+                  deleteSpeed={25}
+                  pauseEnd={2500}
+                  pauseStart={1000}
+                />
+              </motion.h1>
+            </div>
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -226,9 +282,9 @@ export default function LandingPage() {
               transition={{ duration: 0.6, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] as const }}
               className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
             >
-              <Link href="/register">
+              <Link href={user ? "/dashboard" : "/register"}>
                 <Button size="xl" className="text-base shadow-heavy hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
-                  {t("start_trial")}
+                  {user ? n("dashboard") : t("start_trial")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -407,14 +463,7 @@ export default function LandingPage() {
                     ))}
                   </CardContent>
                   <CardFooter>
-                    <Button
-                      className="w-full"
-                      variant={plan.popular ? "default" : "outline"}
-                      size="lg"
-                    >
-                      {t("get_started")}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    {getPlanButton(plan)}
                   </CardFooter>
                 </Card>
               </motion.div>
@@ -494,9 +543,9 @@ export default function LandingPage() {
               {t("cta_subtitle")}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/register">
+              <Link href={user ? "/dashboard" : "/register"}>
                 <Button size="xl" className="text-base shadow-heavy hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 bg-primary">
-                  {t("start_trial")}
+                  {user ? n("dashboard") : t("start_trial")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
