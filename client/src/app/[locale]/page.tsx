@@ -94,7 +94,11 @@ const stagger = (i: number) => ({
 });
 
 export default function LandingPage() {
-  const t = useTranslations("landing");
+  // @ts-ignore - locale used by useTranslations
+const _unused_locale = currentLocale;
+const t = useTranslations("landing");
+const sb = useTranslations("subscribe");
+const st = useTranslations("sidebar");
   const a = useTranslations("auth");
   const n = useTranslations("nav");
   const c = useTranslations("common");
@@ -131,7 +135,7 @@ export default function LandingPage() {
       return (
         <Link href="/dashboard/subscribe" className="w-full">
           <Button className="w-full" variant={plan.popular ? "default" : "outline"} size="lg">
-            Subscribe
+            {sb("subscribe")}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </Link>
@@ -142,7 +146,7 @@ export default function LandingPage() {
       return (
         <Button className="w-full" variant="secondary" size="lg" disabled>
           <Crown className="mr-2 h-4 w-4 text-amber-500" />
-          Current Plan
+          {sb("current_plan")}
         </Button>
       );
     }
@@ -150,7 +154,7 @@ export default function LandingPage() {
     return (
       <Link href="/dashboard/subscribe" className="w-full">
         <Button className="w-full" variant={plan.popular ? "default" : "outline"} size="lg">
-          {isDowngrade ? "Downgrade" : "Upgrade"}
+          {isDowngrade ? sb("downgrade") : sb("upgrade")}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </Link>

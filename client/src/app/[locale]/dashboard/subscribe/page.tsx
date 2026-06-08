@@ -22,7 +22,7 @@ const DEFAULT_PLANS = [
 ];
 
 export default function SubscribePage() {
-  const t = useTranslations("landing");
+  const t = useTranslations("subscribe");
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState<string | null>(null);
@@ -54,7 +54,7 @@ export default function SubscribePage() {
         window.location.href = data.url;
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to start checkout");
+      toast.error(err?.response?.data?.message || t("checkout_failed"));
     } finally {
       setSubscribing(null);
     }
@@ -80,15 +80,15 @@ export default function SubscribePage() {
         <motion.div {...fadeUp} className="text-center mb-12 max-w-2xl mx-auto">
           <Badge variant="secondary" className="mb-4 px-4 py-1.5">
             <Crown className="h-3.5 w-3.5 mr-1.5 text-primary" />
-            {currentSub ? "Your Subscription" : "Unlock Full Access"}
+            {currentSub ? t("badge_with_sub") : t("badge_no_sub")}
           </Badge>
           <h1 className="text-4xl font-bold tracking-tight mb-4">
-            {currentSub ? "Manage Your Plan" : "Choose Your Plan"}
+            {currentSub ? t("manage_title") : t("title")}
           </h1>
           <p className="text-lg text-muted-foreground">
             {currentSub
-              ? `You are on the ${currentSub.plan?.name?.en || currentSub.plan?.interval || "active"} plan. Upgrade or downgrade anytime.`
-              : "Get unlimited access to the question bank, flashcards, video classes, courses, and analytics."}
+              ? t("description_with_sub", { plan: currentSub.plan?.name?.en || currentSub.plan?.interval || "active" })
+              : t("description_no_sub")}
           </p>
         </motion.div>
 
@@ -99,7 +99,7 @@ export default function SubscribePage() {
                 <div className="flex items-center gap-3 mb-3">
                   <Crown className="h-6 w-6 text-amber-500" />
                   <div>
-                    <p className="font-semibold text-lg">{currentSub.plan?.name?.en || "Current Plan"}</p>
+                    <p className="font-semibold text-lg">{currentSub.plan?.name?.en || t("current_plan")}</p>
                     <p className="text-sm text-muted-foreground">
                       ${currentSub.plan?.price}/{currentSub.plan?.interval} &middot; {currentSub.status}
                     </p>
@@ -107,7 +107,7 @@ export default function SubscribePage() {
                 </div>
                 {currentSub.currentPeriodEnd && (
                   <p className="text-xs text-muted-foreground">
-                    Renews on {new Date(currentSub.currentPeriodEnd).toLocaleDateString()}
+                    {t("renews_on", { date: new Date(currentSub.currentPeriodEnd).toLocaleDateString() })}
                   </p>
                 )}
               </CardContent>
@@ -121,7 +121,7 @@ export default function SubscribePage() {
           <Card className="max-w-md mx-auto">
             <CardContent className="py-12 text-center">
               <Lock className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-              <p className="text-muted-foreground">No plans available yet. Contact support.</p>
+              <p className="text-muted-foreground">{t("no_plans")}</p>
             </CardContent>
           </Card>
         ) : (
@@ -140,14 +140,14 @@ export default function SubscribePage() {
                     {(isCurrent || plan.interval === "quarter") && !isCurrent && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
                         <Badge className="px-4 py-1 text-xs font-semibold bg-primary text-primary-foreground shadow-subtle">
-                          Most Popular
+                          {t("most_popular")}
                         </Badge>
                       </div>
                     )}
                     {isCurrent && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
                         <Badge className="px-4 py-1 text-xs font-semibold bg-amber-500 text-white shadow-subtle">
-                          <Crown className="h-3 w-3 mr-1" /> Current Plan
+                          <Crown className="h-3 w-3 mr-1" /> {t("current_plan")}
                         </Badge>
                       </div>
                     )}
@@ -172,7 +172,7 @@ export default function SubscribePage() {
                     <CardFooter>
                       {isCurrent ? (
                         <Button className="w-full" variant="secondary" size="lg" disabled>
-                          <Check className="mr-2 h-4 w-4" /> Active
+                          <Check className="mr-2 h-4 w-4" /> {t("active")}
                         </Button>
                       ) : (
                         <Button
@@ -185,7 +185,7 @@ export default function SubscribePage() {
                           {subscribing === plan.id ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : null}
-                          {currentSub ? (isDowngrade ? "Downgrade" : "Upgrade") : "Subscribe"}
+                          {currentSub ? (isDowngrade ? t("downgrade") : t("upgrade")) : t("subscribe")}
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                       )}
@@ -203,13 +203,13 @@ export default function SubscribePage() {
             <Button variant="outline" size="sm" onClick={async () => {
               try {
                 await subscriptionsApi.cancel();
-                toast.success("Subscription canceled");
+                toast.success(t("cancel_success"));
                 router.refresh();
               } catch {
-                toast.error("Failed to cancel");
+                toast.error(t("cancel_failed"));
               }
             }}>
-              Cancel Subscription
+              {t("cancel")}
             </Button>
           </motion.div>
         )}

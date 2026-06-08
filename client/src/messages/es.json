@@ -300,8 +300,30 @@
     "questions_count": "{count} preguntas",
     "minutes": "{count} min"
   },
+  "subscribe": {
+    "title": "Elige Tu Plan",
+    "manage_title": "Gestiona Tu Plan",
+    "badge_no_sub": "Acceso Completo",
+    "badge_with_sub": "Tu Suscripción",
+    "description_no_sub": "Obtén acceso ilimitado al banco de preguntas, tarjetas de estudio, videos, cursos y analíticas.",
+    "description_with_sub": "Estás en el plan {plan}. Mejora o cambia cuando quieras.",
+    "current_plan": "Plan Actual",
+    "active": "Activo",
+    "renews_on": "Renueva el {date}",
+    "no_plans": "No hay planes disponibles aún. Contacta con soporte.",
+    "most_popular": "Más Popular",
+    "subscribe": "Suscribirse",
+    "upgrade": "Mejorar",
+    "downgrade": "Degradar",
+    "cancel": "Cancelar Suscripción",
+    "cancel_success": "Suscripción cancelada",
+    "cancel_failed": "Error al cancelar",
+    "checkout_failed": "Error al iniciar el pago"
+  },
   "sidebar": {
-    "brand": "MD Exams"
+    "brand": "MD Exams",
+    "other_plans": "Otros Planes",
+    "active_plan": "Plan Activo"
   },
   "topbar": {
     "search": "Buscar preguntas, cursos...",

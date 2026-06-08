@@ -67,6 +67,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const sb = useTranslations("sidebar");
   const n = useTranslations("nav");
   const a = useTranslations("admin");
+  const sbs = useTranslations("subscribe");
   const pathname = usePathname();
   const [adminOpen, setAdminOpen] = useState(true);
   const { user } = useAuth();
@@ -202,7 +203,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
                 <div className="flex items-center gap-2 mb-1">
                   <Crown className="h-4 w-4 text-amber-500" />
                   <span className="text-xs font-semibold text-foreground">
-                    {subData.sub?.plan?.name?.en || "Active Plan"}
+                    {subData.sub?.plan?.name?.en || sb("active_plan")}
                   </span>
                 </div>
                 <div className="text-[11px] text-muted-foreground">
@@ -212,14 +213,14 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
             </Link>
             {subData.allPlans.filter(p => p.sortOrder !== subData.sub?.plan?.sortOrder).length > 0 && (
               <div className="space-y-1">
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Other Plans</p>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{sb("other_plans")}</p>
                 {subData.allPlans.filter(p => p.sortOrder !== subData.sub?.plan?.sortOrder).map((plan: any) => {
                   const isDowngrade = plan.sortOrder < subData.sub?.plan?.sortOrder;
                   return (
                     <Link key={plan.id} href="/dashboard/subscribe">
                       <span className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-foreground hover:bg-accent/50 transition-colors">
                         <Sparkles className={cn("h-3.5 w-3.5", isDowngrade ? "text-muted-foreground" : "text-primary")} />
-                        {isDowngrade ? "Downgrade" : "Upgrade"} to {plan.name?.en || plan.interval} &middot; ${plan.price}/{plan.interval === "year" ? "yr" : plan.interval === "quarter" ? "3mo" : "mo"}
+                        {(isDowngrade ? sbs("downgrade") : sbs("upgrade"))} to {plan.name?.en || plan.interval} &middot; ${plan.price}/{plan.interval === "year" ? "yr" : plan.interval === "quarter" ? "3mo" : "mo"}
                       </span>
                     </Link>
                   );

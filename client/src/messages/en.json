@@ -300,8 +300,30 @@
     "questions_count": "{count} questions",
     "minutes": "{count} min"
   },
+  "subscribe": {
+    "title": "Choose Your Plan",
+    "manage_title": "Manage Your Plan",
+    "badge_no_sub": "Unlock Full Access",
+    "badge_with_sub": "Your Subscription",
+    "description_no_sub": "Get unlimited access to the question bank, flashcards, video classes, courses, and analytics.",
+    "description_with_sub": "You are on the {plan} plan. Upgrade or downgrade anytime.",
+    "current_plan": "Current Plan",
+    "active": "Active",
+    "renews_on": "Renews on {date}",
+    "no_plans": "No plans available yet. Contact support.",
+    "most_popular": "Most Popular",
+    "subscribe": "Subscribe",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "cancel": "Cancel Subscription",
+    "cancel_success": "Subscription canceled",
+    "cancel_failed": "Failed to cancel",
+    "checkout_failed": "Failed to start checkout"
+  },
   "sidebar": {
-    "brand": "MD Exams"
+    "brand": "MD Exams",
+    "other_plans": "Other Plans",
+    "active_plan": "Active Plan"
   },
   "topbar": {
     "search": "Search questions, courses...",
