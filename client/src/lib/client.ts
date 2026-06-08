@@ -35,10 +35,10 @@ api.interceptors.response.use(
           return api(originalRequest);
         } catch {
           useAuthStore.getState().clearTokens();
-          window.location.href = "/en/login";
+window.location.href = "/login";
         }
       } else {
-        window.location.href = "/en/login";
+        window.location.href = "/login";
       }
     }
     return Promise.reject(error);

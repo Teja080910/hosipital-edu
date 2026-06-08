@@ -19,6 +19,7 @@ import { AnalyticsModule } from "./analytics/analytics.module";
 import { CertificatesModule } from "./certificates/certificates.module";
 import { MailModule } from "./mail/mail.module";
 import { UploadModule } from "./upload/upload.module";
+import { StreamModule } from "./stream/stream.module";
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { UploadModule } from "./upload/upload.module";
     CertificatesModule,
     MailModule,
     UploadModule,
+    StreamModule,
   ],
 })
 export class AppModule {}

@@ -81,9 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearTokens();
     setUser(null);
-    const currentPath = window.location.pathname;
-    const locale = currentPath.startsWith("/es") ? "es" : "en";
-    window.location.href = `/${locale}/login`;
+    window.location.href = "/login";
   };
 
   return (

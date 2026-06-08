@@ -1,22 +1,22 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
   Body,
-  Param,
-  Query,
-  UseGuards,
-  Req,
+  Controller,
+  Delete,
+  Get,
   Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards
 } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
-import { SubscriptionsService } from "./subscriptions.service";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { Roles } from "../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
-import { Roles } from "../common/decorators/roles.decorator";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { SubscriptionsService } from "./subscriptions.service";
 
 @ApiTags("subscriptions")
 @Controller()
@@ -72,9 +72,17 @@ export class SubscriptionsController {
   @Get("subscriptions/my")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get current user's subscription" })
+  @ApiOperation({ summary: "Get current user's subscription with plan" })
   async getMySubscription(@CurrentUser() user: any) {
     return this.subscriptionsService.getUserSubscription(user.id);
+  }
+
+  @Get("subscriptions/upgrade-plans")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get upgrade plans for current user" })
+  async getUpgradePlans(@CurrentUser() user: any) {
+    return this.subscriptionsService.getUpgradePlans(user.id);
   }
 
   @Post("subscriptions/cancel")
