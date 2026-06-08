@@ -94,11 +94,8 @@ const stagger = (i: number) => ({
 });
 
 export default function LandingPage() {
-  // @ts-ignore - locale used by useTranslations
-const _unused_locale = currentLocale;
-const t = useTranslations("landing");
+  const t = useTranslations("landing");
 const sb = useTranslations("subscribe");
-const st = useTranslations("sidebar");
   const a = useTranslations("auth");
   const n = useTranslations("nav");
   const c = useTranslations("common");
