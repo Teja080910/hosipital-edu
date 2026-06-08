@@ -17,7 +17,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
-      router.replace("/en/login");
+      router.replace("/login");
       return;
     }
     if (user.role === "admin") {
