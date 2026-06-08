@@ -353,6 +353,30 @@ async function main() {
   }
   console.log(`Articles: ${aCreated}\n`);
 
+  // -- SUBSCRIPTION PLANS --
+  console.log("=== Seeding Subscription Plans ===");
+  const plansData = [
+    { name: { en: "Monthly", es: "Mensual" }, description: { en: "Full question bank access, basic analytics", es: "Acceso completo al banco de preguntas, analíticas básicas" }, price: "29", interval: "month", sortOrder: 0, isVisible: true },
+    { name: { en: "Quarterly", es: "Trimestral" }, description: { en: "Everything in Monthly plus advanced analytics, priority support, mock exams", es: "Todo lo de Mensual más analíticas avanzadas, soporte prioritario, exámenes simulados" }, price: "69", interval: "quarter", sortOrder: 1, isVisible: true },
+    { name: { en: "Annual", es: "Anual" }, description: { en: "Everything in Quarterly plus 1-on-1 tutoring, certificate, early access", es: "Todo lo de Trimestral más tutoría personalizada, certificado, acceso anticipado" }, price: "199", interval: "year", sortOrder: 2, isVisible: true },
+  ];
+  let pCreated = 0;
+  for (const plan of plansData) {
+    const existing = await db
+      .select()
+      .from(schema.subscriptionPlans)
+      .where(eq(schema.subscriptionPlans.sortOrder, plan.sortOrder))
+      .limit(1);
+    if (existing.length) {
+      console.log(`  Skipped (exists): ${plan.name.en}`);
+      continue;
+    }
+    await db.insert(schema.subscriptionPlans).values(plan);
+    console.log(`  Created: ${plan.name.en}`);
+    pCreated++;
+  }
+  console.log(`Plans: ${pCreated}\n`);
+
   console.log("=== Seed Complete ===");
   await pool.end();
 }
