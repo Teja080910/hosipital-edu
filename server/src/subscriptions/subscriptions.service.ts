@@ -136,8 +136,7 @@ export class SubscriptionsService {
       plan.stripePriceId = stripePrice.id;
     }
 
-    let appUrl = this.config.get<string>("APP_URL") || this.config.get<string>("CORS_ORIGIN") || "http://localhost:3000";
-    if (appUrl === "*") appUrl = "http://localhost:3000";
+    let appUrl = this.config.get<string>("APP_URL")
     const session = await this.stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
