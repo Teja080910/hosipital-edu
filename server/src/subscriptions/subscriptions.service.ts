@@ -5,10 +5,12 @@ import {
   subscriptionPlans,
   userSubscriptions,
   payments,
+  users,
 } from "../database/schema";
-import { eq, and, gt, sql } from "drizzle-orm";
+import { eq, and, gt, sql, isNull } from "drizzle-orm";
 import { STRIPE } from "./stripe.provider";
 import Stripe from "stripe";
+import { MailService } from "../mail/mail.service";
 
 @Injectable()
 export class SubscriptionsService {
@@ -16,6 +18,7 @@ export class SubscriptionsService {
     @Inject(DRIZZLE) private db: any,
     @Inject(STRIPE) private stripe: Stripe,
     private config: ConfigService,
+    private mailService: MailService,
   ) {}
 
   async findPlans(visibleOnly = true) {
@@ -253,6 +256,22 @@ export class SubscriptionsService {
         currentPeriodEnd: periodEnd,
       })
       .returning();
+
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, data.userId), isNull(users.deletedAt)))
+      .limit(1);
+
+    if (user) {
+      const planName = typeof plan.name === "object" ? plan.name?.en || plan.name : plan.name;
+      await this.mailService.sendSubscriptionConfirmed(user.email, user.name, {
+        name: planName,
+        amount: plan.price,
+        interval: plan.interval,
+      });
+    }
+
     return sub;
   }
 
@@ -291,6 +310,16 @@ export class SubscriptionsService {
       await this.stripe.subscriptions.update(sub.stripeSubscriptionId, {
         cancel_at_period_end: true,
       });
+    }
+
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+      .limit(1);
+
+    if (user) {
+      await this.mailService.sendSubscriptionCancelled(user.email, user.name);
     }
 
     const [updated] = await this.db
@@ -348,6 +377,30 @@ async handleWebhook(event: any) {
             .update(userSubscriptions)
             .set({ status: "active", updatedAt: new Date() })
             .where(eq(userSubscriptions.stripeSubscriptionId, subId));
+        }
+        break;
+      }
+      case "invoice.payment_failed": {
+        const failedInvoice = event.data.object as Stripe.Invoice;
+        const subId = typeof failedInvoice.subscription === "string"
+          ? failedInvoice.subscription
+          : failedInvoice.subscription?.id;
+        if (subId) {
+          const [sub] = await this.db
+            .select({ userId: userSubscriptions.userId })
+            .from(userSubscriptions)
+            .where(eq(userSubscriptions.stripeSubscriptionId, subId))
+            .limit(1);
+          if (sub) {
+            const [usr] = await this.db
+              .select()
+              .from(users)
+              .where(and(eq(users.id, sub.userId), isNull(users.deletedAt)))
+              .limit(1);
+            if (usr) {
+              await this.mailService.sendPaymentFailed(usr.email, usr.name);
+            }
+          }
         }
         break;
       }

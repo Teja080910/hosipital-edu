@@ -36,6 +36,30 @@ export class AuthController {
     return { message: "Logged out successfully" };
   }
 
+  @Post("verify-email")
+  @ApiOperation({ summary: "Verify email address" })
+  async verifyEmail(@Body("token") token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  @Post("resend-verification")
+  @ApiOperation({ summary: "Resend verification email" })
+  async resendVerification(@Body("email") email: string) {
+    return this.authService.resendVerification(email);
+  }
+
+  @Post("forgot-password")
+  @ApiOperation({ summary: "Send password reset email" })
+  async forgotPassword(@Body("email") email: string) {
+    return this.authService.forgotPassword(email);
+  }
+
+  @Post("reset-password")
+  @ApiOperation({ summary: "Reset password with token" })
+  async resetPassword(@Body("token") token: string, @Body("password") password: string) {
+    return this.authService.resetPassword(token, password);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get("me")
   @ApiBearerAuth()
