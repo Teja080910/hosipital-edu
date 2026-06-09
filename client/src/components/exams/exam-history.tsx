@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "@/routing";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { attemptsApi } from "@/lib/api";
@@ -10,6 +11,7 @@ import { Loader2, Eye } from "lucide-react";
 import type { ExamAttempt } from "@/types";
 
 export function ExamHistory() {
+  const t = useTranslations("exams");
   const [attempts, setAttempts] = useState<ExamAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -17,9 +19,9 @@ export function ExamHistory() {
   useEffect(() => {
     attemptsApi.list()
       .then(({ data }) => setAttempts(data))
-      .catch(() => toast.error("Failed to load exam history"))
+      .catch(() => toast.error(t("load_failed")))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   if (loading) {
     return (
@@ -32,7 +34,7 @@ export function ExamHistory() {
   if (attempts.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-4 text-center">
-        No exam history yet.
+        {t("no_history")}
       </p>
     );
   }

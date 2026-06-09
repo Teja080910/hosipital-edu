@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, specialties } from "../database/schema";
+import { exams, specialties, topics, subtopics } from "../database/schema";
 import { eq, asc } from "drizzle-orm";
 
 @Injectable()
@@ -29,7 +29,28 @@ export class ExamsService {
       .where(eq(specialties.examId, id))
       .orderBy(asc(specialties.sortOrder));
 
-    return { ...exam, specialties: specs };
+    const specsWithTopics: any[] = [];
+    for (const spec of specs) {
+      const topicList = await this.db
+        .select()
+        .from(topics)
+        .where(eq(topics.specialtyId, spec.id))
+        .orderBy(asc(topics.sortOrder));
+
+      const topicsWithSubtopics: any[] = [];
+      for (const topic of topicList) {
+        const subList = await this.db
+          .select()
+          .from(subtopics)
+          .where(eq(subtopics.topicId, topic.id))
+          .orderBy(asc(subtopics.sortOrder));
+        topicsWithSubtopics.push({ ...topic, subtopics: subList });
+      }
+
+      specsWithTopics.push({ ...spec, topics: topicsWithSubtopics });
+    }
+
+    return { ...exam, specialties: specsWithTopics };
   }
 
   async findBySlug(slug: string) {

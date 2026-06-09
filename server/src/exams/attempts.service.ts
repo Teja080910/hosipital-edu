@@ -10,8 +10,9 @@ import {
   questions,
   questionOptions,
   userQuestionProgress,
+  exams,
 } from "../database/schema";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, inArray } from "drizzle-orm";
 
 @Injectable()
 export class AttemptsService {
@@ -45,24 +46,69 @@ export class AttemptsService {
       .limit(1);
     if (!attempt) throw new NotFoundException("Attempt not found");
 
-    const answers = await this.db
+    const answerRows = await this.db
       .select()
       .from(examAnswers)
       .where(eq(examAnswers.attemptId, id))
       .orderBy(asc(examAnswers.answeredAt));
+
+    if (answerRows.length === 0) {
+      return { ...attempt, answers: [] };
+    }
+
+    const questionIds = [...new Set(answerRows.map((a: any) => a.questionId))] as string[];
+
+    const questionRows = await this.db
+      .select()
+      .from(questions)
+      .where(inArray(questions.id, questionIds));
+
+    const optionRows = await this.db
+      .select()
+      .from(questionOptions)
+      .where(inArray(questionOptions.questionId, questionIds))
+      .orderBy(asc(questionOptions.sortOrder));
+
+    const optionsByQuestion: Record<string, any[]> = {};
+    for (const opt of optionRows) {
+      if (!optionsByQuestion[opt.questionId]) optionsByQuestion[opt.questionId] = [];
+      optionsByQuestion[opt.questionId].push(opt);
+    }
+
+    const questionsMap: Record<string, any> = {};
+    for (const q of questionRows) {
+      questionsMap[q.id] = { ...q, options: optionsByQuestion[q.id] || [] };
+    }
+
+    const answers = answerRows.map((a: any) => ({
+      ...a,
+      question: questionsMap[a.questionId] || null,
+    }));
 
     return { ...attempt, answers };
   }
 
   async findByUser(userId: string, page = 1, limit = 20) {
     const offset = (page - 1) * limit;
-    return this.db
+    const rows = await this.db
       .select()
       .from(examAttempts)
       .where(eq(examAttempts.userId, userId))
       .orderBy(desc(examAttempts.createdAt))
       .limit(limit)
       .offset(offset);
+
+    const examIds = [...new Set(rows.map((r: any) => r.examId))] as string[];
+    const examMap: Record<string, any> = {};
+    for (const eid of examIds) {
+      const [e] = await this.db.select().from(exams).where(eq(exams.id, eid)).limit(1);
+      if (e) examMap[e.id] = e;
+    }
+
+    return rows.map((r: any) => ({
+      ...r,
+      examName: examMap[r.examId]?.name || null,
+    }));
   }
 
   async answerQuestion(data: {

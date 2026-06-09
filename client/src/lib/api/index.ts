@@ -4,7 +4,7 @@ export { authApi } from "./auth";
 export { calendarApi } from "./calendar";
 export { certificatesApi } from "./certificates";
 export { coursesApi } from "./courses";
-export { examsApi } from "./exams";
+export { examsApi, attemptsApi } from "./exams";
 export { flashcardsApi } from "./flashcards";
 export { landingApi } from "./landing";
 export { questionsApi } from "./questions";

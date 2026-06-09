@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/routing";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
 import { ExamHistory } from "@/components/exams/exam-history";
 import { examsApi } from "@/lib/api";
@@ -29,9 +28,9 @@ export default function ExamsPage() {
   useEffect(() => {
     examsApi.list()
       .then(({ data }) => setExams(data))
-      .catch(() => toast.error("Failed to load exams"))
+      .catch(() => toast.error(t("load_failed")))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   if (loading) {
     return (
@@ -51,7 +50,7 @@ export default function ExamsPage() {
         </div>
 
         {exams.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">No exams available yet.</div>
+          <div className="text-center py-12 text-muted-foreground">{t("no_exams")}</div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {exams.map((exam) => (
@@ -61,10 +60,7 @@ export default function ExamsPage() {
                   <CardDescription>{localized(exam.description)}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button
-                    className="w-full"
-                    onClick={() => router.push(`/dashboard/exams/${exam.id}`)}
-                  >
+                  <Button className="w-full" onClick={() => router.push(`/dashboard/exams/${exam.id}`)}>
                     <GraduationCap className="h-4 w-4 mr-2" />
                     {t("start")}
                   </Button>

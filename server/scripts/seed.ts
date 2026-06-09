@@ -255,11 +255,19 @@ async function main() {
   const userId = adminUser.id;
   console.log(`Using admin user: ${adminUser.email}\n`);
 
+  // -- Look up first exam/specialty/topic for question associations --
+  const [firstExam] = await db.select().from(schema.exams).limit(1);
+  const [firstSpecialty] = await db.select().from(schema.specialties).limit(1);
+  const [firstTopic] = await db.select().from(schema.topics).limit(1);
+
   // -- QUESTIONS --
   console.log("=== Seeding Questions ===");
   let qCreated = 0;
   for (const q of questionsData) {
     const [question] = await db.insert(schema.questions).values({
+      examId: firstExam?.id || null,
+      specialtyId: firstSpecialty?.id || null,
+      topicId: firstTopic?.id || null,
       text: q.text,
       explanation: q.explanation,
       difficulty: q.difficulty,

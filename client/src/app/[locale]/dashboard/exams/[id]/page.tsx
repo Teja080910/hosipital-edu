@@ -11,11 +11,12 @@ import { PageTransition } from "@/components/page-transition";
 import { QuestionTimer } from "@/components/questions/question-timer";
 import { ExamResults } from "@/components/exams/exam-results";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { examsApi, attemptsApi, questionsApi } from "@/lib/api";
 import { toast } from "sonner";
 import {
   Loader2, ArrowLeft, ArrowRight, Flag, FlagOff, CheckCircle2, XCircle,
-  GraduationCap, Settings2, Play, AlertTriangle,
+  GraduationCap, Settings2, Play, AlertTriangle, ChevronDown, Check,
 } from "lucide-react";
 import type { Question } from "@/types";
 
@@ -27,18 +28,47 @@ function localized(obj: Record<string, string> | string | null | undefined, loca
   return obj[locale] || Object.values(obj)[0] || "";
 }
 
+interface Specialty {
+  id: string;
+  name: Record<string, string>;
+  slug: string;
+  topics: Topic[];
+}
+
+interface Topic {
+  id: string;
+  name: Record<string, string>;
+  slug: string;
+  subtopics: Subtopic[];
+}
+
+interface Subtopic {
+  id: string;
+  name: Record<string, string>;
+  slug: string;
+}
+
 export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const t = useTranslations("exams");
+  const tc = useTranslations("common");
   const router = useRouter();
 
   const [pageState, setPageState] = useState<PageState>("config");
   const [mode, setMode] = useState<"study" | "exam">("exam");
   const [questionLimit, setQuestionLimit] = useState(10);
   const [exam, setExam] = useState<any>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+  const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string>("");
+  const [selectedTopic, setSelectedTopic] = useState<string>("");
+  const [selectedSubtopic, setSelectedSubtopic] = useState<string>("");
+  const [showSpecialties, setShowSpecialties] = useState(false);
+  const [showTopics, setShowTopics] = useState(false);
+  const [showSubtopics, setShowSubtopics] = useState(false);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }>>({});
@@ -54,6 +84,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const [results, setResults] = useState<{
     score: number; totalQuestions: number; correctAnswers: number;
     incorrectAnswers: number; timeSpent: number;
+    topicBreakdown: { topic: string; correct: number; total: number }[];
   } | null>(null);
 
   useEffect(() => {
@@ -63,12 +94,34 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     ])
       .then(([examRes, questionsRes]) => {
         setExam(examRes.data);
-        setQuestions(questionsRes.data);
+        setAllQuestions(questionsRes.data);
+        setFilteredQuestions(questionsRes.data);
       })
-      .catch(() => toast.error("Failed to load exam"))
+      .catch(() => toast.error(t("load_failed")))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, t]);
 
+  useEffect(() => {
+    let filtered = allQuestions;
+    if (selectedSpecialty) {
+      filtered = filtered.filter((q) => q.specialtyId === selectedSpecialty);
+    }
+    if (selectedTopic) {
+      filtered = filtered.filter((q) => q.topicId === selectedTopic);
+    }
+    if (selectedSubtopic) {
+      filtered = filtered.filter((q) => q.subtopicId === selectedSubtopic);
+    }
+    setFilteredQuestions(filtered);
+  }, [selectedSpecialty, selectedTopic, selectedSubtopic, allQuestions]);
+
+  const specialties: Specialty[] = exam?.specialties || [];
+  const currentSpecialty = specialties.find((s) => s.id === selectedSpecialty);
+  const topics = currentSpecialty?.topics || [];
+  const currentTopic = topics.find((t) => t.id === selectedTopic);
+  const subtopics = currentTopic?.subtopics || [];
+
+  const questions = filteredQuestions;
   const currentQuestion = questions[currentIndex] ?? null;
   const answeredCount = Object.values(answers).filter((a) => a.optionId !== null).length;
   const flaggedCount = Object.values(answers).filter((a) => a.flagged).length;
@@ -76,7 +129,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const handleStart = async () => {
     const totalQuestions = Math.min(questionLimit, questions.length);
     if (totalQuestions === 0) {
-      toast.error("No questions available for this exam");
+      toast.error(t("no_questions"));
       return;
     }
     try {
@@ -95,7 +148,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       setShowAnswer(false);
       setPageState("taking");
     } catch {
-      toast.error("Failed to start exam");
+      toast.error(t("start_failed"));
     }
   };
 
@@ -116,9 +169,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           selectedOptionId: optionId,
           timeSpent,
         });
-      } catch {
-        // silent - answer saved locally anyway
-      }
+      } catch { /* silent */ }
     } else {
       setShowAnswer(true);
     }
@@ -138,7 +189,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   };
 
   const handleNext = () => {
-    setCurrentIndex((i) => Math.min(i + 1, questions.length - 1));
+    const next = Math.min(currentIndex + 1, questions.length - 1);
+    setCurrentIndex(next);
     setSelectedOption(null);
     setShowAnswer(false);
   };
@@ -154,12 +206,35 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     setTimeSpent((t) => t + 1);
   }, []);
 
-  const handleTimeUp = () => {
-    setShowTimeWarning(true);
-  };
+  const handleTimeUp = () => setShowTimeWarning(true);
 
-  const handleRequestSubmit = () => {
-    setShowSubmitDialog(true);
+  const handleRequestSubmit = () => setShowSubmitDialog(true);
+
+  const computeTopicBreakdown = () => {
+    const topicMap: Record<string, { correct: number; total: number }> = {};
+    for (const q of questions) {
+      const topicId = q.topicId || "unknown";
+      if (!topicMap[topicId]) topicMap[topicId] = { correct: 0, total: 0 };
+      topicMap[topicId].total++;
+      const a = answers[q.id];
+      if (a?.isCorrect) topicMap[topicId].correct++;
+    }
+
+    const topicNames: Record<string, string> = {};
+    for (const spec of specialties) {
+      for (const topic of spec.topics || []) {
+        topicNames[topic.id] = localized(topic.name);
+        for (const sub of topic.subtopics || []) {
+          topicNames[sub.id] = localized(sub.name);
+        }
+      }
+    }
+
+    return Object.entries(topicMap).map(([topicId, data]) => ({
+      topic: topicNames[topicId] || topicId,
+      correct: data.correct,
+      total: data.total,
+    }));
   };
 
   const handleConfirmSubmit = async () => {
@@ -179,10 +254,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         correctAnswers,
         incorrectAnswers: totalQuestions - correctAnswers,
         timeSpent,
+        topicBreakdown: computeTopicBreakdown(),
       });
       setPageState("results");
     } catch {
-      toast.error("Failed to submit exam");
+      toast.error(t("submit_failed"));
     } finally {
       setSubmitting(false);
     }
@@ -192,9 +268,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     if (!attemptId) return;
     try {
       await attemptsApi.complete(attemptId);
-    } catch {
-      // silent
-    }
+    } catch { /* silent */ }
     const correctAnswers = Object.values(answers).filter((a) => a.isCorrect === true).length;
     const totalQuestions = Math.min(questionLimit, questions.length);
     setResults({
@@ -203,6 +277,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       correctAnswers,
       incorrectAnswers: totalQuestions - correctAnswers,
       timeSpent,
+      topicBreakdown: computeTopicBreakdown(),
     });
     setPageState("results");
   };
@@ -228,19 +303,40 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   if (pageState === "results" && results) {
     return (
       <PageTransition>
-        <ExamResults
-          score={results.score}
-          totalQuestions={results.totalQuestions}
-          correctAnswers={results.correctAnswers}
-          incorrectAnswers={results.incorrectAnswers}
-          timeSpent={results.timeSpent}
-          onReview={() => setPageState("taking")}
-          onRetry={() => {
-            setPageState("config");
-            setResults(null);
-            setAttemptId(null);
-          }}
-        />
+        <div className="max-w-2xl mx-auto space-y-6">
+          <ExamResults
+            score={results.score}
+            totalQuestions={results.totalQuestions}
+            correctAnswers={results.correctAnswers}
+            incorrectAnswers={results.incorrectAnswers}
+            timeSpent={results.timeSpent}
+            onReview={() => { setPageState("taking"); setShowAnswer(true); }}
+            onRetry={() => {
+              setPageState("config");
+              setResults(null);
+              setAttemptId(null);
+            }}
+          />
+
+          {results.topicBreakdown.length > 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Topic Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {results.topicBreakdown.map((tb) => (
+                  <div key={tb.topic}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>{tb.topic}</span>
+                      <span className="text-muted-foreground">{tb.correct}/{tb.total} ({Math.round((tb.correct / tb.total) * 100)}%)</span>
+                    </div>
+                    <Progress value={(tb.correct / tb.total) * 100} className="h-1.5" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </PageTransition>
     );
   }
@@ -261,14 +357,10 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
     return (
       <PageTransition>
-        <div className="space-y-4 max-w-3xl mx-auto pb-20">
+        <div className="space-y-4 max-w-3xl mx-auto pb-24">
           {mode === "exam" && (
             <div className="flex items-center justify-between">
-              <QuestionTimer
-                timeRemaining={timeRemaining}
-                onTick={handleTick}
-                onTimeUp={handleTimeUp}
-              />
+              <QuestionTimer timeRemaining={timeRemaining} onTick={handleTick} onTimeUp={handleTimeUp} />
               <div className="text-sm text-muted-foreground">
                 {currentAnsweredCount}/{totalQ} {t("answered")}
                 {flaggedCount > 0 && ` · ${flaggedCount} ${t("flagged")}`}
@@ -301,7 +393,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                   const showCorrect = showAnswer || (mode === "exam" && answered !== null && isSelected);
                   const isCorrectOption = option.isCorrect;
 
-                  let borderClass = "border-input hover:bg-muted/50";
+                  let borderClass = "border-input hover:bg-muted/50 cursor-pointer";
                   let bgClass = "";
                   if (showCorrect && isCorrectOption) {
                     borderClass = "border-green-500";
@@ -318,7 +410,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                       key={option.id}
                       onClick={() => !answered && handleAnswer(option.id)}
                       disabled={answered !== null && mode === "study"}
-                      className={`w-full text-left rounded-lg border p-4 transition-colors ${borderClass} ${bgClass} cursor-pointer`}
+                      className={`w-full text-left rounded-lg border p-4 transition-colors ${borderClass} ${bgClass}`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
@@ -359,13 +451,9 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
             {currentIndex >= totalQ - 1 ? (
               mode === "exam" ? (
-                <Button onClick={handleRequestSubmit}>
-                  {t("submit")}
-                </Button>
+                <Button onClick={handleRequestSubmit}>{t("submit")}</Button>
               ) : (
-                <Button onClick={handleFinishStudy}>
-                  {t("submit")}
-                </Button>
+                <Button onClick={handleFinishStudy}>{t("submit")}</Button>
               )
             ) : (
               <Button onClick={handleNext} disabled={!answered && mode === "exam"}>
@@ -387,11 +475,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                   return (
                     <button
                       key={i}
-                      onClick={() => {
-                        setCurrentIndex(i);
-                        setSelectedOption(null);
-                        setShowAnswer(false);
-                      }}
+                      onClick={() => { setCurrentIndex(i); setSelectedOption(null); setShowAnswer(false); }}
                       className={`h-8 w-8 rounded text-xs font-medium transition-colors ${
                         i === currentIndex ? "ring-2 ring-primary ring-offset-2" : ""
                       } ${
@@ -433,15 +517,14 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           title={t("submit")}
           description={t("submit_confirm")}
           confirmLabel={t("submit")}
-          cancelLabel="Cancel"
+          cancelLabel={tc("cancel")}
           variant="default"
           onConfirm={handleConfirmSubmit}
         />
-
         <ConfirmDialog
           open={showTimeWarning}
           onOpenChange={setShowTimeWarning}
-          title="Time's Up!"
+          title="Time is Up!"
           description="Your time has expired. The exam will be submitted automatically."
           confirmLabel={t("submit")}
           cancelLabel=""
@@ -462,95 +545,219 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           <ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}
         </Button>
 
-        {maxQuestions === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12 text-muted-foreground">
-              {t("no_questions")}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Settings2 className="h-8 w-8 text-primary" />
-                </div>
+        <Card>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Settings2 className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="text-2xl">{localized(exam.name)}</CardTitle>
-              <CardDescription>{localized(exam.description)}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+            </div>
+            <CardTitle className="text-2xl">{localized(exam.name)}</CardTitle>
+            <CardDescription>{localized(exam.description)}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <label className="text-sm font-medium mb-2 block">{t("select_mode")}</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setMode("study")}
+                  className={`rounded-lg border-2 p-4 text-center transition-colors ${
+                    mode === "study" ? "border-primary bg-primary/5" : "border-input hover:bg-muted/50"
+                  }`}
+                >
+                  <GraduationCap className="h-5 w-5 mx-auto mb-1" />
+                  <p className="font-medium text-sm">{t("study_mode")}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Learn with instant feedback</p>
+                </button>
+                <button
+                  onClick={() => setMode("exam")}
+                  className={`rounded-lg border-2 p-4 text-center transition-colors ${
+                    mode === "exam" ? "border-primary bg-primary/5" : "border-input hover:bg-muted/50"
+                  }`}
+                >
+                  <Play className="h-5 w-5 mx-auto mb-1" />
+                  <p className="font-medium text-sm">{t("exam_mode")}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Timed simulation</p>
+                </button>
+              </div>
+            </div>
+
+            {specialties.length > 0 && (
               <div>
-                <label className="text-sm font-medium mb-2 block">{t("select_mode")}</label>
-                <div className="grid grid-cols-2 gap-3">
+                <label className="text-sm font-medium mb-2 block">Specialty</label>
+                <div className="relative">
                   <button
-                    onClick={() => setMode("study")}
-                    className={`rounded-lg border-2 p-4 text-center transition-colors ${
-                      mode === "study" ? "border-primary bg-primary/5" : "border-input hover:bg-muted/50"
-                    }`}
+                    onClick={() => { setShowSpecialties(!showSpecialties); setShowTopics(false); setShowSubtopics(false); }}
+                    className="w-full border rounded-lg p-3 text-left flex items-center justify-between"
                   >
-                    <GraduationCap className="h-5 w-5 mx-auto mb-1" />
-                    <p className="font-medium text-sm">{t("study_mode")}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Learn with instant feedback</p>
+                    <span className={selectedSpecialty ? "" : "text-muted-foreground"}>
+                      {selectedSpecialty ? localized(currentSpecialty?.name) : "All Specialties"}
+                    </span>
+                    <ChevronDown className="h-4 w-4" />
                   </button>
-                  <button
-                    onClick={() => setMode("exam")}
-                    className={`rounded-lg border-2 p-4 text-center transition-colors ${
-                      mode === "exam" ? "border-primary bg-primary/5" : "border-input hover:bg-muted/50"
-                    }`}
-                  >
-                    <Play className="h-5 w-5 mx-auto mb-1" />
-                    <p className="font-medium text-sm">{t("exam_mode")}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Timed simulation</p>
-                  </button>
+                  {showSpecialties && (
+                    <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
+                      <ScrollArea className="max-h-48">
+                        <CardContent className="p-1">
+                          <button
+                            onClick={() => { setSelectedSpecialty(""); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }}
+                            className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2"
+                          >
+                            {!selectedSpecialty && <Check className="h-4 w-4 text-primary" />}
+                            All Specialties
+                          </button>
+                          {specialties.map((s) => (
+                            <button
+                              key={s.id}
+                              onClick={() => { setSelectedSpecialty(s.id); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }}
+                              className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2"
+                            >
+                              {selectedSpecialty === s.id && <Check className="h-4 w-4 text-primary" />}
+                              {localized(s.name)}
+                            </button>
+                          ))}
+                        </CardContent>
+                      </ScrollArea>
+                    </Card>
+                  )}
                 </div>
               </div>
+            )}
 
+            {selectedSpecialty && topics.length > 0 && (
               <div>
-                <label className="text-sm font-medium mb-2 block">
-                  {t("select_questions")} (max {maxQuestions})
-                </label>
-                <input
-                  type="range"
-                  min={1}
-                  max={maxQuestions}
-                  step={1}
-                  value={Math.min(questionLimit, maxQuestions)}
-                  onChange={(e) => setQuestionLimit(Number(e.target.value))}
-                  className="w-full accent-primary"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>1</span>
-                  <span className="font-medium text-sm">{Math.min(questionLimit, maxQuestions)} {t("questions_count", { count: Math.min(questionLimit, maxQuestions) })}</span>
-                  <span>{maxQuestions}</span>
+                <label className="text-sm font-medium mb-2 block">Topic</label>
+                <div className="relative">
+                  <button
+                    onClick={() => { setShowTopics(!showTopics); setShowSpecialties(false); setShowSubtopics(false); }}
+                    className="w-full border rounded-lg p-3 text-left flex items-center justify-between"
+                  >
+                    <span className={selectedTopic ? "" : "text-muted-foreground"}>
+                      {selectedTopic ? localized(currentTopic?.name) : "All Topics"}
+                    </span>
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  {showTopics && (
+                    <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
+                      <ScrollArea className="max-h-48">
+                        <CardContent className="p-1">
+                          <button
+                            onClick={() => { setSelectedTopic(""); setSelectedSubtopic(""); setShowTopics(false); }}
+                            className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2"
+                          >
+                            {!selectedTopic && <Check className="h-4 w-4 text-primary" />}
+                            All Topics
+                          </button>
+                          {topics.map((t) => (
+                            <button
+                              key={t.id}
+                              onClick={() => { setSelectedTopic(t.id); setSelectedSubtopic(""); setShowTopics(false); }}
+                              className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2"
+                            >
+                              {selectedTopic === t.id && <Check className="h-4 w-4 text-primary" />}
+                              {localized(t.name)}
+                            </button>
+                          ))}
+                        </CardContent>
+                      </ScrollArea>
+                    </Card>
+                  )}
                 </div>
               </div>
+            )}
 
-              {mode === "exam" && (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">{t("time_limit")}</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {timeOptions.map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => setTimeLimit(opt)}
-                        className={`rounded-lg border p-2 text-center text-sm transition-colors ${
-                          timeLimit === opt ? "border-primary bg-primary/5 font-medium" : "border-input hover:bg-muted/50"
-                        }`}
-                      >
-                        {t("minutes", { count: opt })}
-                      </button>
-                    ))}
-                  </div>
+            {selectedTopic && subtopics.length > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Subtopic</label>
+                <div className="relative">
+                  <button
+                    onClick={() => { setShowSubtopics(!showSubtopics); setShowSpecialties(false); setShowTopics(false); }}
+                    className="w-full border rounded-lg p-3 text-left flex items-center justify-between"
+                  >
+                    <span className={selectedSubtopic ? "" : "text-muted-foreground"}>
+                      {selectedSubtopic ? localized(subtopics.find((s) => s.id === selectedSubtopic)?.name) : "All Subtopics"}
+                    </span>
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  {showSubtopics && (
+                    <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
+                      <ScrollArea className="max-h-48">
+                        <CardContent className="p-1">
+                          <button
+                            onClick={() => { setSelectedSubtopic(""); setShowSubtopics(false); }}
+                            className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2"
+                          >
+                            {!selectedSubtopic && <Check className="h-4 w-4 text-primary" />}
+                            All Subtopics
+                          </button>
+                          {subtopics.map((s) => (
+                            <button
+                              key={s.id}
+                              onClick={() => { setSelectedSubtopic(s.id); setShowSubtopics(false); }}
+                              className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2"
+                            >
+                              {selectedSubtopic === s.id && <Check className="h-4 w-4 text-primary" />}
+                              {localized(s.name)}
+                            </button>
+                          ))}
+                        </CardContent>
+                      </ScrollArea>
+                    </Card>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
-              <Button className="w-full h-12 text-lg" onClick={handleStart}>
-                <Play className="h-5 w-5 mr-2" /> {t("begin")}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                {t("select_questions")} (max {maxQuestions})
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={Math.max(1, maxQuestions)}
+                step={1}
+                value={Math.min(questionLimit, maxQuestions)}
+                onChange={(e) => setQuestionLimit(Number(e.target.value))}
+                className="w-full accent-primary"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>1</span>
+                <span className="font-medium text-sm">{Math.min(questionLimit, maxQuestions)} {t("questions_count", { count: Math.min(questionLimit, maxQuestions) })}</span>
+                <span>{maxQuestions}</span>
+              </div>
+            </div>
+
+            {mode === "exam" && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">{t("time_limit")}</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {timeOptions.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setTimeLimit(opt)}
+                      className={`rounded-lg border p-2 text-center text-sm transition-colors ${
+                        timeLimit === opt ? "border-primary bg-primary/5 font-medium" : "border-input hover:bg-muted/50"
+                      }`}
+                    >
+                      {t("minutes", { count: opt })}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button className="w-full h-12 text-lg" onClick={handleStart} disabled={maxQuestions === 0}>
+              <Play className="h-5 w-5 mr-2" /> {t("begin")}
+            </Button>
+
+            {maxQuestions === 0 && (
+              <p className="text-xs text-center text-muted-foreground">
+                No questions match your current filter selection.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </PageTransition>
   );
