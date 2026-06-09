@@ -51,7 +51,8 @@ export default function RegisterPage() {
     try {
       await register(name, email, password);
       toast.success(t("account_created"));
-      router.push("/");
+      setLoading(false);
+      router.push("/dashboard");
     } catch (error) {
       const message = (error as any)?.response?.data?.message;
       if (Array.isArray(message)) {
@@ -59,9 +60,8 @@ export default function RegisterPage() {
       } else {
         setErrorMsg(message || t("registration_failed"));
       }
-    } finally {
-      submittingRef.current = false;
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 

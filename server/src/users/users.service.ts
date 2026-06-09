@@ -1,13 +1,13 @@
 import { Injectable, NotFoundException, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { users } from "../database/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 @Injectable()
 export class UsersService {
   constructor(@Inject(DRIZZLE) private db: any) {}
 
-  async findAll(page = 1, limit = 20) {
+  async findAll(page = 1, limit = 1000) {
     const offset = (page - 1) * limit;
     const items = await this.db
       .select()
@@ -15,7 +15,11 @@ export class UsersService {
       .where(isNull(users.deletedAt))
       .limit(limit)
       .offset(offset);
-    return items;
+    const [totalResult] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(isNull(users.deletedAt));
+    return { items, total: Number(totalResult.count) };
   }
 
   async findById(id: string) {

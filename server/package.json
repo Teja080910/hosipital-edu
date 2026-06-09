@@ -14,7 +14,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "create:admin": "node scripts/create-admin.js",
-    "db:seed": "ts-node -r dotenv/config scripts/seed.ts dotenv_config_path=.env"
+    "db:seed": "ts-node -r dotenv/config scripts/seed.ts dotenv_config_path=.env",
+    "db:firebase-migrate": "ts-node -r dotenv/config scripts/firebase-migrate.ts dotenv_config_path=.env"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",

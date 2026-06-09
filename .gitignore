@@ -10,3 +10,4 @@ drizzle/
 drizzle-meta/
 my-part*
 firebase_dump/
+server/scripts/firebase-data

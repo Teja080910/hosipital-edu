@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
@@ -105,6 +105,11 @@ const sb = useTranslations("subscribe");
   useEffect(() => setMounted(true), []);
   const currentLocale = pathname.split("/")[1] || "en";
   const { user, isLoading, logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const handleLogout = useCallback(async () => {
+    setLoggingOut(true);
+    await logout();
+  }, [logout]);
   const [subData, setSubData] = useState<{ planSortOrder: number } | null>(null);
 
   useEffect(() => {
@@ -205,8 +210,8 @@ const sb = useTranslations("subscribe");
                     <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                   </Button>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={logout} className="text-sm text-muted-foreground">
-                  {a("logout")}
+                <Button variant="ghost" size="sm" onClick={handleLogout} disabled={loggingOut} className="text-sm text-muted-foreground">
+                  {loggingOut ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /> : a("logout")}
                 </Button>
                 </>
               ) : (

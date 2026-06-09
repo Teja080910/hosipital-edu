@@ -39,13 +39,13 @@ export default function AdminVideosPage() {
     try {
       const { data } = await streamApi.listModules();
       setModules(data);
-      if (data.length > 0 && !selectedModule) setSelectedModule(data[0]);
+      if (data.length > 0) setSelectedModule((prev) => prev ?? data[0]);
     } catch {
       toast.error("Failed to load modules");
     } finally {
       setLoading(false);
     }
-  }, [selectedModule]);
+  }, []);
 
   useEffect(() => { fetchModules(); }, []);
 
@@ -57,7 +57,7 @@ export default function AdminVideosPage() {
 
   const openEditModule = (mod: any) => {
     setEditingModule(mod);
-    setModuleForm({ title: mod.title?.en || mod.title || "", description: mod.description?.en || mod.description || "" });
+    setModuleForm({ title: mod.title?.en ?? mod.title ?? "", description: mod.description?.en ?? mod.description ?? "" });
     setModuleDialogOpen(true);
   };
 
@@ -120,8 +120,8 @@ export default function AdminVideosPage() {
     setEditingLesson(lesson);
     setLessonModuleId(null);
     setLessonForm({
-      title: lesson.title?.en || lesson.title || "",
-      description: lesson.description?.en || lesson.description || "",
+      title: lesson.title?.en ?? lesson.title ?? "",
+      description: lesson.description?.en ?? lesson.description ?? "",
       videoUrl: lesson.videoUrl || "",
       duration: String(lesson.duration || 0),
     });
@@ -167,13 +167,14 @@ export default function AdminVideosPage() {
     return parts[parts.length - 1] || url;
   };
 
+  const renderTitle = (v: any) => (typeof v === "string" ? v : v?.en ?? v?.es ?? "");
   const moduleColumns = [
-    { key: "title", label: "Title", render: (v: any) => v?.en || v },
+    { key: "title", label: "Title", render: renderTitle },
     { key: "lessons", label: "Lessons", render: (v: any[]) => v?.length || 0 },
   ];
 
   const lessonColumns = [
-    { key: "title", label: "Title", render: (v: any) => v?.en || v },
+    { key: "title", label: "Title", render: renderTitle },
     { key: "duration", label: "Duration (s)", render: (v: number) => `${v}s` },
     { key: "videoUrl", label: "Video", render: (v: string) => v ? <Badge variant="outline">Uploaded</Badge> : <Badge variant="secondary">None</Badge> },
   ];
@@ -211,7 +212,7 @@ export default function AdminVideosPage() {
                       onClick={() => setSelectedModule(mod)}
                     >
                       <div>
-                        <p className="font-medium text-sm">{mod.title?.en || mod.title}</p>
+                        <p className="font-medium text-sm">{mod.title?.en ?? mod.title}</p>
                         <p className="text-xs text-muted-foreground">{mod.lessons?.length || 0} lessons</p>
                       </div>
                       <div className="flex gap-1">
@@ -250,8 +251,8 @@ export default function AdminVideosPage() {
                   {selectedModule.lessons?.map((lesson: any) => (
                     <div key={lesson.id} className="flex items-start gap-3 p-3 rounded-lg border">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm">{lesson.title?.en || lesson.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{lesson.description?.en || lesson.description}</p>
+                        <p className="font-medium text-sm">{lesson.title?.en ?? lesson.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{lesson.description?.en ?? lesson.description}</p>
                         <div className="flex gap-2 mt-1">
                           <Badge variant="secondary" className="text-xs">{lesson.duration}s</Badge>
                           {lesson.videoUrl && (

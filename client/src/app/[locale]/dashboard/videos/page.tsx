@@ -8,6 +8,12 @@ import { BookOpen, Clock, Loader2, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
+  if (!obj) return "";
+  if (typeof obj === "string") return obj;
+  return obj[locale] || Object.values(obj)[0] || "";
+}
+
 export default function VideosPage() {
   const t = useTranslations("videos");
   const [modules, setModules] = useState<any[]>([]);
@@ -67,7 +73,7 @@ export default function VideosPage() {
                     selectedModule?.id === mod.id ? "bg-primary/10 border border-primary/30" : "hover:bg-muted border border-transparent"
                   }`}
                 >
-                  <p className="font-medium text-sm">{mod.title?.en || mod.title}</p>
+                  <p className="font-medium text-sm">{localized(mod.title)}</p>
                   <p className="text-xs text-muted-foreground mt-1">{mod.lessons?.length || 0} lessons</p>
                 </button>
                 {selectedModule?.id === mod.id && mod.lessons?.map((lesson: any) => (
@@ -79,7 +85,7 @@ export default function VideosPage() {
                     }`}
                   >
                     <Play className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{lesson.title?.en || lesson.title}</span>
+                    <span className="truncate">{localized(lesson.title)}</span>
                   </button>
                 ))}
               </div>
@@ -100,8 +106,8 @@ export default function VideosPage() {
                   </div>
                 )}
                 <div>
-                  <h2 className="text-xl font-semibold">{selectedLesson.title?.en || selectedLesson.title}</h2>
-                  <p className="text-muted-foreground mt-1">{selectedLesson.description?.en || selectedLesson.description}</p>
+                  <h2 className="text-xl font-semibold">{localized(selectedLesson.title)}</h2>
+                  <p className="text-muted-foreground mt-1">{localized(selectedLesson.description)}</p>
                   <div className="flex items-center gap-3 mt-3">
                     <Badge variant="secondary" className="flex items-center gap-1">
                       <Clock className="h-3 w-3" /> {selectedLesson.duration}s

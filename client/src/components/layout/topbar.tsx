@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,6 +39,11 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const c = useTranslations("common");
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const handleLogout = useCallback(async () => {
+    setLoggingOut(true);
+    await logout();
+  }, [logout]);
   const router = useRouter();
   const pathname = usePathname();
   const [searchFocused, setSearchFocused] = useState(false);
@@ -148,8 +153,8 @@ const currentLocale = typeof window !== "undefined" ? window.location.pathname.s
               {tb("settings")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive rounded-lg">
-              <LogOut className="h-4 w-4 mr-2" />
+            <DropdownMenuItem onClick={handleLogout} disabled={loggingOut} className="text-destructive focus:text-destructive rounded-lg">
+              {loggingOut ? <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-destructive border-t-transparent" /> : <LogOut className="h-4 w-4 mr-2" />}
               {tb("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -17,6 +17,9 @@
 | email | varchar(255) | unique, not null |
 | password_hash | varchar(255) | nullable (OAuth users) |
 | name | varchar(255) | |
+| last_name | varchar(255) | nullable (Firestore legacy) |
+| phone | varchar(50) | nullable (Firestore legacy) |
+| zip_code | varchar(20) | nullable (Firestore legacy) |
 | role | enum | `student`, `admin`, `superadmin` |
 | avatar_url | text | nullable |
 | email_verified_at | timestamp | nullable |
@@ -81,6 +84,7 @@
 | subtopic_id | uuid | FK → subtopics (nullable) |
 | text | text | rich HTML (with bold, images) |
 | explanation | text | rich HTML |
+| reference | text | nullable (citation / source) |
 | difficulty | enum | `easy`, `medium`, `hard` |
 | is_active | boolean | default true |
 | created_by | uuid | FK → users (admin) |
@@ -118,6 +122,7 @@
 | exam_id | uuid | FK → exams (which exam they were practicing) |
 | mode | enum | `study`, `exam` |
 | status | enum | `in_progress`, `completed` |
+| custom_title | text | nullable (Firestore legacy) |
 | question_count | int | total questions in this attempt |
 | answered_count | int | |
 | correct_count | int | |
@@ -162,10 +167,11 @@ Unique constraint: `(user_id, question_id)`
 |--------|------|-------|
 | id | uuid | PK |
 | exam_id | uuid | FK → exams (nullable) |
-| specialty_id | uuid | FK → specialties |
-| topic_id | uuid | FK → topics |
+| specialty_id | uuid | FK → specialties (nullable) |
+| topic_id | uuid | FK → topics (nullable) |
 | front | text | rich text |
 | back | text | rich text |
+| reference | text | nullable (citation / source) |
 | is_active | boolean | default true |
 | created_by | uuid | FK → users (admin) |
 | created_at | timestamp | |
@@ -198,6 +204,7 @@ Unique constraint: `(user_id, flashcard_id)`
 | exam_id | uuid | FK → exams (nullable) |
 | title | jsonb | translated |
 | description | jsonb | translated |
+| max_watching | int | nullable (Firestore legacy) |
 | sort_order | int | |
 | is_active | boolean | |
 | created_at | timestamp | |
@@ -379,6 +386,11 @@ Unique constraint: `(user_id, lesson_id)`
 | interval | enum | `monthly`, `quarterly`, `annual` |
 | price | decimal(10,2) | |
 | currency | varchar(3) | default `USD` |
+| max_questions | int | nullable (Firestore legacy) |
+| max_flashcards | int | nullable (Firestore legacy) |
+| max_videos | int | nullable (Firestore legacy) |
+| is_default | boolean | nullable (Firestore legacy) |
+| is_course_only | boolean | nullable (Firestore legacy) |
 | is_visible | boolean | admin toggle to show/hide |
 | sort_order | int | |
 | is_active | boolean | |
@@ -405,6 +417,7 @@ Unique constraint: `(user_id, lesson_id)`
 |--------|------|-------|
 | id | uuid | PK |
 | user_id | uuid | FK → users |
+| payment_number | varchar(100) | nullable (Firestore legacy ref) |
 | stripe_payment_intent_id | varchar(255) | unique |
 | amount | decimal(10,2) | |
 | currency | varchar(3) | |

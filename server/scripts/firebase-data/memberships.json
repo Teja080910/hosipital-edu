@@ -1,0 +1,277 @@
+[
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/memberships/0hKEpyoQF9DtJdYy8Nh2",
+    "fields": {
+      "maxUsesFlashcards": {
+        "integerValue": "100000"
+      },
+      "isVisible": {
+        "booleanValue": true
+      },
+      "creationTime": {
+        "timestampValue": "2023-12-09T16:46:26.291Z"
+      },
+      "maxDays": {
+        "integerValue": "331"
+      },
+      "order": {
+        "integerValue": "5"
+      },
+      "isDefault": {
+        "booleanValue": false
+      },
+      "maxUses": {
+        "integerValue": "100000"
+      },
+      "title": {
+        "stringValue": "Plan ENURM 27"
+      },
+      "price": {
+        "doubleValue": 40.65
+      },
+      "id": {
+        "stringValue": "0hKEpyoQF9DtJdYy8Nh2"
+      },
+      "examType": {
+        "stringValue": "ENURM"
+      },
+      "isCourseOnly": {
+        "booleanValue": true
+      },
+      "maxFlashcards": {
+        "integerValue": "100000"
+      },
+      "maxVideos": {
+        "integerValue": "100"
+      },
+      "detail": {
+        "stringValue": "\u2022 Access to all questions\n\u2022 Video classes with specialists\n\u2022 Practice exams\n\u2022 Calendar"
+      },
+      "maxQuestions": {
+        "integerValue": "100000"
+      }
+    },
+    "createTime": "2023-12-09T16:47:25.780274Z",
+    "updateTime": "2026-05-20T20:04:36.298352Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/memberships/7zNqTZpwkMGTUI6OjIkP",
+    "fields": {
+      "price": {
+        "integerValue": "1"
+      },
+      "examType": {
+        "stringValue": "ENURM"
+      },
+      "id": {
+        "stringValue": "7zNqTZpwkMGTUI6OjIkP"
+      },
+      "maxFlashcards": {
+        "integerValue": "100000"
+      },
+      "maxVideos": {
+        "integerValue": "100"
+      },
+      "isCourseOnly": {
+        "booleanValue": true
+      },
+      "maxQuestions": {
+        "integerValue": "10000"
+      },
+      "detail": {
+        "stringValue": "\u2022 Access to all questions\n\u2022 Video classes with specialists\n\u2022 Practice exams\n\u2022 Calendar"
+      },
+      "creationTime": {
+        "timestampValue": "2023-12-09T16:47:56.399Z"
+      },
+      "isVisible": {
+        "booleanValue": false
+      },
+      "maxUsesFlashcards": {
+        "integerValue": "50000"
+      },
+      "maxDays": {
+        "integerValue": "11"
+      },
+      "title": {
+        "stringValue": "Plan de 1 mes"
+      },
+      "maxUses": {
+        "integerValue": "10000"
+      },
+      "isDefault": {
+        "booleanValue": false
+      },
+      "order": {
+        "integerValue": "2"
+      }
+    },
+    "createTime": "2023-12-09T16:48:31.716284Z",
+    "updateTime": "2026-05-22T14:15:19.343827Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/memberships/AW02XtPws2mm5hcwthNx",
+    "fields": {
+      "maxFlashcards": {
+        "integerValue": "100000"
+      },
+      "maxVideos": {
+        "integerValue": "100"
+      },
+      "isCourseOnly": {
+        "booleanValue": true
+      },
+      "detail": {
+        "stringValue": "\u2022 Access to all questions\n\u2022 Video classes with specialists\n\u2022 Practice exams\n\u2022 Calendar"
+      },
+      "maxQuestions": {
+        "integerValue": "10000"
+      },
+      "price": {
+        "integerValue": "1"
+      },
+      "id": {
+        "stringValue": "AW02XtPws2mm5hcwthNx"
+      },
+      "examType": {
+        "stringValue": "ENURM"
+      },
+      "title": {
+        "stringValue": "Plan ENURM 27 3 cuotas"
+      },
+      "maxUses": {
+        "integerValue": "10000"
+      },
+      "order": {
+        "integerValue": "4"
+      },
+      "isDefault": {
+        "booleanValue": false
+      },
+      "isVisible": {
+        "booleanValue": false
+      },
+      "maxUsesFlashcards": {
+        "integerValue": "50000"
+      },
+      "creationTime": {
+        "timestampValue": "2023-12-09T16:49:36.285Z"
+      },
+      "maxDays": {
+        "integerValue": "90"
+      }
+    },
+    "createTime": "2023-12-09T16:49:56.939265Z",
+    "updateTime": "2026-05-20T20:04:36.583641Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/memberships/rUlKLFO60CBShDdRZC0s",
+    "fields": {
+      "maxUsesFlashcards": {
+        "integerValue": "2"
+      },
+      "isVisible": {
+        "booleanValue": true
+      },
+      "creationTime": {
+        "timestampValue": "2023-12-09T16:43:14.608Z"
+      },
+      "maxDays": {
+        "integerValue": "1"
+      },
+      "maxUses": {
+        "integerValue": "2"
+      },
+      "title": {
+        "stringValue": "FREE ACCESS"
+      },
+      "order": {
+        "integerValue": "1"
+      },
+      "isDefault": {
+        "booleanValue": true
+      },
+      "price": {
+        "integerValue": "0"
+      },
+      "id": {
+        "stringValue": "rUlKLFO60CBShDdRZC0s"
+      },
+      "examType": {
+        "stringValue": "ENURM"
+      },
+      "maxFlashcards": {
+        "integerValue": "100"
+      },
+      "maxVideos": {
+        "integerValue": "3"
+      },
+      "isCourseOnly": {
+        "booleanValue": false
+      },
+      "detail": {
+        "stringValue": "Start free now!\nAccess for 1 day"
+      },
+      "maxQuestions": {
+        "integerValue": "25"
+      }
+    },
+    "createTime": "2023-12-09T16:44:22.692959Z",
+    "updateTime": "2026-05-20T20:04:36.772208Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/memberships/wNWSTqjZqxMPkgVo5ICu",
+    "fields": {
+      "price": {
+        "integerValue": "65"
+      },
+      "examType": {
+        "stringValue": "ENURM"
+      },
+      "id": {
+        "stringValue": "wNWSTqjZqxMPkgVo5ICu"
+      },
+      "isCourseOnly": {
+        "booleanValue": true
+      },
+      "maxFlashcards": {
+        "integerValue": "1000000"
+      },
+      "maxVideos": {
+        "integerValue": "100"
+      },
+      "maxQuestions": {
+        "integerValue": "1000000"
+      },
+      "detail": {
+        "stringValue": "\u2022 3 volumes of original question bank\n\u2022 Access to all questions\n\u2022 Video classes with specialists\n\u2022 Practice exams\n\u2022 Calendar"
+      },
+      "creationTime": {
+        "timestampValue": "2023-12-09T16:49:00.921Z"
+      },
+      "isVisible": {
+        "booleanValue": true
+      },
+      "maxUsesFlashcards": {
+        "integerValue": "50000"
+      },
+      "maxDays": {
+        "integerValue": "331"
+      },
+      "isDefault": {
+        "booleanValue": false
+      },
+      "order": {
+        "integerValue": "5"
+      },
+      "title": {
+        "stringValue": "Plan PREMIUM ENURM"
+      },
+      "maxUses": {
+        "integerValue": "10000"
+      }
+    },
+    "createTime": "2023-12-09T16:49:33.580671Z",
+    "updateTime": "2026-05-20T20:04:36.887750Z"
+  }
+]
