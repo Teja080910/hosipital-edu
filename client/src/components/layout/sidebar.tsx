@@ -50,6 +50,7 @@ const adminItems = [
   { href: "/dashboard/admin/courses", icon: BookOpenCheck, label: "course_mgmt_title" },
   { href: "/dashboard/admin/questions", icon: FileQuestion, label: "question_mgmt_title" },
   { href: "/dashboard/admin/articles", icon: FileText, label: "articles_title" },
+  { href: "/dashboard/admin/videos", icon: Video, label: "videos_title" },
   { href: "/dashboard/admin/users", icon: Users, label: "user_mgmt_title" },
   { href: "/dashboard/admin/subscriptions", icon: CreditCard, label: "subscription_mgmt_title" },
   { href: "/dashboard/admin/translations", icon: Languages, label: "translations_title" },
@@ -89,6 +90,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
     if (href === "/") return pathname === "/";
     if (href.startsWith("/admin")) return pathname.startsWith(href);
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/dashboard/admin") return pathname === "/dashboard/admin";
     return pathname === href || pathname.startsWith(href + "/");
   };
 

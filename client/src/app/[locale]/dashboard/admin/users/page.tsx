@@ -23,6 +23,7 @@ export default function AdminUsersPage() {
   const t = useTranslations("admin");
   const c = useTranslations("common");
   const [users, setUsers] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [changingRole, setChangingRole] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
@@ -30,7 +31,8 @@ export default function AdminUsersPage() {
   const fetchUsers = useCallback(async () => {
     try {
       const { data } = await usersApi.list();
-      setUsers(data);
+      setUsers(data.items || data);
+      setTotal(data.total ?? data.length);
     } catch {
       toast.error(t("load_failed"));
     } finally {
@@ -82,8 +84,9 @@ const deleteUser = async () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="user">user</SelectItem>
+              <SelectItem value="student">student</SelectItem>
               <SelectItem value="admin">admin</SelectItem>
+              <SelectItem value="super_admin">super_admin</SelectItem>
             </SelectContent>
           </Select>
           {changingRole === row.id && <Loader2 className="h-3 w-3 animate-spin" />}
@@ -134,6 +137,9 @@ const deleteUser = async () => {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("user_mgmt_title")}</h1>
             <p className="text-muted-foreground">{t("user_mgmt_subtitle")}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Total: {total}
+            </p>
           </div>
         </div>
         <Card>

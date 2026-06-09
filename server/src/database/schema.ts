@@ -60,6 +60,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash"),
   name: text("name").notNull(),
+  lastName: text("last_name"),
+  phone: text("phone"),
+  zipCode: text("zip_code"),
   role: text("role").default("student").notNull(),
   avatarUrl: text("avatar_url"),
   emailVerifiedAt: timestamp("email_verified_at"),
@@ -125,6 +128,7 @@ export const questions = pgTable("questions", {
   }),
   text: text("text").notNull(),
   explanation: text("explanation").notNull(),
+  reference: text("reference"),
   difficulty: text("difficulty").notNull().default("medium"),
   isActive: boolean("is_active").default(true).notNull(),
   createdBy: uuid("created_by")
@@ -165,6 +169,7 @@ export const examAttempts = pgTable("exam_attempts", {
     .references(() => exams.id),
   mode: text("mode").notNull().default("practice"),
   status: text("status").notNull().default("in_progress"),
+  customTitle: text("custom_title"),
   questionCount: integer("question_count").notNull().default(0),
   answeredCount: integer("answered_count").notNull().default(0),
   correctCount: integer("correct_count").notNull().default(0),
@@ -220,14 +225,15 @@ export const userQuestionProgress = pgTable(
 export const flashcards = pgTable("flashcards", {
   id: uuid("id").defaultRandom().primaryKey(),
   examId: uuid("exam_id").references(() => exams.id, { onDelete: "set null" }),
-  specialtyId: uuid("specialty_id")
-    .notNull()
-    .references(() => specialties.id),
-  topicId: uuid("topic_id")
-    .notNull()
-    .references(() => topics.id),
+  specialtyId: uuid("specialty_id").references(() => specialties.id, {
+    onDelete: "set null",
+  }),
+  topicId: uuid("topic_id").references(() => topics.id, {
+    onDelete: "set null",
+  }),
   front: text("front").notNull(),
   back: text("back").notNull(),
+  reference: text("reference"),
   isActive: boolean("is_active").default(true).notNull(),
   createdBy: uuid("created_by")
     .notNull()
@@ -267,6 +273,7 @@ export const videoModules = pgTable("video_modules", {
   examId: uuid("exam_id").references(() => exams.id, { onDelete: "set null" }),
   title: jsonb("title").notNull(),
   description: jsonb("description").notNull(),
+  maxWatching: integer("max_watching"),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -474,6 +481,11 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   interval: text("interval").notNull().default("month"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("USD").notNull(),
+  maxQuestions: integer("max_questions"),
+  maxFlashcards: integer("max_flashcards"),
+  maxVideos: integer("max_videos"),
+  isDefault: boolean("is_default").default(false),
+  isCourseOnly: boolean("is_course_only").default(false),
   isVisible: boolean("is_visible").default(true).notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
@@ -504,6 +516,7 @@ export const payments = pgTable("payments", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id),
+  paymentNumber: text("payment_number"),
   stripePaymentIntentId: text("stripe_payment_intent_id").unique(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("USD").notNull(),

@@ -1,0 +1,291 @@
+[
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/3AoEJhb7jgqARgqluEn8",
+    "fields": {
+      "additional": {
+        "stringValue": "https://firebasestorage.googleapis.com/v0/b/md-exam-app.appspot.com/o/calendars%2FENURM_1779292572544.pdf?alt=media&token=557a4bbc-7dba-4ac2-bffc-5b7c8e70839d"
+      },
+      "key2": {
+        "stringValue": "studyCalendar_ENURM"
+      },
+      "creationTime": {
+        "timestampValue": "2026-05-20T15:56:14.498Z"
+      },
+      "title": {
+        "stringValue": "Calendario de Estudio - ENURM"
+      }
+    },
+    "createTime": "2026-05-20T15:56:14.162928Z",
+    "updateTime": "2026-05-20T15:56:14.162928Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/9TfGdW7ZuUOnaPvS38wI",
+    "fields": {
+      "title": {
+        "stringValue": "Emular compra con Iphone"
+      },
+      "additional": {
+        "stringValue": "No"
+      },
+      "additionalEn": {
+        "stringValue": "No"
+      },
+      "creationTime": {
+        "timestampValue": "2024-05-11T13:56:36.368Z"
+      },
+      "key2": {
+        "stringValue": "iosPurchaseMembership"
+      }
+    },
+    "createTime": "2024-05-11T13:56:40.632126Z",
+    "updateTime": "2026-05-14T13:47:35.463075Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/UYQIqTmDNvVCvhVS5pww",
+    "fields": {
+      "additionalEn": {
+        "stringValue": "AbdoNwrSsR1uTxnF2TUdBLHbbqll9qGCm6j7D9IGAjY5Wb9XRFlFQqPYYV3z8MZewkbPADm6UlVQoang"
+      },
+      "additional": {
+        "stringValue": "AbdoNwrSsR1uTxnF2TUdBLHbbqll9qGCm6j7D9IGAjY5Wb9XRFlFQqPYYV3z8MZewkbPADm6UlVQoang"
+      },
+      "title": {
+        "stringValue": "Paypal - ClientId"
+      },
+      "key2": {
+        "stringValue": "PaypalPaymentClientId"
+      },
+      "creationTime": {
+        "timestampValue": "2024-02-15T19:43:14.074Z"
+      }
+    },
+    "createTime": "2024-02-15T19:43:13.937535Z",
+    "updateTime": "2025-03-14T17:41:11.832008Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/VT8bFgmD9V2kgOKH73yB",
+    "fields": {
+      "additional": {
+        "stringValue": "v7hU0UV2RH4&t=1s"
+      },
+      "additionalEn": {
+        "stringValue": "v7hU0UV2RH4"
+      },
+      "title": {
+        "stringValue": "youTube Init"
+      },
+      "key2": {
+        "stringValue": "youTube"
+      },
+      "creationTime": {
+        "timestampValue": "2024-01-15T23:48:28.114Z"
+      }
+    },
+    "createTime": "2024-01-15T23:48:29.087260Z",
+    "updateTime": "2025-12-16T23:48:42.305094Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/WquQFkey1vdnRiCwXBQX",
+    "fields": {
+      "key2": {
+        "stringValue": "PaypalPaymentSandboxMode"
+      },
+      "creationTime": {
+        "timestampValue": "2024-02-15T19:42:51.469Z"
+      },
+      "additional": {
+        "stringValue": "False"
+      },
+      "additionalEn": {
+        "stringValue": "false"
+      },
+      "title": {
+        "stringValue": "Paypal - SandboxMode"
+      }
+    },
+    "createTime": "2024-02-15T19:42:51.328891Z",
+    "updateTime": "2025-03-14T17:42:00.642034Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/Z43AR4satz4pfV49ys98",
+    "fields": {
+      "key2": {
+        "stringValue": "appSubTitle"
+      },
+      "creationTime": {
+        "timestampValue": "2024-01-15T23:33:19.342Z"
+      },
+      "additional": {
+        "stringValue": "Miles de preguntas, videoclases y flashcards. Tu especialidad empieza aqu\u00ed\n\n+ de 1,000 m\u00e9dicos ya se han preparado con nosotros"
+      },
+      "additionalEn": {
+        "stringValue": "Study the most frequently asked topics for the Medical Residency Exam (Clinical Cases, Flashcards, Video Classes)"
+      },
+      "title": {
+        "stringValue": "Sub Title"
+      }
+    },
+    "createTime": "2024-01-15T23:33:20.945336Z",
+    "updateTime": "2025-04-02T01:44:32.483246Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/cCnxo2KxsQh5h8FVzdgc",
+    "fields": {
+      "additionalEn": {
+        "stringValue": "MD Exam es una plataforma de banco de preguntas en espa\u00f1ol cuyo objetivo principal es la funci\u00f3n de generar ex\u00e1menes para fines de estudio. La modalidad examen cuenta con la disponibilidad de la elecci\u00f3n de las cantidad de preguntas que el usuario desee y el tiempo en que desee realizarlo. Como t\u00e9rmino universal, habitualmente los ex\u00e1menes internacionales ofrecen el tiempo de 1 minuto\u2014 40 segundos por cada pregunta, lo que puede servir como punto de referencia al momento de practicar los ex\u00e1menes. La plataforma cuenta con miles de posibles preguntas directas y en forma de casos cl\u00ednicos para mejor comprensi\u00f3n del lector que no han sido publicadas por otros autores ni ex\u00e1menes previos, nacionales e internacionales, al igual que m\u00e1s de 5,000 flashcards para r\u00e1pida memorizaci\u00f3n de conceptos claves que debes aprender. Adem\u00e1s hemos agregado a nuestra plataforma videoclases de distintas especialidades. <b>Las especialidades que abarca toda la fuente:</b> \u2022 Anatom\u00eda \u2022 Fisiolog\u00eda \u2022 Embriolog\u00eda \u2022 Bioqu\u00edmica \u2022 Farmacolog\u00eda \u2022 Epidemiolog\u00eda \u2022 Medicina interna \u2022 Cardiolog\u00eda \u2022 Neumolog\u00eda \u2022 Gastroenterolog\u00eda \u2022 Neurolog\u00eda \u2022 Pediatr\u00eda \u2022 Ginecolog\u00eda y obstetricia \u2022 Cirug\u00eda \u2022 Infectolog\u00eda \u2022 Endocrinolog\u00eda \u2022 Nefrolog\u00eda \u2022 Urolog\u00eda \u2022 Reumatolog\u00eda \u2022 Hemato-oncolog\u00eda, entre otras. Todos los casos cl\u00ednicos y preguntas son ideadas y editadas por especialistas en distintas \u00e1reas de la medicina, bas\u00e1ndose en las t\u00e9cnicas de estudio universalmente aceptadas y siguiendo las normas de las plataformas de \u00e9xito internacional con fines de preparaci\u00f3n para tomar principales ex\u00e1menes de residencias m\u00e9dicas en pa\u00edses como Estados Unidos, Espa\u00f1a y otros. Cada pregunta cuenta con los detalles de la respuesta correcta e incorrectas para fines de correcci\u00f3n y como revisi\u00f3n de 4 temas a la vez que pudieran relacionarse a diagn\u00f3sticos diferenciales, cercanos o contrarios a los que se pregunta. Las preguntas y fuentes bibliogr\u00e1ficas son actualizadas d\u00eda a d\u00eda bajo las principales gu\u00edas internacionales de sociedades de medicina; fuentes que se encuentran al final de cada comentario y que pueden ser corroboradas. Es importante reconocer que esta plataforma solo tiene la finalidad de servir como fuente de preparaci\u00f3n para estudio para el examen de residencias m\u00e9dicas y como fuente complementaria de estudio y revisi\u00f3n para m\u00e9dicos generales y especialistas. Esta plataforma NO invita bajo ning\u00fan concepto a la pr\u00e1ctica m\u00e9dica sin antes relacionar la base de conocimientos y el juicio cl\u00ednico. El contenido de la misma es \u00fanica y exclusivamente para fines acad\u00e9micos. <b>Puedes contactarnos v\u00eda:</b> <b>Correo:</b> info@md-exam.com. | Si desea m\u00e1s informaci\u00f3n acerca de nuestra plataforma <b>Correo:</b> soporte@md-exam.com | Si presenta alg\u00fan problema t\u00e9cnico <b>Correo:</b> edicion@md-exam.com | Si considera se deba editar parte del contenido"
+      },
+      "additional": {
+        "stringValue": "MD Exam es una plataforma de banco de preguntas en espa\u00f1ol cuyo objetivo principal es la funci\u00f3n de generar ex\u00e1menes para fines de estudio. La modalidad examen cuenta con la disponibilidad de la elecci\u00f3n de las cantidad de preguntas que el usuario desee y el tiempo en que desee realizarlo. \n\nComo t\u00e9rmino universal, habitualmente los ex\u00e1menes internacionales ofrecen el tiempo de 1 minuto\u2014 40 segundos por cada pregunta, lo que puede servir como punto de referencia al momento de practicar los ex\u00e1menes.\n\nLa plataforma cuenta con miles de posibles preguntas directas y en forma de casos cl\u00ednicos para mejor comprensi\u00f3n del lector que no han sido publicadas por otros autores ni ex\u00e1menes previos, nacionales e internacionales, al igual que m\u00e1s de 5,000 flashcards para r\u00e1pida memorizaci\u00f3n de conceptos claves que debes aprender. \n\nAdem\u00e1s hemos agregado a nuestra plataforma videoclases de distintas especialidades.\n\n<b>Las especialidades que abarca toda la fuente:</b>\n\n    \u2022 Anatom\u00eda\n    \u2022 Fisiolog\u00eda\n    \u2022 Embriolog\u00eda\n    \u2022 Bioqu\u00edmica\n    \u2022 Farmacolog\u00eda\n    \u2022 Epidemiolog\u00eda  \n    \u2022 Medicina interna\n    \u2022 Cardiolog\u00eda\n    \u2022 Neumolog\u00eda\n    \u2022 Gastroenterolog\u00eda\n    \u2022 Neurolog\u00eda\n    \u2022 Pediatr\u00eda\n    \u2022 Ginecolog\u00eda y obstetricia\n    \u2022 Cirug\u00eda\n    \u2022 Infectolog\u00eda\n    \u2022 Endocrinolog\u00eda\n    \u2022 Nefrolog\u00eda\n    \u2022 Urolog\u00eda\n    \u2022 Reumatolog\u00eda\n    \u2022 Hemato-oncolog\u00eda, entre otras. \n\nTodos los casos cl\u00ednicos y preguntas son ideadas y editadas por especialistas en distintas \u00e1reas de la medicina, bas\u00e1ndose en las t\u00e9cnicas de estudio universalmente aceptadas y siguiendo las normas de las plataformas de \u00e9xito internacional con fines de preparaci\u00f3n para tomar principales ex\u00e1menes de residencias m\u00e9dicas en pa\u00edses como Estados Unidos, Espa\u00f1a y otros. Cada pregunta cuenta con los detalles de la respuesta correcta e incorrectas para fines de correcci\u00f3n y como revisi\u00f3n de 4 temas a la vez que pudieran relacionarse a diagn\u00f3sticos diferenciales, cercanos o contrarios a los que se pregunta. Las preguntas y fuentes bibliogr\u00e1ficas son actualizadas d\u00eda a d\u00eda bajo las principales gu\u00edas internacionales de sociedades de medicina; fuentes que se encuentran al final de cada comentario y que pueden ser corroboradas. \n\nEs importante reconocer que esta plataforma solo tiene la finalidad de servir como fuente de preparaci\u00f3n para estudio para el examen de residencias m\u00e9dicas y como fuente complementaria de estudio y revisi\u00f3n para m\u00e9dicos generales y especialistas. Esta plataforma NO invita bajo ning\u00fan concepto a la pr\u00e1ctica m\u00e9dica sin antes relacionar la base de conocimientos y el juicio cl\u00ednico. El contenido de la misma es \u00fanica y exclusivamente para fines acad\u00e9micos.\n\n<b>Puedes contactarnos v\u00eda:</b> \n\n<b>Correo:</b> info@md-exam.com.       | Si desea m\u00e1s informaci\u00f3n acerca de nuestra plataforma\n<b>Correo:</b> soporte@md-exam.com | Si presenta alg\u00fan problema t\u00e9cnico\n<b>Correo:</b> edicion@md-exam.com  | Si considera se deba editar parte del contenido"
+      },
+      "title": {
+        "stringValue": "Nosotros"
+      },
+      "titleEn": {
+        "stringValue": "About Us"
+      },
+      "key2": {
+        "stringValue": "CustomerAboutUs"
+      },
+      "creationTime": {
+        "timestampValue": "2023-12-09T14:48:06.544Z"
+      }
+    },
+    "createTime": "2023-12-09T14:48:09.546749Z",
+    "updateTime": "2025-03-15T13:54:39.701156Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/is1VzKaNkcSaP2qLeW6K",
+    "fields": {
+      "key2": {
+        "stringValue": "CustomerFrequentQuestions"
+      },
+      "creationTime": {
+        "timestampValue": "2023-12-09T14:48:42.791Z"
+      },
+      "additionalEn": {
+        "stringValue": "<b>How can I subscribe to MD Exam?</b><br/> 1. It's easy. On the left tab, click LOG IN and then click on New User (enter your name, email, and password). You can also do this by clicking on any of the subscription plans. <br/> 2. Log in with your username and password. <br/> 3. Click on the plan you prefer. There you will see the different payment methods. Once you have made the payment, you have access for the chosen period of time. (A video explaining these processes in detail is posted on the homepage.) <br/> <br/>><b>Can I receive help from the MD Exam team if I don't know how to subscribe?</b> <br/> Of course; our team can help you complete the entire process. Just write to us through our Instagram account @md_exam or through support@md-exam.com, and we will be happy to assist you. <br/> <br/><b>Which medical residency exams can I study for with MD Exam to prepare for?</b><br/> The information on which the question and answer bank is based comes from the main updated international guidelines universally accepted in medicine, so it can be used for any medical residency exam: ENURM, ENARM, USMLE, MIR, which includes all Spanish-speaking countries.<br/> <br/><b>What should I do if I forget my password?</b><br/> The platform has an automatic password recovery service if you forget it; just enter your email address and follow the steps. <br/> <br/><b>Can I change plans if I'm already subscribed?</b><br/> Yes, you can start with a free plan and apply for a 1-month, 3-month, 6-month, or 1-year plan. Once you subscribe to the new plan, the time in days will be reflected in your account. <br/> <br/><b>How many times can I take tests and flashcards on the different plans?</b> <br/> With the exception of the free 24-hour plan, all plans from 1 month to 1 year have unlimited amounts of tests and flashcards. <br/> <br/><b>How many times can I view video classes on the different plans?</b> <br/> With the exception of the free 24-hour plan, all plans from 1 month to 1 year have unlimited video class viewing.<br/> <br/><b>Are the questions on the web platform and the video classes the same as those on the mobile app?</b> <br/> Yes, all your user information will also be the same.<br/> <br/><b>Is the video not displaying on my mobile phone?</b><br/> On some mobile phones, once you click on the video class, you must rotate the screen horizontally and click on the top right tab to view it. <br/> <br/><b>What payment methods can I use?</b><br/> The available payment methods are debit or credit cards and PayPal securely. If you choose a plan, the platform will send you a memo about the number of days remaining until your subscription expires. If none of these channels are available, you can contact one of our agents and pay via bank transfer in the Dominican Republic. <br/> <br/><b>What are MD Exam's privacy policies?</b><br/> This platform only requests registration information such as name and email address for easy access by its users. All information provided by MD Exam users is duly protected by our team of technicians. Clinical cases are simulations used for academic purposes; no patient data, symptoms, or diagnoses from any database are shared. <br/>"
+      },
+      "additional": {
+        "stringValue": "<b>\u00bfC\u00f3mo puedo suscribirme a MD Exam?</b>\n1. Es f\u00e1cil; en la pesta\u00f1a de la izquierda haz click en INGRESAR y luego dar click en nuevo usuario (colocar nombre, correo y contrase\u00f1a). Tambi\u00e9n lo puedes hacer dando click a cualquiera de los planes de suscripci\u00f3n. \n2. Iniciar sesi\u00f3n con usuario y contrase\u00f1a \n3. Dar click en el plan que prefieras adquirir y all\u00ed observar\u00e1s los diferentes m\u00e9todos de pago, una vez realizado el pago tienes acceso por el tiempo elegido. (En la p\u00e1gina de inicio est\u00e1 colgado un video que explica con detalles estos procesos)\n\n<b>\u00bfPuedo recibir ayuda del equipo de MD Exam si no s\u00e9 c\u00f3mo suscribirme?</b>\n\nClaro; nuestro equipo puede ayudarte a completar todo el proceso. Solo debes escribirnos a trav\u00e9s de nuestra cuenta de instagram @md_exam o a trav\u00e9s del correo soporte@md-exam.com y con gusto te asistimos. \n\n<b>\u00bfA cu\u00e1les ex\u00e1menes de residencia m\u00e9dica puedo estudiar para hacer mi preparaci\u00f3n con MD Exam?</b>\nLas informaciones en la que est\u00e1 basado el banco de preguntas y respuestas proviene de las principales gu\u00edas internacionales actualizadas universalmente aceptadas en medicina, por lo que puede ser utilizada para cualquier examen de residencias m\u00e9dicas: ENURM, ENARM, USMLE, MIR, lo que incluye todos los pa\u00edses de habla hispana.\n\n<b>\u00bfPuedo usar la plataforma en ingl\u00e9s?</b>\nSi, en la pesta\u00f1a de la izquierda en el apartado de idiomas puedes seleccionar el idioma ingl\u00e9s y puedes aprovechar todo el contenido en ingl\u00e9s a excepci\u00f3n de las videoclases.\n\n<b>\u00bfQu\u00e9 hacer si olvido mi contrase\u00f1a?</b>\nLa plataforma cuenta con un servicio de recuperaci\u00f3n autom\u00e1tica de contrase\u00f1a en caso de olvido, solo debes colocar tu correo electr\u00f3nico y seguir los pasos. \n\n<b>\u00bfPuedo cambiar de plan si ya estoy suscrito?</b>\nSi, puedes iniciar en un plan gratuito y aplicar a otro de 1 mes, 3 meses, 6 meses o un a\u00f1o. Una vez suscrito al nuevo plan el tiempo en d\u00edas se te refleja en tu cuenta.\n\n<b>\u00bfCu\u00e1ntas veces puedo realizar ex\u00e1menes y flashcards en los diferentes planes?</b>\nA excepci\u00f3n del plan gratuito de 3 d\u00edas, todos los planes desde 1 mes a un a\u00f1o tiene cantidades ilimitadas de generar ex\u00e1menes y flashcards. \n\n<b>\u00bfCu\u00e1ntas veces puedo visualizar videoclases en los diferentes planes?</b>\nA excepci\u00f3n del plan gratuito de 3 d\u00edas, todos los planes desde 1 mes a un a\u00f1o tiene cantidades ilimitadas de visualizar videoclases. \n\n<b>\u00bfLas preguntas de la plataforma web y las videoclases son las mismas que en la App para el tel\u00e9fono celular? </b>\nSi, toda la informaci\u00f3n en tu usuario tambi\u00e9n ser\u00e1 la misma. \n\n<b>\u00bfEn mi tel\u00e9fono m\u00f3vil el video no se visualiza?</b>\nEn algunos tel\u00e9fonos celulares, una vez le diste click a la videoclase deber\u00e1s girar la pantalla de manera horizontal y dar click en la pesta\u00f1a superior derecha para poder visualizarlas \n\n<b>\u00bfCu\u00e1les son los m\u00e9todos de pago que se pueden utilizar?</b>\nLos m\u00e9todos de pago disponibles son a trav\u00e9s de tarjetas de d\u00e9bito o cr\u00e9dito y Paypal de forma segura. Si eliges un plan, pr\u00f3ximo a vencerse la plataforma te enviar\u00e1 un memorando de la cantidad de d\u00edas que faltan para acabar tu suscripci\u00f3n. Si no tienes disponible ninguno de estos canales puedes contactar a uno de nuestros agentes y pagar v\u00eda transferencia bancaria en Rep\u00fablica Dominicana. \n\n<b>\u00bfCu\u00e1les son las pol\u00edticas de privacidad de MD Exam?</b>\nEsta plataforma solo solicita datos para registro como nombre y correo electr\u00f3nico con la finalidad de f\u00e1cil acceso para los usuarios de la misma. Toda la informaci\u00f3n suministrada por los usuarios de MD Exam se encuentra debidamente protegida por parte de nuestro equipo de t\u00e9cnicos. Los casos cl\u00ednicos son simulaciones utilizados para fines acad\u00e9micos; no se comparten datos, sintomatolog\u00eda ni diagn\u00f3sticos de pacientes de ninguna base de datos.\n\nPol\u00edtica de Privacidad de MD Exam\n\n\u00daltima actualizaci\u00f3n: 6 de mayo de 2026\n\nEn MD Exam, la privacidad de nuestros usuarios es una prioridad. Esta Pol\u00edtica de Privacidad describe c\u00f3mo recopilamos, utilizamos, almacenamos y protegemos su informaci\u00f3n personal al utilizar nuestra aplicaci\u00f3n m\u00f3vil y servicios relacionados.\n\n1. Informaci\u00f3n que Recopilamos\nPara el funcionamiento de la plataforma, recopilamos los siguientes datos:\n- Datos de Identificaci\u00f3n: Nombre completo y direcci\u00f3n de correo electr\u00f3nico.\n- Datos de Uso: Progreso en ex\u00e1menes, resultados de flashcards y estad\u00edsticas de estudio.\n- Informaci\u00f3n del Dispositivo: Modelo del equipo, versi\u00f3n del sistema operativo e identificadores \u00fanicos para fines de seguridad y soporte t\u00e9cnico.\n\n2. Uso de la Informaci\u00f3n\nUtilizamos los datos recopilados para:\n- Gestionar su suscripci\u00f3n y acceso a los planes.\n- Personalizar su experiencia de estudio y seguimiento de progreso.\n- Enviar notificaciones importantes sobre su cuenta o actualizaciones del servicio.\n- Brindar soporte t\u00e9cnico a trav\u00e9s de nuestro equipo de atenci\u00f3n al cliente.\n\n3. Retenci\u00f3n de Datos (Requisito de Google) \nConservamos su informaci\u00f3n personal \u00fanicamente mientras:\n- Su cuenta permanezca activa.\n- Sea necesario para cumplir con nuestras obligaciones legales o resolver disputas.\n- Los datos de progreso acad\u00e9mico se mantienen para que el usuario pueda retomar su estudio en cualquier momento. Si la cuenta permanece inactiva por m\u00e1s de 24 meses, nos reservamos el derecho de anonimizar o eliminar los datos.\n\n4. Eliminaci\u00f3n de Datos y Derechos del Usuario (Requisito de Google) \nUsted tiene derecho a acceder, rectificar o eliminar su informaci\u00f3n personal en cualquier momento.\n- Solicitud de Eliminaci\u00f3n: Para eliminar su cuenta y todos los datos asociados de forma permanente, puede hacerlo enviando un correo electr\u00f3nico a soporte@md-exam.com.\n- Plazo de Procesamiento: Una vez recibida la solicitud, procederemos a la eliminaci\u00f3n total de sus datos de nuestros servidores activos en un plazo m\u00e1ximo de 30 d\u00edas h\u00e1biles. Tenga en cuenta que esta acci\u00f3n es irreversible.\n\n5. Seguridad de los Datos\nImplementamos medidas de seguridad t\u00e9cnicas y organizativas para proteger sus datos contra el acceso no autorizado, la alteraci\u00f3n o la destrucci\u00f3n. El acceso a los datos est\u00e1 limitado a personal autorizado que necesita conocer dicha informaci\u00f3n para operar el servicio.\n\n6. Transferencia de Datos a Terceros\nNo vendemos, comercializamos ni transferimos su informaci\u00f3n personal a terceros. Esto no incluye a proveedores de servicios de confianza que nos ayudan a operar nuestra aplicaci\u00f3n (como procesadores de pago como PayPal), siempre que dichas partes acuerden mantener esta informaci\u00f3n confidencial.\n\n7. Contacto\nSi tiene preguntas sobre esta pol\u00edtica, puede contactarnos en:\n- Correo electr\u00f3nico: soporte@md-exam.com\n- Instagram: @md_exam"
+      },
+      "titleEn": {
+        "stringValue": "Frequently Asked Questions"
+      },
+      "title": {
+        "stringValue": "Pol\u00edtica de Privacidad y Preguntas Frecuentes"
+      }
+    },
+    "createTime": "2023-12-09T14:48:44.360718Z",
+    "updateTime": "2026-05-07T12:39:16.399204Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/jkXmYaMikyu3rBKpiXFJ",
+    "fields": {
+      "key2": {
+        "stringValue": "ContactForEmail"
+      },
+      "creationTime": {
+        "timestampValue": "2023-12-09T14:50:23.587Z"
+      },
+      "additional": {
+        "stringValue": "info@md-exam.com"
+      },
+      "additionalEn": {
+        "stringValue": "info@md-exam.com"
+      },
+      "title": {
+        "stringValue": "Contacto por email"
+      }
+    },
+    "createTime": "2023-12-09T14:50:27.272292Z",
+    "updateTime": "2025-03-14T17:46:38.987473Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/le8nNfQ4sCVjD4nwLm96",
+    "fields": {
+      "key2": {
+        "stringValue": "PaypalPaymentSecretKey"
+      },
+      "creationTime": {
+        "timestampValue": "2024-02-15T19:43:30.096Z"
+      },
+      "additional": {
+        "stringValue": "EOya__X9tcd3P8zaOVZG4EhwLomQSSuCG57X3Z84P9wUE51TAkBwg3WJhg0e_4rYYU06I1YVtTYQ4_da"
+      },
+      "additionalEn": {
+        "stringValue": "EOya__X9tcd3P8zaOVZG4EhwLomQSSuCG57X3Z84P9wUE51TAkBwg3WJhg0e_4rYYU06I1YVtTYQ4_da"
+      },
+      "title": {
+        "stringValue": "Paypal - SecretKey"
+      }
+    },
+    "createTime": "2024-02-15T19:43:30.107536Z",
+    "updateTime": "2025-10-30T15:22:10.572671Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/tnh37bN7eDawmI4SE0PQ",
+    "fields": {
+      "additional": {
+        "stringValue": "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"
+      },
+      "additionalEn": {
+        "stringValue": "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"
+      },
+      "title": {
+        "stringValue": "Stripe - SecretKey"
+      },
+      "key2": {
+        "stringValue": "StripePaymentSecretKey"
+      },
+      "creationTime": {
+        "timestampValue": "2024-02-15T19:41:58.887Z"
+      }
+    },
+    "createTime": "2024-02-15T19:42:00.693711Z",
+    "updateTime": "2025-10-30T15:19:02.662481Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/v1lOzTX1KdHmjtxpFO0k",
+    "fields": {
+      "additionalEn": {
+        "stringValue": "+829-361-0581"
+      },
+      "additional": {
+        "stringValue": "18098422595"
+      },
+      "title": {
+        "stringValue": "Contacto x Telefono"
+      },
+      "key2": {
+        "stringValue": "ContactForPhone"
+      },
+      "creationTime": {
+        "timestampValue": "2023-12-09T14:49:11.484Z"
+      }
+    },
+    "createTime": "2023-12-09T14:49:13.055970Z",
+    "updateTime": "2026-01-05T16:41:32.455401Z"
+  },
+  {
+    "name": "projects/md-exam-app/databases/(default)/documents/parameters/v2w2v75YD5rVduKJNRJE",
+    "fields": {
+      "additionalEn": {
+        "stringValue": "Si"
+      },
+      "additional": {
+        "stringValue": "Si"
+      },
+      "title": {
+        "stringValue": "Presentar Membresias en IOS"
+      },
+      "key2": {
+        "stringValue": "iosShowMembership"
+      },
+      "creationTime": {
+        "timestampValue": "2024-05-05T15:04:16.595Z"
+      }
+    },
+    "createTime": "2024-05-05T15:04:20.580673Z",
+    "updateTime": "2026-05-14T13:47:43.746014Z"
+  }
+]

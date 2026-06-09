@@ -32,11 +32,11 @@ export default function LoginPage() {
     try {
       await login(email, password);
       toast.success(t("welcome_back"));
-      router.push("/");
+      setLoading(false);
+      router.push("/dashboard");
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || t("invalid_credentials");
       setErrorMsg(msg);
-    } finally {
       setLoading(false);
     }
   };
