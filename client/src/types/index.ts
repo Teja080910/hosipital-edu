@@ -8,12 +8,32 @@ export interface User {
 
 export interface Question {
   id: string;
+  examId: string | null;
+  specialtyId: string | null;
+  topicId: string | null;
+  subtopicId: string | null;
   text: string;
-  options: { id: string; text: string; isCorrect: boolean }[];
-  specialty: string;
-  topic: string;
+  explanation: string;
   difficulty: "easy" | "medium" | "hard";
-  explanation?: string;
+  isActive: boolean;
+  options: QuestionOption[];
+  images?: QuestionImage[];
+}
+
+export interface QuestionOption {
+  id: string;
+  questionId: string;
+  text: string;
+  isCorrect: boolean;
+  sortOrder: number;
+}
+
+export interface QuestionImage {
+  id: string;
+  questionId: string;
+  url: string;
+  caption: string | null;
+  sortOrder: number;
 }
 
 export interface Flashcard {
@@ -30,22 +50,38 @@ export interface Flashcard {
 
 export interface Exam {
   id: string;
-  title: string;
-  description: string;
-  questionCount: number;
-  timeLimit: number;
-  specialties: string[];
+  slug: string;
+  name: Record<string, string>;
+  description: Record<string, string>;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  specialties?: Specialty[];
+}
+
+export interface Specialty {
+  id: string;
+  examId: string;
+  name: Record<string, string>;
+  slug: string;
+  sortOrder: number;
 }
 
 export interface ExamAttempt {
   id: string;
+  userId: string;
   examId: string;
-  examTitle: string;
-  score: number;
-  totalQuestions: number;
-  correctAnswers: number;
+  mode: "study" | "exam";
+  status: "in_progress" | "completed";
+  questionCount: number;
+  answeredCount: number;
+  correctCount: number;
+  timeLimit: number | null;
   timeSpent: number;
-  completedAt: string;
+  startedAt: string;
+  completedAt: string | null;
+  createdAt: string;
+  examName?: Record<string, string>;
 }
 
 export interface Course {

@@ -22,7 +22,6 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
           <div className="flex gap-2">
-            <Badge variant="secondary">{question.specialty}</Badge>
             <Badge
               variant={
                 question.difficulty === "easy" ? "default" :

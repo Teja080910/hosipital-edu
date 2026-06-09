@@ -1,23 +1,47 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/routing";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
 import { ExamHistory } from "@/components/exams/exam-history";
-import { GraduationCap, Clock } from "lucide-react";
+import { examsApi } from "@/lib/api";
+import { toast } from "sonner";
+import { Loader2, GraduationCap } from "lucide-react";
+import type { Exam } from "@/types";
 
-const mockExams = [
-  { id: "1", title: "ENARM", description: "Examen Nacional de Aspirantes a Residencias Médicas", questionCount: 200, timeLimit: 240, specialties: ["All"] },
-  { id: "2", title: "MIR", description: "Médico Interno Residente - Spain", questionCount: 150, timeLimit: 180, specialties: ["All"] },
-  { id: "3", title: "USMLE Step 1", description: "United States Medical Licensing Examination", questionCount: 280, timeLimit: 420, specialties: ["All"] },
-  { id: "4", title: "PLAB", description: "Professional and Linguistic Assessments Board", questionCount: 100, timeLimit: 120, specialties: ["All"] },
-];
+function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
+  if (!obj) return "";
+  if (typeof obj === "string") return obj;
+  return obj[locale] || Object.values(obj)[0] || "";
+}
 
 export default function ExamsPage() {
   const t = useTranslations("exams");
   const n = useTranslations("nav");
+  const router = useRouter();
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    examsApi.list()
+      .then(({ data }) => setExams(data))
+      .catch(() => toast.error("Failed to load exams"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
@@ -26,29 +50,29 @@ export default function ExamsPage() {
           <h1 className="text-3xl font-bold tracking-tight">{n("exams")}</h1>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {mockExams.map((exam) => (
-            <Card key={exam.id}>
-              <CardHeader>
-                <CardTitle>{exam.title}</CardTitle>
-                <CardDescription>{exam.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <GraduationCap className="h-4 w-4" />
-                    <span>{t("questions_count", { count: exam.questionCount })}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>{t("minutes", { count: exam.timeLimit })}</span>
-                  </div>
-                </div>
-                <Button className="w-full">{t("start")}</Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {exams.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">No exams available yet.</div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {exams.map((exam) => (
+              <Card key={exam.id}>
+                <CardHeader>
+                  <CardTitle>{localized(exam.name)}</CardTitle>
+                  <CardDescription>{localized(exam.description)}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    className="w-full"
+                    onClick={() => router.push(`/dashboard/exams/${exam.id}`)}
+                  >
+                    <GraduationCap className="h-4 w-4 mr-2" />
+                    {t("start")}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         <div>
           <h2 className="text-xl font-semibold mb-4">{t("history")}</h2>

@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { questions, questionOptions, questionImages } from "../database/schema";
-import { and, eq, isNull, ilike, asc, inArray } from "drizzle-orm";
+import { and, eq, ilike, asc, inArray } from "drizzle-orm";
 
 @Injectable()
 export class QuestionsService {
@@ -37,7 +37,25 @@ export class QuestionsService {
       .limit(limit)
       .offset(offset);
 
-    return items;
+    if (items.length === 0) return items;
+
+    const ids = items.map((q: any) => q.id);
+    const allOptions = await this.db
+      .select()
+      .from(questionOptions)
+      .where(inArray(questionOptions.questionId, ids))
+      .orderBy(asc(questionOptions.sortOrder));
+
+    const optionsByQuestion: Record<string, any[]> = {};
+    for (const opt of allOptions) {
+      if (!optionsByQuestion[opt.questionId]) optionsByQuestion[opt.questionId] = [];
+      optionsByQuestion[opt.questionId].push(opt);
+    }
+
+    return items.map((q: any) => ({
+      ...q,
+      options: optionsByQuestion[q.id] || [],
+    }));
   }
 
   async findById(id: string) {

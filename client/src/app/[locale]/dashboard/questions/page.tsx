@@ -15,11 +15,11 @@ import type { Question } from "@/types";
 import { FileQuestion, Search } from "lucide-react";
 
 const mockQuestions: Question[] = [
-  { id: "1", text: "Which of the following is the most common cause of community-acquired pneumonia?", specialty: "Internal Medicine", topic: "Infectious Disease", difficulty: "medium", options: [{ id: "a", text: "Streptococcus pneumoniae", isCorrect: true }] },
-  { id: "2", text: "What is the first-line treatment for hypertension in diabetic patients?", specialty: "Cardiology", topic: "Hypertension", difficulty: "easy", options: [{ id: "a", text: "ACE Inhibitors", isCorrect: true }] },
-  { id: "3", text: "A 65-year-old male presents with chest pain radiating to the left arm. ECG shows ST elevation in leads V1-V4. What is the most likely diagnosis?", specialty: "Cardiology", topic: "ACS", difficulty: "hard", options: [{ id: "a", text: "Anterior STEMI", isCorrect: true }] },
-  { id: "4", text: "Which imaging modality is preferred for suspected appendicitis in children?", specialty: "Pediatrics", topic: "Surgery", difficulty: "medium", options: [{ id: "a", text: "Ultrasound", isCorrect: true }] },
-  { id: "5", text: "What is the mechanism of action of metformin?", specialty: "Endocrinology", topic: "Diabetes", difficulty: "easy", options: [{ id: "a", text: "Decreases hepatic glucose production", isCorrect: true }] },
+  { id: "1", examId: null, specialtyId: null, topicId: null, subtopicId: null, text: "Which of the following is the most common cause of community-acquired pneumonia?", explanation: "", difficulty: "medium", isActive: true, options: [{ id: "a", questionId: "1", text: "Streptococcus pneumoniae", isCorrect: true, sortOrder: 0 }] },
+  { id: "2", examId: null, specialtyId: null, topicId: null, subtopicId: null, text: "What is the first-line treatment for hypertension in diabetic patients?", explanation: "", difficulty: "easy", isActive: true, options: [{ id: "a", questionId: "2", text: "ACE Inhibitors", isCorrect: true, sortOrder: 0 }] },
+  { id: "3", examId: null, specialtyId: null, topicId: null, subtopicId: null, text: "A 65-year-old male presents with chest pain radiating to the left arm. ECG shows ST elevation in leads V1-V4. What is the most likely diagnosis?", explanation: "", difficulty: "hard", isActive: true, options: [{ id: "a", questionId: "3", text: "Anterior STEMI", isCorrect: true, sortOrder: 0 }] },
+  { id: "4", examId: null, specialtyId: null, topicId: null, subtopicId: null, text: "Which imaging modality is preferred for suspected appendicitis in children?", explanation: "", difficulty: "medium", isActive: true, options: [{ id: "a", questionId: "4", text: "Ultrasound", isCorrect: true, sortOrder: 0 }] },
+  { id: "5", examId: null, specialtyId: null, topicId: null, subtopicId: null, text: "What is the mechanism of action of metformin?", explanation: "", difficulty: "easy", isActive: true, options: [{ id: "a", questionId: "5", text: "Decreases hepatic glucose production", isCorrect: true, sortOrder: 0 }] },
 ];
 
 export default function QuestionsPage() {
@@ -30,9 +30,7 @@ export default function QuestionsPage() {
 
   const filtered = mockQuestions.filter(
     (q) =>
-      q.text.toLowerCase().includes(search.toLowerCase()) ||
-      q.specialty.toLowerCase().includes(search.toLowerCase()) ||
-      q.topic.toLowerCase().includes(search.toLowerCase())
+      q.text.toLowerCase().includes(search.toLowerCase())
   );
 
   const selectedQuestion = mockQuestions.find((q) => q.id === viewingId);
@@ -85,8 +83,6 @@ export default function QuestionsPage() {
                       <div className="flex-1">
                         <p className="font-medium line-clamp-2">{q.text}</p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <Badge variant="secondary">{q.specialty}</Badge>
-                          <Badge variant="outline">{q.topic}</Badge>
                           <Badge
                             variant={
                               q.difficulty === "easy" ? "default" :
