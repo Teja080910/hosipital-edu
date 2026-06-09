@@ -12,14 +12,9 @@ import { useRouter } from "@/routing";
 import { motion } from "framer-motion";
 import { ArrowRight, Check, Crown, Loader2, Lock, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
-const DEFAULT_PLANS = [
-  { id: "fallback-monthly", name: { en: "Basic" }, sortOrder: 0, description: { en: "Full question bank access, basic analytics" }, price: "29", interval: "month" },
-  { id: "fallback-quarterly", name: { en: "Pro" }, sortOrder: 1, description: { en: "Everything in Basic plus advanced analytics, priority support, mock exams" }, price: "69", interval: "quarter" },
-  { id: "fallback-annual", name: { en: "Premium" }, sortOrder: 2, description: { en: "Everything in Pro plus 1-on-1 tutoring, certificate, early access" }, price: "199", interval: "year" },
-];
 
 export default function SubscribePage() {
   const t = useTranslations("subscribe");
@@ -29,6 +24,8 @@ export default function SubscribePage() {
   const [currentSub, setCurrentSub] = useState<any>(null);
   const { user } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
 
   useEffect(() => {
     Promise.all([
@@ -36,20 +33,17 @@ export default function SubscribePage() {
       user?.role !== "admin" ? subscriptionsApi.mySubscription() : Promise.resolve({ data: undefined }),
     ])
       .then(([plansRes, subRes]) => {
-        const dbPlans = (plansRes.data || []).filter((p: any) => p.id);
-        const dbIds = new Set(dbPlans.map((p: any) => p.sortOrder));
-        const merged = [...dbPlans, ...DEFAULT_PLANS.filter((d: any) => !dbIds.has(d.sortOrder))];
-        setPlans(merged.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
+        setPlans((plansRes.data || []).filter((p: any) => p.id).sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
         setCurrentSub(subRes?.data || null);
       })
-      .catch(() => setPlans(DEFAULT_PLANS))
+      .catch(() => setPlans([]))
       .finally(() => setLoading(false));
   }, [user]);
 
   const handleSubscribe = async (planId: string) => {
     setSubscribing(planId);
     try {
-      const { data } = await subscriptionsApi.createCheckout(planId);
+      const { data } = await subscriptionsApi.createCheckout(planId, locale);
       if (data.url) {
         window.location.href = data.url;
       }

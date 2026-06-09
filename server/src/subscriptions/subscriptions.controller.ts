@@ -64,9 +64,21 @@ export class SubscriptionsController {
   @ApiOperation({ summary: "Create Stripe checkout session" })
   async createCheckout(
     @Body("planId") planId: string,
+    @Body("locale") locale: string,
     @CurrentUser() user: any,
   ) {
-    return this.subscriptionsService.createCheckoutSession(user.id, planId);
+    return this.subscriptionsService.createCheckoutSession(user.id, planId, locale || "en");
+  }
+
+  @Post("subscriptions/confirm-checkout")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Confirm checkout after Stripe redirect" })
+  async confirmCheckout(
+    @Body("sessionId") sessionId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.subscriptionsService.confirmCheckout(sessionId, user.id);
   }
 
   @Get("subscriptions/my")

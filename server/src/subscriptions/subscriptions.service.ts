@@ -28,6 +28,8 @@ export class SubscriptionsService {
   }
 
   async findPlanById(id: string) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) return null;
     const [plan] = await this.db
       .select()
       .from(subscriptionPlans)
@@ -114,37 +116,47 @@ export class SubscriptionsService {
       .orderBy(subscriptionPlans.sortOrder);
   }
 
-  async createCheckoutSession(userId: string, planId: string) {
+  async createCheckoutSession(userId: string, planId: string, locale: string = "en") {
     const plan = await this.findPlanById(planId);
     if (!plan) throw new HttpException("Plan not found", HttpStatus.NOT_FOUND);
 
-    if (!plan.stripePriceId) {
-      const product = await this.stripe.products.create({
-        name: plan.name?.en || "Subscription",
-        metadata: { planId: plan.id },
-      });
-      const stripePrice = await this.stripe.prices.create({
-        product: product.id,
-        unit_amount: Math.round(parseFloat(plan.price) * 100),
-        currency: plan.currency?.toLowerCase() || "usd",
-        recurring: {
-          interval: plan.interval === "year" ? "year" : plan.interval === "quarter" ? "month" : "month",
-          interval_count: plan.interval === "quarter" ? 3 : 1,
-        },
-      });
-      await this.updatePlan(plan.id, { stripePriceId: stripePrice.id });
-      plan.stripePriceId = stripePrice.id;
+    let stripePriceId = plan.stripePriceId;
+    if (!stripePriceId) {
+      const result = await this.createStripeProductAndPrice(plan);
+      stripePriceId = result.priceId;
+      await this.updatePlan(plan.id, { stripePriceId });
     }
 
-    let appUrl = this.config.get<string>("APP_URL")
-    const session = await this.stripe.checkout.sessions.create({
-      mode: "subscription",
-      payment_method_types: ["card"],
-      line_items: [{ price: plan.stripePriceId, quantity: 1 }],
-      client_reference_id: userId,
-      success_url: `${appUrl}/en/dashboard?checkout=success`,
-      cancel_url: `${appUrl}/en/dashboard/subscribe`,
-    });
+    const appUrl = this.config.get<string>("APP_URL")
+
+    let session;
+    try {
+      session = await this.stripe.checkout.sessions.create({
+        mode: "subscription",
+        payment_method_types: ["card"],
+        line_items: [{ price: stripePriceId, quantity: 1 }],
+        client_reference_id: userId,
+        metadata: { planId: plan.id },
+        success_url: `${appUrl}/${locale}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}/${locale}/dashboard/subscribe`,
+      });
+    } catch (err: any) {
+      if (err?.code === "resource_missing" && err?.param === "line_items[0][price]") {
+        const result = await this.createStripeProductAndPrice(plan);
+        await this.updatePlan(plan.id, { stripePriceId: result.priceId });
+        session = await this.stripe.checkout.sessions.create({
+          mode: "subscription",
+          payment_method_types: ["card"],
+          line_items: [{ price: result.priceId, quantity: 1 }],
+          client_reference_id: userId,
+          metadata: { planId: plan.id },
+          success_url: `${appUrl}/${locale}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${appUrl}/${locale}/dashboard/subscribe`,
+        });
+      } else {
+        throw err;
+      }
+    }
 
     await this.db.insert(payments).values({
       userId,
@@ -158,6 +170,21 @@ export class SubscriptionsService {
     return { url: session.url };
   }
 
+  async confirmCheckout(sessionId: string, userId: string) {
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
+      return { status: "pending" };
+    }
+    const planId = session.metadata?.planId;
+    const stripeSubscriptionId = session.subscription as string;
+    const stripeCustomerId = session.customer as string;
+    if (!planId || !stripeSubscriptionId || !stripeCustomerId) {
+      return { status: "incomplete" };
+    }
+    await this.activateSubscription({ userId, planId, stripeSubscriptionId, stripeCustomerId });
+    return { status: "active" };
+  }
+
   async activateSubscription(data: {
     userId: string;
     planId: string;
@@ -166,6 +193,16 @@ export class SubscriptionsService {
   }) {
     const plan = await this.findPlanById(data.planId);
     if (!plan) throw new Error("Plan not found");
+
+    await this.db
+      .update(userSubscriptions)
+      .set({ status: "canceled", canceledAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(userSubscriptions.userId, data.userId),
+          eq(userSubscriptions.status, "active"),
+        ),
+      );
 
     const now = new Date();
     const periodEnd = new Date(now);
@@ -190,6 +227,23 @@ export class SubscriptionsService {
       })
       .returning();
     return sub;
+  }
+
+  private async createStripeProductAndPrice(plan: any) {
+    const product = await this.stripe.products.create({
+      name: plan.name?.en || "Subscription",
+      metadata: { planId: plan.id },
+    });
+    const price = await this.stripe.prices.create({
+      product: product.id,
+      unit_amount: Math.round(parseFloat(plan.price) * 100),
+      currency: plan.currency?.toLowerCase() || "usd",
+      recurring: {
+        interval: plan.interval === "year" ? "year" : "month",
+        interval_count: plan.interval === "quarter" ? 3 : 1,
+      },
+    });
+    return { productId: product.id, priceId: price.id };
   }
 
   async cancelSubscription(userId: string) {
@@ -219,8 +273,7 @@ export class SubscriptionsService {
       .returning();
     return updated;
   }
-
-  async handleWebhook(event: any) {
+async handleWebhook(event: any) {
 
     switch (event.type) {
       case "checkout.session.completed": {
@@ -228,24 +281,27 @@ export class SubscriptionsService {
         const userId = session.client_reference_id;
         const stripeSubscriptionId = session.subscription as string;
         const stripeCustomerId = session.customer as string;
+        const planId = session.metadata?.planId;
         const paymentIntent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
 
         await this.db
           .update(payments)
-          .set({
-            status: "completed",
-            stripePaymentIntentId: paymentIntent,
-          })
+          .set({ status: "completed", stripePaymentIntentId: paymentIntent })
           .where(eq(payments.stripePaymentIntentId, session.id));
 
-        const lineItem = session.line_items?.data?.[0];
-        if (lineItem?.price?.id && userId && stripeSubscriptionId) {
+        if (planId && userId && stripeSubscriptionId) {
+          await this.activateSubscription({
+            userId,
+            planId,
+            stripeSubscriptionId,
+            stripeCustomerId,
+          });
+        } else if (session.line_items?.data?.[0]?.price?.id && userId && stripeSubscriptionId) {
           const [plan] = await this.db
             .select()
             .from(subscriptionPlans)
-            .where(eq(subscriptionPlans.stripePriceId, lineItem.price.id))
+            .where(eq(subscriptionPlans.stripePriceId, session.line_items.data[0].price.id))
             .limit(1);
-
           if (plan) {
             await this.activateSubscription({
               userId,
