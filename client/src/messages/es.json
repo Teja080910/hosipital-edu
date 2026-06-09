@@ -293,7 +293,9 @@
   "videos": {
     "title": "Clases en Video",
     "subtitle": "Conferencias en video de expertos sobre temas médicos clave",
-    "views": "vistas"
+    "views": "vistas",
+    "noVideos": "No hay videos disponibles",
+    "noVideosDesc": "Las lecciones en video están siendo preparadas."
   },
   "exams": {
     "start": "Comenzar Examen",
@@ -339,5 +341,157 @@
     "enroll_failed": "Error al inscribirse",
     "lesson_not_found": "Lección no encontrada",
     "lesson_load_failed": "Error al cargar la lección"
+  },
+  "guides": {
+    "page_title": "Guías",
+    "page_subtitle": "Guías basadas en roles para ayudarte a aprovechar la plataforma",
+    "role_student": "Guías para estudiantes",
+    "role_admin": "Guías para administradores",
+    "role_super_admin": "Guías para super administradores",
+    "admin_title": "Guías de Administración",
+    "admin_subtitle": "Herramientas y flujos de trabajo para administradores",
+    "super_admin_title": "Guías de Super Administración",
+    "super_admin_subtitle": "Administración y configuración avanzada del sistema",
+    "getting_started": {
+      "title": "Primeros Pasos",
+      "description": "Crea tu cuenta, elige tu examen y configura tus preferencias de estudio.",
+      "step_0": "Regístrate con tu correo y contraseña o inicia sesión con Google",
+      "step_1": "Verifica tu dirección de correo electrónico",
+      "step_2": "Selecciona tu examen objetivo (ENARM, MIR, USMLE, PLAB)",
+      "step_3": "Configura tus preferencias de estudio y metas diarias",
+      "step_4": "Explora el panel para ver tu resumen y acciones rápidas",
+      "step_5": "Comienza una sesión de estudio con el banco de preguntas",
+      "step_6": "Usa el cronómetro durante los exámenes de práctica",
+      "step_7": "Revisa tus gráficos de progreso en la página de Progreso",
+      "step_8": "Contacta al soporte si necesitas ayuda"
+    },
+    "question_bank": {
+      "title": "Banco de Preguntas",
+      "description": "Practica miles de preguntas tipo examen con explicaciones detalladas.",
+      "step_0": "Ve a Preguntas desde la barra lateral",
+      "step_1": "Usa filtros para buscar por examen, especialidad, tema o dificultad",
+      "step_2": "Haz clic en cualquier pregunta para abrirla en modo estudio",
+      "step_3": "Lee la pregunta y selecciona una respuesta",
+      "step_4": "Revela la respuesta para ver si acertaste y lee la explicación",
+      "step_5": "Revisa tu precisión y progreso por tema en la página de Progreso"
+    },
+    "exam_mode": {
+      "title": "Modo Examen",
+      "description": "Simula condiciones reales de examen con exámenes de práctica cronometrados.",
+      "step_0": "Navega a Exámenes desde la barra lateral",
+      "step_1": "Selecciona un examen de práctica (ENARM, MIR, USMLE Step 1)",
+      "step_2": "Haz clic en Iniciar Examen para comenzar la sesión cronometrada",
+      "step_3": "Responde cada pregunta dentro del límite de tiempo",
+      "step_4": "Revisa tus resultados después del envío",
+      "step_5": "Ve tu historial de exámenes para seguir tu mejora"
+    },
+    "flashcards": {
+      "title": "Tarjetas de Estudio (Repetición Espaciada)",
+      "description": "Repasa con el algoritmo SM-2 de repetición espaciada para retención óptima.",
+      "step_0": "Abre Tarjetas de Estudio desde la barra lateral",
+      "step_1": "Filtra por especialidad si es necesario",
+      "step_2": "Haz clic en una tarjeta para voltearla",
+      "step_3": "Califica qué tan bien recordaste: 0 (olvidé) a 5 (perfecto)",
+      "step_4": "El sistema calcula la próxima fecha de repaso según tu calificación",
+      "step_5": "Repasa las tarjetas diariamente para memoria a largo plazo"
+    },
+    "video_classes": {
+      "title": "Clases en Video",
+      "description": "Mira conferencias en video organizadas por módulos. Tu progreso se guarda automáticamente.",
+      "step_0": "Ve a Videos desde la barra lateral",
+      "step_1": "Explora la biblioteca de módulos",
+      "step_2": "Haz clic en una lección para empezar a ver",
+      "step_3": "El progreso se rastrea automáticamente",
+      "step_4": "Usa la barra lateral para navegar entre módulos y lecciones"
+    },
+    "courses": {
+      "title": "Cursos",
+      "description": "Inscríbete en cursos estructurados con módulos, lecciones, cuestionarios y certificados.",
+      "step_0": "Explora Cursos desde la barra lateral",
+      "step_1": "Haz clic en un curso para ver detalles, módulos y lecciones",
+      "step_2": "Inscríbete (gratuito o de pago según el curso)",
+      "step_3": "Trabaja en cada módulo y lección secuencialmente",
+      "step_4": "Completa los cuestionarios para evaluar tu comprensión",
+      "step_5": "Termina todos los módulos y pasa el examen final para obtener un certificado",
+      "step_6": "Ve tu certificado en el panel"
+    },
+    "progress": {
+      "title": "Progreso y Estadísticas",
+      "description": "Sigue tu rendimiento con gráficos detallados y estadísticas.",
+      "step_0": "Abrir Progreso desde la barra lateral",
+      "step_1": "Ve tus estadísticas generales",
+      "step_2": "Revisa el gráfico de actividad semanal",
+      "step_3": "Verifica la precisión por especialidad",
+      "step_4": "Revisa tu calendario de racha de los últimos 30 días"
+    },
+    "subscription": {
+      "title": "Suscripción y Facturación",
+      "description": "Elige un plan que se adapte a tus necesidades. Actualiza o cambia cuando quieras.",
+      "step_0": "Ve a Suscripciones desde la barra lateral",
+      "step_1": "Selecciona Mensual ($29), Trimestral ($69) o Anual ($199)",
+      "step_2": "Paga a través de Stripe (tarjeta de crédito/débito)",
+      "step_3": "Tu suscripción se activa inmediatamente",
+      "step_4": "Para actualizar o cambiar: visita la página de Suscripciones",
+      "step_5": "Prórroga: la parte no usada se acredita al nuevo plan",
+      "step_6": "Al cambiar a un plan inferior, recibes un crédito",
+      "step_7": "Para cancelar: haz clic en Cancelar Suscripción",
+      "step_8": "Tu acceso continúa hasta el final del período de facturación"
+    },
+    "content_management": {
+      "title": "Gestión de Contenido",
+      "item_0": "Crear y gestionar cursos con lecciones y cuestionarios",
+      "item_1": "Agregar y organizar el banco de preguntas",
+      "item_2": "Subir contenido de video y gestionar la biblioteca",
+      "item_3": "Supervisar los mazos de tarjetas de estudio"
+    },
+    "user_management": {
+      "title": "Gestión de Usuarios",
+      "item_0": "Ver y gestionar todos los usuarios registrados",
+      "item_1": "Asignar roles (usuario, administrador)",
+      "item_2": "Monitorear la actividad de los usuarios",
+      "item_3": "Gestionar solicitudes de soporte"
+    },
+    "system_administration": {
+      "title": "Administración del Sistema",
+      "item_0": "Gestionar artículos y contenido del blog",
+      "item_1": "Configurar planes de suscripción y precios",
+      "item_2": "Revisar y gestionar certificados emitidos",
+      "item_3": "Ver el panel de análisis de la plataforma"
+    },
+    "translations": {
+      "title": "Traducciones y Localización",
+      "item_0": "Agregar y editar claves de traducción",
+      "item_1": "Auto-traducir entradas de idioma faltantes",
+      "item_2": "Exportar traducciones para respaldo",
+      "item_3": "Asegurar contenido en todos los idiomas soportados"
+    },
+    "platform_administration": {
+      "title": "Administración de la Plataforma",
+      "item_0": "Acceso completo a todas las funciones de administración",
+      "item_1": "Promover o degradar usuarios administradores",
+      "item_2": "Configurar ajustes del sistema",
+      "item_3": "Ver análisis completos de la plataforma"
+    },
+    "security": {
+      "title": "Seguridad y Cumplimiento",
+      "item_0": "Monitorear autenticación y actividad de sesiones",
+      "item_1": "Supervisar asignación de roles y control de acceso",
+      "item_2": "Revisar registros de auditoría del sistema",
+      "item_3": "Gestionar claves de API e integraciones"
+    },
+    "infrastructure": {
+      "title": "Servidor e Infraestructura",
+      "item_0": "Monitorear salud y rendimiento del servidor",
+      "item_1": "Gestionar carga de archivos y configuración CDN",
+      "item_2": "Revisar registros de errores y alertas",
+      "item_3": "Coordinar despliegues y actualizaciones"
+    },
+    "advanced_config": {
+      "title": "Configuración Avanzada",
+      "item_0": "Configurar plantillas de correo y notificaciones",
+      "item_1": "Gestionar integración de Stripe y pagos",
+      "item_2": "Configurar funciones de IA y auto-traducción",
+      "item_3": "Personalizar la página de inicio y contenido de marketing"
+    }
   }
 }

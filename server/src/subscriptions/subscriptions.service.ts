@@ -127,7 +127,34 @@ export class SubscriptionsService {
       await this.updatePlan(plan.id, { stripePriceId });
     }
 
+    const existingSub = await this.getUserSubscription(userId);
     const appUrl = this.config.get<string>("APP_URL")
+
+    if (existingSub?.stripeSubscriptionId) {
+      const stripeSub = await this.stripe.subscriptions.retrieve(existingSub.stripeSubscriptionId);
+      const currentItemId = stripeSub.items?.data?.[0]?.id;
+
+      if (currentItemId) {
+        await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
+          items: [{ id: currentItemId, price: stripePriceId }],
+          proration_behavior: "create_prorations",
+          metadata: { planId: plan.id },
+        });
+      } else {
+        await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
+          items: [{ price: stripePriceId }],
+          proration_behavior: "create_prorations",
+          metadata: { planId: plan.id },
+        });
+      }
+
+      await this.db
+        .update(userSubscriptions)
+        .set({ planId: plan.id, updatedAt: new Date() })
+        .where(eq(userSubscriptions.id, existingSub.id));
+
+      return { url: `${appUrl}/${locale}/dashboard`, prorated: true };
+    }
 
     let session;
     try {

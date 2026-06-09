@@ -293,7 +293,9 @@
   "videos": {
     "title": "Video Classes",
     "subtitle": "Expert-led video lectures on key medical topics",
-    "views": "views"
+    "views": "views",
+    "noVideos": "No videos available",
+    "noVideosDesc": "Video lessons are being prepared."
   },
   "exams": {
     "start": "Start Exam",
@@ -339,5 +341,157 @@
     "enroll_failed": "Failed to enroll",
     "lesson_not_found": "Lesson not found",
     "lesson_load_failed": "Failed to load lesson"
+  },
+  "guides": {
+    "page_title": "Guides",
+    "page_subtitle": "Role-based guides to help you make the most of the platform",
+    "role_student": "Student guides",
+    "role_admin": "Admin guides",
+    "role_super_admin": "Super admin guides",
+    "admin_title": "Admin Guides",
+    "admin_subtitle": "Tools and workflows for platform administrators",
+    "super_admin_title": "Super Admin Guides",
+    "super_admin_subtitle": "Advanced system-level administration and configuration",
+    "getting_started": {
+      "title": "Getting Started",
+      "description": "Create your account, choose your exam, and set up your study preferences to begin your medical exam preparation journey.",
+      "step_0": "Register with your email and password or sign in with Google",
+      "step_1": "Verify your email address (check your inbox)",
+      "step_2": "Select your target exam (ENARM, MIR, USMLE, PLAB)",
+      "step_3": "Set your study preferences and daily goals",
+      "step_4": "Explore the dashboard to see your overview and quick actions",
+      "step_5": "Start a study session with the question bank",
+      "step_6": "Use the timer feature during practice exams",
+      "step_7": "Review your progress charts in the Progress page",
+      "step_8": "Contact support if you need help"
+    },
+    "question_bank": {
+      "title": "Question Bank",
+      "description": "Practice thousands of exam-style questions with detailed explanations, organized by specialty, topic, and difficulty level.",
+      "step_0": "Go to Questions from the sidebar",
+      "step_1": "Use filters to narrow down by exam, specialty, topic, or difficulty",
+      "step_2": "Click any question to open it in study mode",
+      "step_3": "Read the question and select an answer",
+      "step_4": "Toggle the answer to see if you were correct and read the explanation",
+      "step_5": "Track your accuracy and progress per topic in the Progress page"
+    },
+    "exam_mode": {
+      "title": "Exam Mode",
+      "description": "Simulate real exam conditions with timed mock exams. Track your performance and review your answers afterward.",
+      "step_0": "Navigate to Exams from the sidebar",
+      "step_1": "Select a mock exam (e.g., ENARM, MIR, USMLE Step 1)",
+      "step_2": "Click Start Exam to begin the timed session",
+      "step_3": "Answer each question within the time limit",
+      "step_4": "Review your results after submission",
+      "step_5": "View your exam history to track improvement over time"
+    },
+    "flashcards": {
+      "title": "Flashcards (Spaced Repetition)",
+      "description": "Review flashcards using the SM-2 spaced repetition algorithm for optimal long-term retention.",
+      "step_0": "Open Flashcards from the sidebar",
+      "step_1": "Filter by specialty if needed",
+      "step_2": "Click a due card to flip it (front to back)",
+      "step_3": "Rate how well you remembered: 0 (forgot) to 5 (perfect)",
+      "step_4": "The system calculates the next review date based on your rating",
+      "step_5": "Review due cards daily to build long-term memory"
+    },
+    "video_classes": {
+      "title": "Video Classes",
+      "description": "Watch expert-led video lectures organized by modules. Track your watch progress and pick up where you left off.",
+      "step_0": "Go to Videos from the sidebar",
+      "step_1": "Browse the module library with embedded Cloudflare Stream player",
+      "step_2": "Click a lesson to start watching",
+      "step_3": "Progress is tracked automatically — resume anytime",
+      "step_4": "Use the sidebar to navigate between modules and lessons"
+    },
+    "courses": {
+      "title": "Courses",
+      "description": "Enroll in structured courses with modules, lessons, quizzes, and certificates.",
+      "step_0": "Browse Courses from the sidebar",
+      "step_1": "Click a course to see details, modules, and lessons",
+      "step_2": "Enroll (free or paid depending on the course)",
+      "step_3": "Work through each module and lesson sequentially",
+      "step_4": "Complete lesson quizzes to test your understanding",
+      "step_5": "Finish all modules and pass the final quiz to earn a certificate",
+      "step_6": "View your certificate in the dashboard"
+    },
+    "progress": {
+      "title": "Progress & Analytics",
+      "description": "Track your performance across all study activities with detailed charts and statistics.",
+      "step_0": "Open Progress from the sidebar",
+      "step_1": "See your overall stats: questions answered, accuracy, study streak, total hours",
+      "step_2": "View the weekly activity chart to see your study pattern",
+      "step_3": "Check accuracy by specialty to identify weak areas",
+      "step_4": "Review your streak calendar for the last 30 days"
+    },
+    "subscription": {
+      "title": "Subscription & Billing",
+      "description": "Choose a plan that fits your needs. Upgrade or downgrade anytime with prorated billing.",
+      "step_0": "Go to Subscribe from the sidebar to see available plans",
+      "step_1": "Select Monthly ($29), Quarterly ($69), or Annual ($199)",
+      "step_2": "Pay via Stripe secure checkout (credit/debit card)",
+      "step_3": "After payment, your subscription activates immediately",
+      "step_4": "To upgrade or downgrade: visit Subscribe page and select a new plan",
+      "step_5": "Proration: unused portion credited toward new plan",
+      "step_6": "Downgrading gives you a credit applied to your next invoice",
+      "step_7": "To cancel: click Cancel Subscription at the bottom of the Subscribe page",
+      "step_8": "Your access continues until the end of the current billing period"
+    },
+    "content_management": {
+      "title": "Content Management",
+      "item_0": "Create and manage courses with lessons and quizzes",
+      "item_1": "Add, edit, and organize question bank by specialty and topic",
+      "item_2": "Upload video content and manage the video library",
+      "item_3": "Oversee flashcard decks and their assignment"
+    },
+    "user_management": {
+      "title": "User Management",
+      "item_0": "View and manage all registered users",
+      "item_1": "Assign roles (user, admin)",
+      "item_2": "Monitor user activity and engagement",
+      "item_3": "Handle support requests"
+    },
+    "system_administration": {
+      "title": "System Administration",
+      "item_0": "Manage article/blog content for the landing page",
+      "item_1": "Configure subscription plans and pricing",
+      "item_2": "Review and manage certificates issued",
+      "item_3": "View analytics dashboard for platform metrics"
+    },
+    "translations": {
+      "title": "Translations & Localization",
+      "item_0": "Add and edit translation keys in the admin panel",
+      "item_1": "Auto-translate missing locale entries",
+      "item_2": "Export translations for backup",
+      "item_3": "Ensure content is available in all supported languages"
+    },
+    "platform_administration": {
+      "title": "Platform Administration",
+      "item_0": "Full access to all admin features",
+      "item_1": "Promote or demote admin users",
+      "item_2": "Configure system-wide settings",
+      "item_3": "View comprehensive platform analytics"
+    },
+    "security": {
+      "title": "Security & Compliance",
+      "item_0": "Monitor user authentication and session activity",
+      "item_1": "Oversee role assignments and access control",
+      "item_2": "Review system audit logs",
+      "item_3": "Manage API keys and integrations"
+    },
+    "infrastructure": {
+      "title": "Server & Infrastructure",
+      "item_0": "Monitor server health and performance metrics",
+      "item_1": "Manage file uploads and CDN configuration",
+      "item_2": "Review error logs and system alerts",
+      "item_3": "Coordinate deployment and updates"
+    },
+    "advanced_config": {
+      "title": "Advanced Configuration",
+      "item_0": "Configure email templates and notification settings",
+      "item_1": "Manage Stripe integration and payment workflows",
+      "item_2": "Set up AI-powered features and auto-translation",
+      "item_3": "Customize landing page and marketing content"
+    }
   }
 }
