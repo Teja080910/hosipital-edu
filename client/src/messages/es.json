@@ -81,7 +81,8 @@
     "registration_failed": "Error al registrarse",
     "free_trial": "Prueba gratuita de 14 días",
     "no_credit_card": "Sin tarjeta de crédito",
-    "cancel_anytime": "Cancela cuando quieras"
+    "cancel_anytime": "Cancela cuando quieras",
+    "logout": "Cerrar sesión"
   },
   "questions": {
     "title": "Banco de Preguntas",

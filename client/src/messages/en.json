@@ -81,7 +81,8 @@
     "registration_failed": "Registration failed",
     "free_trial": "14-day free trial",
     "no_credit_card": "No credit card",
-    "cancel_anytime": "Cancel anytime"
+    "cancel_anytime": "Cancel anytime",
+    "logout": "Logout"
   },
   "questions": {
     "title": "Question Bank",

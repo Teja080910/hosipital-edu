@@ -18,10 +18,9 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  @UseGuards(LocalAuthGuard)
   @Post("login")
   @ApiOperation({ summary: "Login with email and password" })
-  async login(@Body() _dto: LoginDto, @CurrentUser() user: any) {
+  async login(@Body() _dto: LoginDto) {
     return this.authService.login(_dto.email, _dto.password);
   }
 

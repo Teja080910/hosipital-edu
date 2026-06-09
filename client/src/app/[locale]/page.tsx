@@ -104,7 +104,7 @@ const sb = useTranslations("subscribe");
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const currentLocale = pathname.split("/")[1] || "en";
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const [subData, setSubData] = useState<{ planSortOrder: number } | null>(null);
 
   useEffect(() => {
@@ -198,12 +198,17 @@ const sb = useTranslations("subscribe");
 
             <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-3">
               {isLoading ? null : user ? (
+                <>
                 <Link href="/dashboard">
                   <Button size="sm" className="text-sm shadow-subtle">
                     Dashboard
                     <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                   </Button>
                 </Link>
+                <Button variant="ghost" size="sm" onClick={logout} className="text-sm text-muted-foreground">
+                  {a("logout")}
+                </Button>
+                </>
               ) : (
                 <><Link href="/login">
                   <Button variant="ghost" size="sm" className="text-sm">{a("login_submit")}</Button>

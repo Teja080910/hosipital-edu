@@ -44,8 +44,14 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-    const user = await this.validateUser(email, password);
-    if (!user) throw new UnauthorizedException("Invalid credentials");
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(and(eq(users.email, email), isNull(users.deletedAt)))
+      .limit(1);
+    if (!user || !user.passwordHash) throw new UnauthorizedException("Email not found");
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) throw new UnauthorizedException("Incorrect password");
     const tokens = await this.generateTokens(user);
     return { user: this.sanitizeUser(user), ...tokens };
   }

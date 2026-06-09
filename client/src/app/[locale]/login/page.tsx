@@ -23,16 +23,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
     try {
       await login(email, password);
       toast.success(t("welcome_back"));
       router.push("/");
-    } catch {
-      toast.error(t("invalid_credentials"));
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || t("invalid_credentials");
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }
@@ -143,6 +146,15 @@ export default function LoginPage() {
                 transition={{ delay: 0.25 }}
                 className="pt-1"
               >
+                {errorMsg && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-3 text-sm font-medium text-destructive text-center"
+                  >
+                    {errorMsg}
+                  </motion.p>
+                )}
                 <Button
                   type="submit"
                   className="w-full h-11 text-base font-medium transition-all duration-200 active:scale-[0.98]"

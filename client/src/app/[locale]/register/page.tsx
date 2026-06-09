@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const submittingRef = useRef(false);
 
   const passwordChecks = {
@@ -46,13 +47,18 @@ export default function RegisterPage() {
     }
     submittingRef.current = true;
     setLoading(true);
+    setErrorMsg(null);
     try {
       await register(name, email, password);
       toast.success(t("account_created"));
       router.push("/");
     } catch (error) {
       const message = (error as any)?.response?.data?.message;
-      toast.error(Array.isArray(message) ? message.join(", ") : message || t("registration_failed"));
+      if (Array.isArray(message)) {
+        setErrorMsg(message.join(", "));
+      } else {
+        setErrorMsg(message || t("registration_failed"));
+      }
     } finally {
       submittingRef.current = false;
       setLoading(false);
@@ -259,6 +265,15 @@ export default function RegisterPage() {
                   )}
                 </Button>
               </motion.div>
+              {errorMsg && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-sm text-destructive text-center mt-2"
+                >
+                  {errorMsg}
+                </motion.p>
+              )}
             </form>
 
             <motion.div
