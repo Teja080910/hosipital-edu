@@ -26,6 +26,7 @@ export class QuestionsController {
   @ApiQuery({ name: "examId", required: false })
   @ApiQuery({ name: "specialtyId", required: false })
   @ApiQuery({ name: "topicId", required: false })
+  @ApiQuery({ name: "subtopicId", required: false })
   @ApiQuery({ name: "difficulty", required: false })
   @ApiQuery({ name: "page", required: false })
   @ApiQuery({ name: "limit", required: false })
@@ -34,12 +35,13 @@ export class QuestionsController {
     @Query("examId") examId?: string,
     @Query("specialtyId") specialtyId?: string,
     @Query("topicId") topicId?: string,
+    @Query("subtopicId") subtopicId?: string,
     @Query("difficulty") difficulty?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
     @Query("search") search?: string,
   ) {
-    return this.questionsService.findAll({ examId, specialtyId, topicId, difficulty, page, limit, search });
+    return this.questionsService.findAll({ examId, specialtyId, topicId, subtopicId, difficulty, page, limit, search });
   }
 
   @Get(":id")

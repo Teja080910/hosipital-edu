@@ -15,18 +15,20 @@ export class QuestionsService {
     examId?: string;
     specialtyId?: string;
     topicId?: string;
+    subtopicId?: string;
     difficulty?: string;
     page?: number;
     limit?: number;
     search?: string;
   }) {
-    const { examId, specialtyId, topicId, difficulty, page = 1, limit = 20, search } = filters;
+    const { examId, specialtyId, topicId, subtopicId, difficulty, page = 1, limit = 20, search } = filters;
     const offset = (page - 1) * limit;
     const conditions = [eq(questions.isActive, true)];
 
     if (examId) conditions.push(eq(questions.examId, examId));
     if (specialtyId) conditions.push(eq(questions.specialtyId, specialtyId));
     if (topicId) conditions.push(eq(questions.topicId, topicId));
+    if (subtopicId) conditions.push(eq(questions.subtopicId, subtopicId));
     if (difficulty) conditions.push(eq(questions.difficulty, difficulty));
     if (search) conditions.push(ilike(questions.text, `%${search}%`));
 
@@ -37,7 +39,22 @@ export class QuestionsService {
       .limit(limit)
       .offset(offset);
 
-    return items;
+    if (!items.length) return items;
+
+    const qIds = items.map((q: any) => q.id);
+    const allOptions = await this.db
+      .select()
+      .from(questionOptions)
+      .where(inArray(questionOptions.questionId, qIds))
+      .orderBy(asc(questionOptions.sortOrder));
+
+    const optionsByQ = new Map<string, any[]>();
+    for (const opt of allOptions) {
+      if (!optionsByQ.has(opt.questionId)) optionsByQ.set(opt.questionId, []);
+      optionsByQ.get(opt.questionId)!.push(opt);
+    }
+
+    return items.map((q: any) => ({ ...q, options: optionsByQ.get(q.id) || [] }));
   }
 
   async findById(id: string) {

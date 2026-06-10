@@ -10,8 +10,9 @@ import {
   questions,
   questionOptions,
   userQuestionProgress,
+  exams,
 } from "../database/schema";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { and, eq, desc, asc, inArray } from "drizzle-orm";
 
 @Injectable()
 export class AttemptsService {
@@ -51,18 +52,59 @@ export class AttemptsService {
       .where(eq(examAnswers.attemptId, id))
       .orderBy(asc(examAnswers.answeredAt));
 
-    return { ...attempt, answers };
+    if (!answers.length) return { ...attempt, answers };
+
+    const questionIds = [...new Set(answers.map((a: any) => a.questionId))] as string[];
+    const allQuestions = await this.db
+      .select()
+      .from(questions)
+      .where(inArray(questions.id, questionIds));
+
+    const qOptions = await this.db
+      .select()
+      .from(questionOptions)
+      .where(inArray(questionOptions.questionId, questionIds))
+      .orderBy(asc(questionOptions.sortOrder));
+
+    const qOptMap = new Map<string, any[]>();
+    for (const opt of qOptions) {
+      if (!qOptMap.has(opt.questionId)) qOptMap.set(opt.questionId, []);
+      qOptMap.get(opt.questionId)!.push(opt);
+    }
+
+    const qMap = new Map(allQuestions.map((q: any) => [q.id, { ...q, options: qOptMap.get(q.id) || [] }]));
+
+    return {
+      ...attempt,
+      answers: answers.map((a: any) => ({ ...a, question: qMap.get(a.questionId) || null })),
+    };
   }
 
   async findByUser(userId: string, page = 1, limit = 20) {
     const offset = (page - 1) * limit;
-    return this.db
-      .select()
+    const rows = await this.db
+      .select({
+        id: examAttempts.id,
+        examId: examAttempts.examId,
+        mode: examAttempts.mode,
+        status: examAttempts.status,
+        questionCount: examAttempts.questionCount,
+        answeredCount: examAttempts.answeredCount,
+        correctCount: examAttempts.correctCount,
+        timeLimit: examAttempts.timeLimit,
+        timeSpent: examAttempts.timeSpent,
+        startedAt: examAttempts.startedAt,
+        completedAt: examAttempts.completedAt,
+        createdAt: examAttempts.createdAt,
+        examName: exams.name,
+      })
       .from(examAttempts)
+      .leftJoin(exams, eq(examAttempts.examId, exams.id))
       .where(eq(examAttempts.userId, userId))
       .orderBy(desc(examAttempts.createdAt))
       .limit(limit)
       .offset(offset);
+    return rows;
   }
 
   async answerQuestion(data: {
@@ -98,10 +140,11 @@ export class AttemptsService {
 
     const answeredCount = (attempt?.answeredCount || 0) + 1;
     const correctCount = (attempt?.correctCount || 0) + (isCorrect ? 1 : 0);
+    const accumulatedTime = (attempt?.timeSpent || 0) + data.timeSpent;
 
     await this.db
       .update(examAttempts)
-      .set({ answeredCount, correctCount })
+      .set({ answeredCount, correctCount, timeSpent: accumulatedTime })
       .where(eq(examAttempts.id, data.attemptId));
 
     const [existing] = await this.db

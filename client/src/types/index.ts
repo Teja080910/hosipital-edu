@@ -10,6 +10,9 @@ export interface Question {
   id: string;
   text: string;
   options: { id: string; text: string; isCorrect: boolean }[];
+  specialtyId?: string;
+  topicId?: string;
+  subtopicId?: string;
   specialty: string;
   topic: string;
   difficulty: "easy" | "medium" | "hard";
