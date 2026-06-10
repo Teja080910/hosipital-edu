@@ -39,7 +39,7 @@ export default function AdminVideosPage() {
     try {
       const { data } = await streamApi.listModules();
       setModules(data);
-      if (data.length > 0) setSelectedModule((prev) => prev ?? data[0]);
+      if (data.length > 0) setSelectedModule((prev: any) => prev ?? data[0]);
     } catch {
       toast.error("Failed to load modules");
     } finally {

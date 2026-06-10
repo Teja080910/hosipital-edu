@@ -139,6 +139,17 @@ async function uploadToCf(filePath: string, videoName: string = ""): Promise<str
   }
 }
 
+async function setVideoName(uid: string, name: string): Promise<void> {
+  await fetch(`${CF_BASE}/${uid}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${CF_API_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ meta: { name } }),
+  });
+}
+
 async function pollCfVideo(uid: string, maxRetries = 120): Promise<{ ready: boolean; duration: number }> {
   for (let i = 0; i < maxRetries; i++) {
     const res = await fetch(`${CF_BASE}/${uid}`, {
@@ -240,6 +251,8 @@ async function main() {
       const uid = await uploadToCf(tmpFile, title);
       if (!uid) { console.log(`     [SKIP] Upload returned null`); totalFailed++; continue; }
       console.log(`     Uploaded (uid: ${uid}), processing`);
+      await setVideoName(uid, title);
+      console.log(`     Name set: ${title}`);
 
       // 4. Poll
       const result = await pollCfVideo(uid);
