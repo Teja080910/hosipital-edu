@@ -286,7 +286,7 @@ export const videoLessons = pgTable("video_lessons", {
     .references(() => videoModules.id, { onDelete: "cascade" }),
   title: jsonb("title").notNull(),
   description: jsonb("description").notNull(),
-  videoUrl: text("video_url").notNull(),
+  videoUrl: text("video_url"),
   duration: integer("duration").notNull().default(0),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),

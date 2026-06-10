@@ -96,7 +96,7 @@ export default function VideosPage() {
             {selectedLesson ? (
               <div className="space-y-4">
                 {selectedLesson.videoUrl ? (
-                  <StreamVideoPlayer uid={selectedLesson.videoUrl} />
+                  <StreamVideoPlayer uid={selectedLesson.videoUrl} lessonId={selectedLesson.id} />
                 ) : (
                   <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
                     <div className="text-center">
