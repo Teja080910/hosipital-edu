@@ -1,7 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
-import { videoModules, videoLessons } from "../database/schema";
-import { eq, asc } from "drizzle-orm";
+import { videoModules, videoLessons, userVideoProgress } from "../database/schema";
+import { eq, asc, and, sql } from "drizzle-orm";
 
 @Injectable()
 export class VideosService {
@@ -42,5 +42,65 @@ export class VideosService {
       .orderBy(asc(videoLessons.sortOrder));
 
     return { ...mod, lessons };
+  }
+
+  async getProgress(userId: string, lessonId: string) {
+    const [row] = await this.db
+      .select()
+      .from(userVideoProgress)
+      .where(
+        and(
+          eq(userVideoProgress.userId, userId),
+          eq(userVideoProgress.lessonId, lessonId),
+        ),
+      )
+      .limit(1);
+    return row || null;
+  }
+
+  async saveProgress(
+    userId: string,
+    lessonId: string,
+    watchedSeconds: number,
+    duration?: number,
+  ) {
+    const isCompleted = duration ? watchedSeconds >= duration * 0.9 : false;
+
+    const [existing] = await this.db
+      .select()
+      .from(userVideoProgress)
+      .where(
+        and(
+          eq(userVideoProgress.userId, userId),
+          eq(userVideoProgress.lessonId, lessonId),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await this.db
+        .update(userVideoProgress)
+        .set({
+          watchedSeconds: Math.max(existing.watchedSeconds, watchedSeconds),
+          isCompleted: existing.isCompleted || isCompleted,
+          lastWatchedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(userVideoProgress.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await this.db
+      .insert(userVideoProgress)
+      .values({
+        userId,
+        lessonId,
+        watchedSeconds,
+        isCompleted,
+        lastWatchedAt: new Date(),
+      })
+      .returning();
+    return created;
   }
 }
