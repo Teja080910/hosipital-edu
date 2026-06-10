@@ -33,7 +33,7 @@ export function ExamHistory() {
   }
 
   if (attempts.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-8">No exam history yet.</p>;
+    return <p className="text-sm text-muted-foreground text-center py-8">{t("no_history")}</p>;
   }
 
   return (
@@ -43,7 +43,7 @@ export function ExamHistory() {
           ? Math.round((attempt.correctCount / attempt.questionCount) * 100) : 0;
         const hours = Math.floor((attempt.timeSpent || 0) / 3600);
         const minutes = Math.floor(((attempt.timeSpent || 0) % 3600) / 60);
-        const examTitle = localized(attempt.examName) || "Exam";
+        const examTitle = localized(attempt.examName) || t("exam");
 
         return (
           <Card key={attempt.id}>
@@ -51,7 +51,7 @@ export function ExamHistory() {
               <div>
                 <p className="font-medium">{examTitle}</p>
                 <p className="text-sm text-muted-foreground">
-                  {attempt.mode} mode &middot; {attempt.answeredCount ?? 0}/{attempt.questionCount} answered
+                  {attempt.mode} {t("mode")} &middot; {attempt.answeredCount ?? 0}/{attempt.questionCount} {t("answered")}
                 </p>
               </div>
               <div className="flex items-center gap-4">
@@ -64,15 +64,15 @@ export function ExamHistory() {
                       </p>
                     </div>
                     <Badge variant={percentage >= 70 ? "default" : "destructive"}>
-                      {percentage >= 70 ? "Passed" : "Failed"}
+                      {percentage >= 70 ? t("passed") : t("failed")}
                     </Badge>
                     <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/exams/${attempt.examId}/review/${attempt.id}`)}>
-                      Review
+                      {t("review")}
                     </Button>
                   </>
                 )}
                 {attempt.status !== "completed" && (
-                  <Badge variant="secondary">In Progress</Badge>
+                  <Badge variant="secondary">{t("in_progress")}</Badge>
                 )}
               </div>
             </CardContent>

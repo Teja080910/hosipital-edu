@@ -62,8 +62,8 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
         <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
 
         <Card><CardContent className="flex items-center justify-between py-4">
-          <div><p className="text-lg font-bold">Review</p><p className="text-sm text-muted-foreground">{attempt.mode} mode &middot; {attempt.questionCount} questions &middot; Score: {percentage}%</p></div>
-          <Badge variant={percentage >= 70 ? "default" : "destructive"}>{percentage >= 70 ? "Passed" : "Failed"}</Badge>
+          <div><p className="text-lg font-bold">{t("review")}</p><p className="text-sm text-muted-foreground">{attempt.mode} {t("mode")} &middot; {attempt.questionCount} {t("questions_count", { count: attempt.questionCount })} &middot; {t("score")}: {percentage}%</p></div>
+          <Badge variant={percentage >= 70 ? "default" : "destructive"}>{percentage >= 70 ? t("passed") : t("failed")}</Badge>
         </CardContent></Card>
 
         <> 
@@ -72,7 +72,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t("question_of", { current: currentIndex + 1, total: answers.length })}</span>
                   <div className="flex items-center gap-2">
-                    {currentAnswer.isCorrect ? <Badge className="bg-green-500"><CheckCircle2 className="h-3 w-3 mr-1" /> Correct</Badge> : <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" /> Incorrect</Badge>}
+                    {currentAnswer.isCorrect ? <Badge className="bg-green-500"><CheckCircle2 className="h-3 w-3 mr-1" /> {t("correct")}</Badge> : <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" /> {t("incorrect")}</Badge>}
                     <Badge variant="secondary">{question.difficulty}</Badge>
                   </div>
                 </div>
@@ -93,14 +93,14 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                             {isCorrectOption && <CheckCircle2 className="h-3 w-3 text-white" />}{isSelected && !isCorrectOption && <XCircle className="h-3 w-3 text-white" />}
                           </div>
                           <span className={isSelected && !isCorrectOption ? "line-through text-muted-foreground" : ""}>{option.text}</span>
-                          {isSelected && <span className="text-xs text-muted-foreground ml-auto">Your answer</span>}
+                          {isSelected && <span className="text-xs text-muted-foreground ml-auto">{t("your_answer")}</span>}
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                {currentAnswer.timeSpent > 0 && <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{currentAnswer.timeSpent}s spent</span></div>}
-                <div className="rounded-lg bg-muted p-4"><p className="text-sm font-medium mb-1">Explanation:</p><p className="text-sm text-muted-foreground">{question.explanation}</p></div>
+                {currentAnswer.timeSpent > 0 && <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{currentAnswer.timeSpent}s {t("spent")}</span></div>}
+                <div className="rounded-lg bg-muted p-4"><p className="text-sm font-medium mb-1">{t("explanation")}</p><p className="text-sm text-muted-foreground">{question.explanation}</p></div>
               </CardContent>
             </Card>
 

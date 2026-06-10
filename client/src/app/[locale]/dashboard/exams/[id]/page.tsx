@@ -337,16 +337,16 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
             {specialties.length > 0 && (
               <div>
-                <label className="text-sm font-medium mb-2 block">Specialty</label>
+                <label className="text-sm font-medium mb-2 block">{t("specialty")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowSpecialties(!showSpecialties); setShowTopics(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
-                    <span className={selectedSpecialty ? "" : "text-muted-foreground"}>{selectedSpecialty ? localized(currentSpecialty?.name) : "All Specialties"}</span><ChevronDown className="h-4 w-4" />
+                    <span className={selectedSpecialty ? "" : "text-muted-foreground"}>{selectedSpecialty ? localized(currentSpecialty?.name) : t("all_specialties")}</span><ChevronDown className="h-4 w-4" />
                   </button>
                   {showSpecialties && (
                     <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
                       <ScrollArea className="max-h-48">
                         <CardContent className="p-1">
-                          <button onClick={() => { setSelectedSpecialty(""); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{!selectedSpecialty && <Check className="h-4 w-4 text-primary" />}All Specialties</button>
+                          <button onClick={() => { setSelectedSpecialty(""); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{!selectedSpecialty && <Check className="h-4 w-4 text-primary" />}{t("all_specialties")}</button>
                           {specialties.map((s: any) => (
                             <button key={s.id} onClick={() => { setSelectedSpecialty(s.id); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedSpecialty === s.id && <Check className="h-4 w-4 text-primary" />}{localized(s.name)}</button>
                           ))}
@@ -360,16 +360,16 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
             {selectedSpecialty && topics.length > 0 && (
               <div>
-                <label className="text-sm font-medium mb-2 block">Topic</label>
+                <label className="text-sm font-medium mb-2 block">{t("topic")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowTopics(!showTopics); setShowSpecialties(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
-                    <span className={selectedTopic ? "" : "text-muted-foreground"}>{selectedTopic ? localized(currentTopic?.name) : "All Topics"}</span><ChevronDown className="h-4 w-4" />
+                    <span className={selectedTopic ? "" : "text-muted-foreground"}>{selectedTopic ? localized(currentTopic?.name) : t("all_topics")}</span><ChevronDown className="h-4 w-4" />
                   </button>
                   {showTopics && (
                     <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
                       <ScrollArea className="max-h-48">
                         <CardContent className="p-1">
-                          <button onClick={() => { setSelectedTopic(""); setSelectedSubtopic(""); setShowTopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{!selectedTopic && <Check className="h-4 w-4 text-primary" />}All Topics</button>
+                          <button onClick={() => { setSelectedTopic(""); setSelectedSubtopic(""); setShowTopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{!selectedTopic && <Check className="h-4 w-4 text-primary" />}{t("all_topics")}</button>
                           {topics.map((t: any) => (
                             <button key={t.id} onClick={() => { setSelectedTopic(t.id); setSelectedSubtopic(""); setShowTopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedTopic === t.id && <Check className="h-4 w-4 text-primary" />}{localized(t.name)}</button>
                           ))}
@@ -383,16 +383,16 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
             {selectedTopic && subtopics.length > 0 && (
               <div>
-                <label className="text-sm font-medium mb-2 block">Subtopic</label>
+                <label className="text-sm font-medium mb-2 block">{t("subtopic")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowSubtopics(!showSubtopics); setShowSpecialties(false); setShowTopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
-                    <span className={selectedSubtopic ? "" : "text-muted-foreground"}>{selectedSubtopic ? localized(subtopics.find((s: any) => s.id === selectedSubtopic)?.name) : "All Subtopics"}</span><ChevronDown className="h-4 w-4" />
+                    <span className={selectedSubtopic ? "" : "text-muted-foreground"}>{selectedSubtopic ? localized(subtopics.find((s: any) => s.id === selectedSubtopic)?.name) : t("all_subtopics")}</span><ChevronDown className="h-4 w-4" />
                   </button>
                   {showSubtopics && (
                     <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
                       <ScrollArea className="max-h-48">
                         <CardContent className="p-1">
-                          <button onClick={() => { setSelectedSubtopic(""); setShowSubtopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{!selectedSubtopic && <Check className="h-4 w-4 text-primary" />}All Subtopics</button>
+                          <button onClick={() => { setSelectedSubtopic(""); setShowSubtopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{!selectedSubtopic && <Check className="h-4 w-4 text-primary" />}{t("all_subtopics")}</button>
                           {subtopics.map((s: any) => (
                             <button key={s.id} onClick={() => { setSelectedSubtopic(s.id); setShowSubtopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedSubtopic === s.id && <Check className="h-4 w-4 text-primary" />}{localized(s.name)}</button>
                           ))}
