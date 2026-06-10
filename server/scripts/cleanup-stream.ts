@@ -45,7 +45,7 @@ async function main() {
     .select({ videoUrl: schema.videoLessons.videoUrl })
     .from(schema.videoLessons)
     .where(sql`${schema.videoLessons.videoUrl} IS NOT NULL`);
-  const usedUids = new Set(lessons.map((l) => l.videoUrl.split("?")[0]));
+  const usedUids = new Set(lessons.map((l) => l.videoUrl?.split("?")[0]).filter(Boolean));
 
   console.log(`Used in DB: ${usedUids.size} videos`);
 
