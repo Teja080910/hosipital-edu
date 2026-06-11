@@ -1,10 +1,9 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, Loader2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { BookOpen, CheckCircle, Clock, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 interface CourseCardProps {
@@ -18,16 +17,21 @@ interface CourseCardProps {
     lessons: number;
     duration: string;
   };
+  enrolled?: boolean;
   onEnroll?: () => void;
   isEnrolling?: boolean;
 }
 
-export function CourseCard({ course, onEnroll, isEnrolling }: CourseCardProps) {
+export function CourseCard({ course, enrolled, onEnroll, isEnrolling }: CourseCardProps) {
   return (
     <Card className="overflow-hidden">
       <Link href={`/dashboard/courses/${course.slug || course.id}`}>
-        <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-          <BookOpen className="h-12 w-12 text-primary/40" />
+        <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden">
+          {course.thumbnail ? (
+            <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+          ) : (
+            <BookOpen className="h-12 w-12 text-primary/40" />
+          )}
         </div>
       </Link>
       <CardHeader>
@@ -37,15 +41,19 @@ export function CourseCard({ course, onEnroll, isEnrolling }: CourseCardProps) {
         <CardDescription className="line-clamp-2">{course.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Progress value={course.progress} className="h-2" />
+        {course.progress > 0 && <Progress value={course.progress} className="h-2" />}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" /> {course.duration}
           </span>
-          <span>{course.lessons} lessons</span>
-          <span>{course.progress}% complete</span>
+          {course.lessons > 0 && <span>{course.lessons} lessons</span>}
+          {course.progress > 0 && <span>{course.progress}% complete</span>}
         </div>
-        {onEnroll && (
+        {enrolled ? (
+          <Button className="w-full" size="sm" variant="secondary" disabled>
+            <CheckCircle className="h-4 w-4 mr-2" /> Enrolled
+          </Button>
+        ) : onEnroll && (
           <Button className="w-full" size="sm" onClick={onEnroll} disabled={isEnrolling}>
             {isEnrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Enroll Now

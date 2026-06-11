@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from "@nestjs/common";
+import { Injectable, NotFoundException, Inject, BadRequestException } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import {
   courses,
@@ -8,7 +8,7 @@ import {
   userCourseEnrollments,
   userCourseProgress,
 } from "../database/schema";
-import { eq, and, asc, type SQL } from "drizzle-orm";
+import { eq, and, asc, inArray, sql, type SQL } from "drizzle-orm";
 
 @Injectable()
 export class CoursesService {
@@ -18,9 +18,26 @@ export class CoursesService {
     const conditions: SQL[] = [];
     if (onlyActive) conditions.push(eq(courses.isActive, true));
     return this.db
-      .select()
+      .select({
+        id: courses.id,
+        slug: courses.slug,
+        title: courses.title,
+        description: courses.description,
+        shortDescription: courses.shortDescription,
+        coverImage: courses.coverImage,
+        price: courses.price,
+        durationDays: courses.durationDays,
+        hasCertificate: courses.hasCertificate,
+        sortOrder: courses.sortOrder,
+        isActive: courses.isActive,
+        createdAt: courses.createdAt,
+        lessonCount: sql<number>`count(${courseLessons.id})::int`,
+      })
       .from(courses)
+      .leftJoin(courseModules, eq(courseModules.courseId, courses.id))
+      .leftJoin(courseLessons, eq(courseLessons.moduleId, courseModules.id))
       .where(and(...conditions))
+      .groupBy(courses.id)
       .orderBy(asc(courses.sortOrder));
   }
 
@@ -30,7 +47,7 @@ export class CoursesService {
       .from(courses)
       .where(eq(courses.slug, slug))
       .limit(1);
-    if (!course) throw new NotFoundException("Course not found");
+    if (!course || !course.isActive) throw new NotFoundException("Course not found");
 
     const mods = await this.db
       .select()
@@ -38,17 +55,39 @@ export class CoursesService {
       .where(eq(courseModules.courseId, course.id))
       .orderBy(asc(courseModules.sortOrder));
 
-    const modulesWithLessons: Array<Record<string, unknown>> = [];
-    for (const mod of mods) {
-      const lessons = await this.db
-        .select()
-        .from(courseLessons)
-        .where(eq(courseLessons.moduleId, mod.id))
-        .orderBy(asc(courseLessons.sortOrder));
-      modulesWithLessons.push({ ...mod, lessons });
-    }
+    if (mods.length === 0) return { ...course, modules: [] };
+
+    const moduleIds = mods.map((m: any) => m.id);
+    const lessons = await this.db
+      .select()
+      .from(courseLessons)
+      .where(inArray(courseLessons.moduleId, moduleIds))
+      .orderBy(asc(courseLessons.sortOrder));
+
+    const lessonsByModule = lessons.reduce(
+      (acc: Record<string, any[]>, l: any) => {
+        (acc[l.moduleId] = acc[l.moduleId] || []).push(l);
+        return acc;
+      },
+      {} as Record<string, any[]>,
+    );
+
+    const modulesWithLessons = mods.map((mod: any) => ({
+      ...mod,
+      lessons: lessonsByModule[mod.id] || [],
+    }));
 
     return { ...course, modules: modulesWithLessons };
+  }
+
+  async findIdBySlug(slug: string) {
+    const [course] = await this.db
+      .select({ id: courses.id })
+      .from(courses)
+      .where(and(eq(courses.slug, slug), eq(courses.isActive, true)))
+      .limit(1);
+    if (!course) throw new NotFoundException("Course not found");
+    return course.id;
   }
 
   async create(data: any) {
@@ -84,6 +123,20 @@ export class CoursesService {
       .limit(1);
     if (!course) throw new NotFoundException("Course not found");
 
+    const [existing] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+
+    if (existing) throw new BadRequestException("Already enrolled in this course");
+
     const accessExpiresAt = new Date();
     accessExpiresAt.setDate(accessExpiresAt.getDate() + course.durationDays);
 
@@ -99,8 +152,87 @@ export class CoursesService {
     return enrollment;
   }
 
+  async getEnrollment(userId: string, courseId: string) {
+    const [enrollment] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+    return enrollment || null;
+  }
+
+  async createModule(courseId: string, data: { title: any; description?: any; sortOrder?: number }) {
+    const [mod] = await this.db
+      .insert(courseModules)
+      .values({ courseId, title: data.title, description: data.description ?? {}, sortOrder: data.sortOrder ?? 0 })
+      .returning();
+    return mod;
+  }
+
+  async updateModule(moduleId: string, data: { title?: any; description?: any; sortOrder?: number }) {
+    const [mod] = await this.db
+      .update(courseModules)
+      .set(data)
+      .where(eq(courseModules.id, moduleId))
+      .returning();
+    if (!mod) throw new NotFoundException("Module not found");
+    return mod;
+  }
+
+  async deleteModule(moduleId: string) {
+    const [mod] = await this.db
+      .delete(courseModules)
+      .where(eq(courseModules.id, moduleId))
+      .returning({ id: courseModules.id });
+    if (!mod) throw new NotFoundException("Module not found");
+    return { message: "Module deleted" };
+  }
+
+  async createLesson(moduleId: string, data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
+    const [lesson] = await this.db
+      .insert(courseLessons)
+      .values({
+        moduleId,
+        title: data.title,
+        contentType: data.contentType ?? "video",
+        videoUrl: data.videoUrl,
+        pdfUrl: data.pdfUrl,
+        content: data.content,
+        duration: data.duration ?? 0,
+        sortOrder: data.sortOrder ?? 0,
+        isFreePreview: data.isFreePreview ?? false,
+      })
+      .returning();
+    return lesson;
+  }
+
+  async updateLesson(lessonId: string, data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
+    const [lesson] = await this.db
+      .update(courseLessons)
+      .set(data)
+      .where(eq(courseLessons.id, lessonId))
+      .returning();
+    if (!lesson) throw new NotFoundException("Lesson not found");
+    return lesson;
+  }
+
+  async deleteLesson(lessonId: string) {
+    const [lesson] = await this.db
+      .delete(courseLessons)
+      .where(eq(courseLessons.id, lessonId))
+      .returning({ id: courseLessons.id });
+    if (!lesson) throw new NotFoundException("Lesson not found");
+    return { message: "Lesson deleted" };
+  }
+
   async getProgress(userId: string, courseId: string) {
-    return this.db
+    const rows = await this.db
       .select()
       .from(userCourseProgress)
       .where(
@@ -109,5 +241,21 @@ export class CoursesService {
           eq(userCourseProgress.courseId, courseId),
         ),
       );
+
+    const [result] = await this.db
+      .select({ total: sql<number>`count(${courseLessons.id})::int` })
+      .from(courseLessons)
+      .innerJoin(courseModules, eq(courseLessons.moduleId, courseModules.id))
+      .where(eq(courseModules.courseId, courseId));
+
+    const completedCount = rows.filter((r: any) => r.isCompleted).length;
+    const totalLessons = result?.total || 0;
+
+    return {
+      completed: completedCount,
+      total: totalLessons,
+      percentage: totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0,
+      lessons: rows,
+    };
   }
 }

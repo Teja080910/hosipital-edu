@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  ParseUUIDPipe,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { CoursesService } from "./courses.service";
@@ -27,12 +28,6 @@ export class CoursesController {
     return this.coursesService.findAll(all !== "true");
   }
 
-  @Get(":slug")
-  @ApiOperation({ summary: "Get course with modules and lessons" })
-  async findOne(@Param("slug") slug: string) {
-    return this.coursesService.findBySlug(slug);
-  }
-
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("admin")
@@ -42,12 +37,125 @@ export class CoursesController {
     return this.coursesService.create({ ...data, createdBy: user.id });
   }
 
+  @Get("check-enrollment/:slug")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Check if user is enrolled in course" })
+  async checkEnrollment(
+    @Param("slug") slug: string,
+    @CurrentUser() user: any,
+  ) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    const enrollment = await this.coursesService.getEnrollment(user.id, courseId);
+    return { enrolled: !!enrollment };
+  }
+
+  @Post(":slug/enroll")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Enroll in course" })
+  async enroll(
+    @Param("slug") slug: string,
+    @CurrentUser() user: any,
+    @Body("stripePaymentId") stripePaymentId?: string,
+  ) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.enroll(user.id, courseId, stripePaymentId);
+  }
+
+  @Get(":slug/progress")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get user progress for a course" })
+  async getProgress(
+    @Param("slug") slug: string,
+    @CurrentUser() user: any,
+  ) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.getProgress(user.id, courseId);
+  }
+
+  @Post(":courseId/modules")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Create module (admin)" })
+  async createModule(
+    @Param("courseId", ParseUUIDPipe) courseId: string,
+    @Body() data: { title: any; description?: any; sortOrder?: number },
+  ) {
+    return this.coursesService.createModule(courseId, data);
+  }
+
+  @Patch("modules/:moduleId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Update module (admin)" })
+  async updateModule(
+    @Param("moduleId", ParseUUIDPipe) moduleId: string,
+    @Body() data: { title?: any; description?: any; sortOrder?: number },
+  ) {
+    return this.coursesService.updateModule(moduleId, data);
+  }
+
+  @Delete("modules/:moduleId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete module (admin)" })
+  async deleteModule(@Param("moduleId", ParseUUIDPipe) moduleId: string) {
+    return this.coursesService.deleteModule(moduleId);
+  }
+
+  @Post("modules/:moduleId/lessons")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Create lesson (admin)" })
+  async createLesson(
+    @Param("moduleId", ParseUUIDPipe) moduleId: string,
+    @Body() data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
+  ) {
+    return this.coursesService.createLesson(moduleId, data);
+  }
+
+  @Patch("lessons/:lessonId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Update lesson (admin)" })
+  async updateLesson(
+    @Param("lessonId", ParseUUIDPipe) lessonId: string,
+    @Body() data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
+  ) {
+    return this.coursesService.updateLesson(lessonId, data);
+  }
+
+  @Delete("lessons/:lessonId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete lesson (admin)" })
+  async deleteLesson(@Param("lessonId", ParseUUIDPipe) lessonId: string) {
+    return this.coursesService.deleteLesson(lessonId);
+  }
+
+  @Get(":slug")
+  @ApiOperation({ summary: "Get course with modules and lessons" })
+  async findOne(@Param("slug") slug: string) {
+    return this.coursesService.findBySlug(slug);
+  }
+
   @Patch(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update course (admin)" })
-  async update(@Param("id") id: string, @Body() data: any) {
+  async update(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() data: any,
+  ) {
     return this.coursesService.update(id, data);
   }
 
@@ -56,19 +164,7 @@ export class CoursesController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Soft delete course (admin)" })
-  async remove(@Param("id") id: string) {
+  async remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.coursesService.softDelete(id);
-  }
-
-  @Post(":id/enroll")
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Enroll in course" })
-  async enroll(
-    @Param("id") id: string,
-    @CurrentUser() user: any,
-    @Body("stripePaymentId") stripePaymentId?: string,
-  ) {
-    return this.coursesService.enroll(user.id, id, stripePaymentId);
   }
 }

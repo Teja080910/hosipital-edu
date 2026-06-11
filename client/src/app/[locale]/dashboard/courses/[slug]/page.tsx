@@ -5,6 +5,7 @@ import { PageTransition } from "@/components/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { coursesApi } from "@/lib/api";
@@ -23,18 +24,27 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [progress, setProgress] = useState<{ completed: number; total: number; percentage: number } | null>(null);
 
   useEffect(() => {
     coursesApi.get(slug).then(({ data }) => {
       setCourse(data);
+      if (user) {
+        coursesApi.checkEnrollment(slug).then(({ data: enrollment }) => {
+          setIsEnrolled(enrollment.enrolled);
+          if (enrollment.enrolled) {
+            coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
+          }
+        }).catch(() => {});
+      }
     }).catch(() => toast.error(t("not_found"))).finally(() => setLoading(false));
-  }, [slug, t]);
+  }, [slug, t, user]);
 
   const handleEnroll = async () => {
     if (!course) return;
     setEnrolling(true);
     try {
-      await coursesApi.enroll(course.id);
+      await coursesApi.enroll(slug);
       setIsEnrolled(true);
       toast.success(t("enrolled"));
     } catch {
@@ -96,6 +106,15 @@ export default function CourseDetailPage() {
           </Button>
         )}
         {isEnrolled && <Badge className="text-sm px-3 py-1">{t("enrolled_badge")}</Badge>}
+        {progress && progress.percentage > 0 && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{t("progress")}</span>
+              <span className="font-medium">{progress.completed}/{progress.total} ({progress.percentage}%)</span>
+            </div>
+            <Progress value={progress.percentage} className="h-2" />
+          </div>
+        )}
 
         <Separator />
 

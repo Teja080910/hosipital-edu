@@ -54,12 +54,40 @@ export interface ExamAttempt {
 
 export interface Course {
   id: string;
-  title: string;
-  description: string;
-  thumbnail: string;
-  progress: number;
-  lessons: number;
-  duration: string;
+  slug: string;
+  title: Record<string, string>;
+  description: Record<string, string>;
+  shortDescription: Record<string, string> | null;
+  coverImage: string | null;
+  price: string;
+  durationDays: number;
+  hasCertificate: boolean;
+  sortOrder: number;
+  isActive: boolean;
+  lessonCount?: number;
+  modules?: CourseModule[];
+}
+
+export interface CourseModule {
+  id: string;
+  courseId: string;
+  title: Record<string, string>;
+  description: Record<string, string>;
+  sortOrder: number;
+  lessons: CourseLesson[];
+}
+
+export interface CourseLesson {
+  id: string;
+  moduleId: string;
+  title: Record<string, string>;
+  contentType: "video" | "pdf" | "text" | "quiz";
+  videoUrl: string | null;
+  pdfUrl: string | null;
+  content: string | null;
+  duration: number;
+  sortOrder: number;
+  isFreePreview: boolean;
 }
 
 export interface ProgressStats {

@@ -1,16 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { PageTransition } from "@/components/page-transition";
 import { CourseCard } from "@/components/courses/course-card";
+import { PageTransition } from "@/components/page-transition";
+import { useAuth } from "@/hooks/use-auth";
 import { coursesApi } from "@/lib/api";
+import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, BookOpen } from "lucide-react";
 
 interface Course {
   id: string;
@@ -22,6 +19,7 @@ interface Course {
   price: string;
   durationDays: number;
   hasCertificate: boolean;
+  lessonCount?: number;
 }
 
 function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
@@ -32,18 +30,60 @@ function localized(obj: Record<string, string> | string | null | undefined, loca
 
 export default function CoursesPage() {
   const t = useTranslations("courses");
+  const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState<string | null>(null);
+  const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
+  const [progressMap, setProgressMap] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    coursesApi.list().then(({ data }) => setCourses(data)).catch(() => toast.error(t("load_failed"))).finally(() => setLoading(false));
-  }, [t]);
+  const fetchCourses = async () => {
+    try {
+      const { data } = await coursesApi.list();
+      setCourses(data);
+      if (user) {
+        const checks = await Promise.allSettled(
+          data.map((c: Course) => coursesApi.checkEnrollment(c.slug))
+        );
+        const enrolled = new Set<string>();
+        const slugs: string[] = [];
+        checks.forEach((res, i) => {
+          if (res.status === "fulfilled" && res.value.data.enrolled) {
+            enrolled.add(data[i].id);
+            slugs.push(data[i].slug);
+          }
+        });
+        setEnrolledIds(enrolled);
+        if (slugs.length > 0) {
+          const progressResults = await Promise.allSettled(
+            slugs.map((s) => coursesApi.getProgress(s))
+          );
+          const pmap: Record<string, number> = {};
+          let idx = 0;
+          for (const id of enrolled) {
+            const res = progressResults[idx];
+            if (res.status === "fulfilled") {
+              pmap[id] = res.value.data.percentage || 0;
+            }
+            idx++;
+          }
+          setProgressMap(pmap);
+        }
+      }
+    } catch {
+      toast.error(t("load_failed"));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleEnroll = async (courseId: string) => {
+  useEffect(() => { fetchCourses(); }, []);
+
+  const handleEnroll = async (courseId: string, slug: string) => {
     setEnrolling(courseId);
     try {
-      await coursesApi.enroll(courseId);
+      await coursesApi.enroll(slug);
+      setEnrolledIds((prev) => new Set(prev).add(courseId));
       toast.success(t("enrolled"));
     } catch {
       toast.error(t("enroll_failed"));
@@ -79,11 +119,12 @@ export default function CoursesPage() {
                   title: localized(course.title),
                   description: localized(course.shortDescription) || localized(course.description),
                   thumbnail: course.coverImage || "",
-                  progress: 0,
-                  lessons: 0,
+                  progress: progressMap[course.id] || 0,
+                  lessons: course.lessonCount || 0,
                   duration: `${course.durationDays} ${t("days")}`,
                 }}
-                onEnroll={() => handleEnroll(course.id)}
+                enrolled={enrolledIds.has(course.id)}
+                onEnroll={() => handleEnroll(course.id, course.slug)}
                 isEnrolling={enrolling === course.id}
               />
             ))}

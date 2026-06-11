@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,11 +20,12 @@ import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { coursesApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, BookOpen } from "lucide-react";
 
 export default function AdminCoursesPage() {
   const t = useTranslations("admin");
   const c = useTranslations("common");
+  const router = useRouter();
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -67,8 +69,7 @@ export default function AdminCoursesPage() {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      const payload = {
-        slug: form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+      const payload: Record<string, unknown> = {
         title: { en: form.title },
         description: { en: form.description },
         shortDescription: { en: form.shortDescription },
@@ -79,6 +80,7 @@ export default function AdminCoursesPage() {
         await coursesApi.update(editing.id, payload);
         toast.success("Course updated");
       } else {
+        payload.slug = form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
         await coursesApi.create(payload);
         toast.success("Course created");
       }
@@ -113,6 +115,7 @@ export default function AdminCoursesPage() {
       header: "",
       render: (row: any) => (
         <div className="flex gap-1">
+          <Button size="sm" variant="ghost" onClick={() => router.push(`/dashboard/admin/courses/${row.id}/content`)}><BookOpen className="h-3 w-3" /></Button>
           <Button size="sm" variant="ghost" onClick={() => openEdit(row)}><Pencil className="h-3 w-3" /></Button>
           <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteTarget(row)}><Trash2 className="h-3 w-3" /></Button>
         </div>
