@@ -10,6 +10,7 @@ export interface Question {
   id: string;
   text: string;
   options: { id: string; text: string; isCorrect: boolean }[];
+  images?: { id: string; url: string; caption?: string; sortOrder: number }[];
   specialtyId?: string;
   topicId?: string;
   subtopicId?: string;

@@ -48,13 +48,25 @@ export class QuestionsService {
       .where(inArray(questionOptions.questionId, qIds))
       .orderBy(asc(questionOptions.sortOrder));
 
+    const allImages = await this.db
+      .select()
+      .from(questionImages)
+      .where(inArray(questionImages.questionId, qIds))
+      .orderBy(asc(questionImages.sortOrder));
+
     const optionsByQ = new Map<string, any[]>();
     for (const opt of allOptions) {
       if (!optionsByQ.has(opt.questionId)) optionsByQ.set(opt.questionId, []);
       optionsByQ.get(opt.questionId)!.push(opt);
     }
 
-    return items.map((q: any) => ({ ...q, options: optionsByQ.get(q.id) || [] }));
+    const imagesByQ = new Map<string, any[]>();
+    for (const img of allImages) {
+      if (!imagesByQ.has(img.questionId)) imagesByQ.set(img.questionId, []);
+      imagesByQ.get(img.questionId)!.push(img);
+    }
+
+    return items.map((q: any) => ({ ...q, options: optionsByQ.get(q.id) || [], images: imagesByQ.get(q.id) || [] }));
   }
 
   async findById(id: string) {

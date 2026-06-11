@@ -356,9 +356,9 @@ async function main() {
   // -- SUBSCRIPTION PLANS --
   console.log("=== Seeding Subscription Plans ===");
   const plansData = [
-    { name: { en: "Monthly", es: "Mensual" }, description: { en: "Full question bank access, basic analytics", es: "Acceso completo al banco de preguntas, analíticas básicas" }, price: "29", interval: "month", sortOrder: 0, isVisible: true },
-    { name: { en: "Quarterly", es: "Trimestral" }, description: { en: "Everything in Monthly plus advanced analytics, priority support, mock exams", es: "Todo lo de Mensual más analíticas avanzadas, soporte prioritario, exámenes simulados" }, price: "69", interval: "quarter", sortOrder: 1, isVisible: true },
-    { name: { en: "Annual", es: "Anual" }, description: { en: "Everything in Quarterly plus 1-on-1 tutoring, certificate, early access", es: "Todo lo de Trimestral más tutoría personalizada, certificado, acceso anticipado" }, price: "199", interval: "year", sortOrder: 2, isVisible: true },
+    { name: { en: "Monthly", es: "Mensual" }, description: { en: "Full question bank access, basic analytics", es: "Acceso completo al banco de preguntas, analíticas básicas" }, price: "29", interval: "month", sortOrder: 0, isVisible: true, maxExamAttempts: 20 },
+    { name: { en: "Quarterly", es: "Trimestral" }, description: { en: "Everything in Monthly plus advanced analytics, priority support, mock exams", es: "Todo lo de Mensual más analíticas avanzadas, soporte prioritario, exámenes simulados" }, price: "69", interval: "quarter", sortOrder: 1, isVisible: true, maxExamAttempts: 50 },
+    { name: { en: "Annual", es: "Anual" }, description: { en: "Everything in Quarterly plus 1-on-1 tutoring, certificate, early access", es: "Todo lo de Trimestral más tutoría personalizada, certificado, acceso anticipado" }, price: "199", interval: "year", sortOrder: 2, isVisible: true, maxExamAttempts: 999999 },
   ];
   let pCreated = 0;
   for (const plan of plansData) {

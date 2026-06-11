@@ -484,6 +484,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxQuestions: integer("max_questions"),
   maxFlashcards: integer("max_flashcards"),
   maxVideos: integer("max_videos"),
+  maxExamAttempts: integer("max_exam_attempts"),
   isDefault: boolean("is_default").default(false),
   isCourseOnly: boolean("is_course_only").default(false),
   isVisible: boolean("is_visible").default(true).notNull(),
@@ -507,6 +508,7 @@ export const userSubscriptions = pgTable("user_subscriptions", {
   currentPeriodStart: timestamp("current_period_start").notNull(),
   currentPeriodEnd: timestamp("current_period_end").notNull(),
   canceledAt: timestamp("canceled_at"),
+  remainingExamAttempts: integer("remaining_exam_attempts"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

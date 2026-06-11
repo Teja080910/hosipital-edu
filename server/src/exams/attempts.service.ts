@@ -1,18 +1,22 @@
 import {
+  HttpException,
+  HttpStatus,
+  Inject,
   Injectable,
   NotFoundException,
-  Inject,
 } from "@nestjs/common";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { DRIZZLE } from "../database/database.provider";
 import {
-  examAttempts,
   examAnswers,
-  questions,
-  questionOptions,
-  userQuestionProgress,
+  examAttempts,
   exams,
+  questionOptions,
+  questions,
+  userQuestionProgress,
+  userSubscriptions,
+  users,
 } from "../database/schema";
-import { and, eq, desc, asc, inArray } from "drizzle-orm";
 
 @Injectable()
 export class AttemptsService {
@@ -25,6 +29,36 @@ export class AttemptsService {
     questionCount: number;
     timeLimit?: number;
   }) {
+    const [user] = await this.db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, data.userId))
+      .limit(1);
+
+    const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+    let sub: any = null;
+
+    if (!isAdmin) {
+      [sub] = await this.db
+        .select()
+        .from(userSubscriptions)
+        .where(
+          and(
+            eq(userSubscriptions.userId, data.userId),
+            eq(userSubscriptions.status, "active"),
+          ),
+        )
+        .limit(1);
+
+      if (!sub) {
+        throw new HttpException("No active subscription found.", HttpStatus.FORBIDDEN);
+      }
+
+      if (sub.remainingExamAttempts != null && sub.remainingExamAttempts < 1) {
+        throw new HttpException("No remaining exam attempts. Please upgrade your plan.", HttpStatus.FORBIDDEN);
+      }
+    }
+
     const [attempt] = await this.db
       .insert(examAttempts)
       .values({
@@ -35,6 +69,14 @@ export class AttemptsService {
         timeLimit: data.timeLimit,
       })
       .returning();
+
+    if (sub && sub.remainingExamAttempts != null) {
+      await this.db
+        .update(userSubscriptions)
+        .set({ remainingExamAttempts: sub.remainingExamAttempts - 1 })
+        .where(eq(userSubscriptions.id, sub.id));
+    }
+
     return attempt;
   }
 

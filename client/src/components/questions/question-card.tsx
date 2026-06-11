@@ -54,6 +54,16 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
           <h3 className="text-lg font-medium">{question.text}</h3>
         </div>
 
+        {question.images && question.images.length > 0 && (
+          <div className="flex flex-wrap gap-4">
+            {question.images.map((img) => (
+              <a key={img.id} href={img.url} target="_blank" rel="noopener noreferrer">
+                <img src={img.url} alt={img.caption || "Question image"} className="max-w-full rounded-lg border" style={{ maxHeight: 400 }} />
+              </a>
+            ))}
+          </div>
+        )}
+
         <div className="space-y-3">
           {question.options.map((option) => {
             const isSelected = selectedOptionId === option.id;

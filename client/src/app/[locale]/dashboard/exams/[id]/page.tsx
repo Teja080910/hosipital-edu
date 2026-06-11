@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/routing";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +15,6 @@ import { ExamResults } from "@/components/exams/exam-results";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { examsApi, attemptsApi, questionsApi } from "@/lib/api";
-import { toast } from "sonner";
 import {
   Loader2, ArrowLeft, ArrowRight, Flag, FlagOff, CheckCircle2, XCircle,
   GraduationCap, Settings2, Play, AlertTriangle, ChevronDown, Check,
@@ -28,11 +29,20 @@ function localized(obj: Record<string, string> | string | null | undefined, loca
   return obj[locale] || Object.values(obj)[0] || "";
 }
 
-export default function ExamTakingPage({ params }: { params: { id: string } }) {
+export default function ExamTakingPageWrapper({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+      <ExamTakingPage params={params} />
+    </Suspense>
+  );
+}
+
+function ExamTakingPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const t = useTranslations("exams");
   const tc = useTranslations("common");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [pageState, setPageState] = useState<PageState>("config");
   const [mode, setMode] = useState<"study" | "exam">("exam");
@@ -85,6 +95,73 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [id, t]);
 
   useEffect(() => {
+    const modeParam = searchParams.get("mode");
+    if (modeParam === "exam" || modeParam === "study") {
+      setMode(modeParam);
+    }
+  }, [searchParams]);
+
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (loading || autoStarted.current || !searchParams.get("mode")) return;
+    autoStarted.current = true;
+    const totalQuestions = Math.min(questionLimit, filteredQuestions.length);
+    if (totalQuestions === 0) return;
+    (async () => {
+      try {
+        const { data: attempt } = await attemptsApi.create({ examId: id, mode, questionCount: totalQuestions, timeLimit: mode === "exam" ? timeLimit : undefined });
+        const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
+        setExamQuestions(shuffled);
+        setAttemptId(attempt.id);
+        setTimeRemaining(mode === "exam" ? timeLimit * 60 : 0);
+        setTotalTimeSpent(0); setAnswers({}); setCurrentIndex(0);
+        setSelectedOption(null); setShowAnswer(false);
+        setQuestionEntryTime(Date.now()); setPerQuestionTime({});
+        setPageState("taking");
+      } catch (err: any) {
+        const msg = err?.response?.data?.message || err?.message || t("start_failed");
+        toast.error(Array.isArray(msg) ? msg[0] : msg);
+      }
+    })();
+  }, [loading, searchParams]);
+
+  const [tabWarnings, setTabWarnings] = useState(0);
+  const tabWarningsRef = useRef(0);
+  const confirmSubmitRef = useRef<() => Promise<void>>();
+
+  useEffect(() => {
+    confirmSubmitRef.current = handleConfirmSubmit;
+  });
+
+  useEffect(() => {
+    if (pageState !== "taking" || mode !== "exam") return;
+    const handleVisibility = () => {
+      if (document.hidden) {
+        tabWarningsRef.current += 1;
+        setTabWarnings(tabWarningsRef.current);
+        if (tabWarningsRef.current >= 3) {
+          confirmSubmitRef.current?.();
+        } else {
+          toast.warning(t("tab_warning", { count: tabWarningsRef.current, max: 2 }));
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [pageState, mode, t]);
+
+  useEffect(() => {
+    if (pageState !== "taking" || mode !== "exam") return;
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && pageState === "taking" && mode === "exam") {
+        setShowSubmitDialog(true);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, [pageState, mode]);
+
+  useEffect(() => {
     let filtered = allQuestions;
     if (selectedSpecialty) filtered = filtered.filter((q) => q.specialtyId === selectedSpecialty);
     if (selectedTopic) filtered = filtered.filter((q) => q.topicId === selectedTopic);
@@ -120,7 +197,14 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       setSelectedOption(null); setShowAnswer(false);
       setQuestionEntryTime(Date.now()); setPerQuestionTime({});
       setPageState("taking");
-    } catch { toast.error(t("start_failed")); }
+      if (mode === "exam") {
+        router.replace(`/dashboard/exams/${id}?mode=exam`, { scroll: false });
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || t("start_failed");
+      toast.error(Array.isArray(msg) ? msg[0] : msg);
+    }
   };
 
   const handleAnswer = async (optionId: string) => {
@@ -171,6 +255,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       const total = displayQuestions.length;
       setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
       setPageState("results");
+      window.history.replaceState(null, "", `/dashboard/exams/${id}`);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     } catch { toast.error(t("submit_failed")); } finally { setSubmitting(false); }
   };
 
@@ -192,7 +278,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
             onReview={() => { setPageState("taking"); setShowAnswer(true); }}
-            onRetry={() => { setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); }} />
+            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); router.replace(`/dashboard/exams/${id}`, { scroll: false }); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); }}
+            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); router.push("/dashboard"); }} />
           {results.topicBreakdown.length > 1 && (
             <Card>
               <CardHeader><CardTitle className="text-lg">{t("topic_breakdown")}</CardTitle></CardHeader>
@@ -220,90 +307,146 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
     return (
       <PageTransition>
-        <div className="space-y-4 max-w-3xl mx-auto pb-24">
+        <div className="mx-auto max-w-6xl space-y-5 px-4 p-20">
           {mode === "exam" && (
-            <div className="flex items-center justify-between">
-              <QuestionTimer timeRemaining={timeRemaining} onTick={handleTick} onTimeUp={handleTimeUp} />
-              <div className="text-sm text-muted-foreground">{currentAnsweredCount}/{totalQ} {t("answered")}{flaggedCount > 0 && ` · ${flaggedCount} ${t("flagged")}`}</div>
+            <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+              <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                    {exam?.title || t("exam")}
+                  </p>
+                  <h2 className="mt-1 text-xl font-semibold">
+                    {t("question_of", { current: currentIndex + 1, total: totalQ })}
+                  </h2>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center rounded-full border bg-background px-3 py-2 text-primary shadow-subtle">
+                    <QuestionTimer timeRemaining={timeRemaining} onTick={handleTick} onTimeUp={handleTimeUp} />
+                  </div>
+                  <span className="rounded-full bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+                    {currentAnsweredCount}/{totalQ} {t("answered")}
+                  </span>
+                  {flaggedCount > 0 && (
+                    <span className="rounded-full bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
+                      {flaggedCount} {t("flagged")}
+                    </span>
+                  )}
+                  {timeRemaining > 0 && timeRemaining < 120 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, "0")}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Progress value={(currentAnsweredCount / totalQ) * 100} className="h-1 rounded-none" />
             </div>
           )}
-          <Progress value={(currentAnsweredCount / totalQ) * 100} className="h-1" />
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">{t("question_of", { current: currentIndex + 1, total: totalQ })}</span>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{currentQuestion.difficulty}</Badge>
-                  <Button variant="ghost" size="icon" onClick={handleFlag} title={t("flag_question")}>{flagged ? <FlagOff className="h-4 w-4 text-destructive" /> : <Flag className="h-4 w-4" />}</Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <p className="text-lg font-medium">{currentQuestion.text}</p>
-              <div className="space-y-3">
-                {currentQuestion.options.map((option) => {
-                  const isSelected = answered === option.id;
-                  const showCorrect = showAnswer || (mode === "exam" && answered !== null && isSelected);
-                  const isCorrectOption = option.isCorrect;
-                  let borderClass = "border-input hover:bg-muted/50 cursor-pointer";
-                  let bgClass = "";
-                  if (showCorrect && isCorrectOption) { borderClass = "border-green-500"; bgClass = "bg-green-50 dark:bg-green-950/20"; }
-                  else if (showCorrect && isSelected && !isCorrectOption) { borderClass = "border-destructive"; bgClass = "bg-red-50 dark:bg-red-950/20"; }
-                  else if (isSelected && mode === "exam") { borderClass = "border-primary"; }
-                  return (
-                    <button key={option.id} onClick={() => !answered && handleAnswer(option.id)} disabled={answered !== null && mode === "study"} className={`w-full text-left rounded-lg border p-4 transition-colors ${borderClass} ${bgClass}`}>
-                      <div className="flex items-center gap-3">
-                        <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${showCorrect && isCorrectOption ? "border-green-500 bg-green-500" : showCorrect && isSelected && !isCorrectOption ? "border-destructive bg-destructive" : isSelected && mode === "exam" ? "border-primary bg-primary" : "border-muted-foreground"}`}>
-                          {(showCorrect && isCorrectOption) && <CheckCircle2 className="h-3 w-3 text-white" />}
-                          {(showCorrect && isSelected && !isCorrectOption) && <XCircle className="h-3 w-3 text-white" />}
-                        </div>
-                        <span>{option.text}</span>
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <Card className="overflow-hidden border-border/70 shadow-card hover:translate-y-0">
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-base font-semibold text-primary-foreground shadow-subtle">
+                      {currentIndex + 1}
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">{t("question_of", { current: currentIndex + 1, total: totalQ })}</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary" className="rounded-full">{currentQuestion.difficulty}</Badge>
+                        {flagged && <Badge variant="destructive" className="rounded-full">{t("flagged")}</Badge>}
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
-              {showAnswer && (<div className="rounded-lg bg-muted p-4"><p className="text-sm font-medium mb-1">{t("explanation")}</p><p className="text-sm text-muted-foreground">{currentQuestion.explanation}</p></div>)}
-              {mode === "study" && answered && !showAnswer && <Button variant="outline" onClick={() => setShowAnswer(true)} className="w-full">{t("show_explanation")}</Button>}
-            </CardContent>
-          </Card>
-
-          <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={handlePrevious} disabled={currentIndex === 0}><ArrowLeft className="h-4 w-4 mr-2" /> {t("previous")}</Button>
-            {currentIndex >= totalQ - 1 ? (
-              mode === "exam" ? <Button onClick={handleRequestSubmit}>{t("submit")}</Button> : <Button onClick={handleFinishStudy}>{t("submit")}</Button>
-            ) : <Button onClick={handleNext} disabled={!answered && mode === "exam"}>{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>}
-          </div>
-
-          {mode === "exam" && (
-            <>
-              <div className="flex flex-wrap gap-2 justify-center pt-4">
-                {Array.from({ length: totalQ }).map((_, i) => {
-                  const q = displayQuestions[i];
-                  const a = q ? answers[q.id] : undefined;
-                  let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
-                  if (a?.flagged) variant = "destructive";
-                  else if (a?.optionId) variant = "default";
-                  return (
-                    <button key={i} onClick={() => { setCurrentIndex(i); setSelectedOption(null); setShowAnswer(false); }}
-                      className={`h-8 w-8 rounded text-xs font-medium transition-colors ${i === currentIndex ? "ring-2 ring-primary ring-offset-2" : ""} ${variant === "default" ? "bg-primary text-primary-foreground" : variant === "destructive" ? "bg-destructive text-destructive-foreground" : "bg-muted text-muted-foreground"}`}>{i + 1}</button>
-                  );
-                })}
-              </div>
-              <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-md p-3 z-50">
-                <div className="max-w-3xl mx-auto flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    {currentAnsweredCount}/{totalQ} {t("answered")}{flaggedCount > 0 && ` · ${flaggedCount} ${t("flagged")}`}
-                    {timeRemaining > 0 && timeRemaining < 120 && <span className="ml-2 text-destructive font-medium flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, "0")}</span>}
+                    </div>
                   </div>
-                  <Button onClick={handleRequestSubmit} disabled={submitting} size="sm">{submitting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}{t("submit")}</Button>
+                  <Button variant={flagged ? "destructive" : "outline"} size="sm" onClick={handleFlag} title={t("flag_question")}>
+                    {flagged ? <FlagOff className="mr-2 h-4 w-4" /> : <Flag className="mr-2 h-4 w-4" />}
+                    {flagged ? t("flagged") : t("flag_question")}
+                  </Button>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-6 p-5 sm:p-6">
+                <p className="text-lg font-semibold leading-8 text-foreground sm:text-xl">{currentQuestion.text}</p>
+                {currentQuestion.images && currentQuestion.images.length > 0 && (
+                  <div className="flex flex-wrap gap-4">
+                    {currentQuestion.images.map((img: any) => (
+                      <a key={img.id} href={img.url} target="_blank" rel="noopener noreferrer">
+                        <img src={img.url} alt={img.caption || "Question image"} className="max-w-full rounded-xl border shadow-subtle" style={{ maxHeight: 400 }} />
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <div className="space-y-3">
+                  {currentQuestion.options.map((option, optionIndex) => {
+                    const isSelected = answered === option.id;
+                    const showCorrect = showAnswer || (mode === "exam" && answered !== null && isSelected);
+                    const isCorrectOption = option.isCorrect;
+                    let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
+                    if (showCorrect && isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
+                    else if (showCorrect && isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
+                    else if (isSelected && mode === "exam") optionClass = "border-primary bg-primary/10 shadow-subtle";
+                    return (
+                      <button key={option.id} onClick={() => !answered && handleAnswer(option.id)} disabled={answered !== null && mode === "study"} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
+                        <div className="flex items-start gap-4">
+                          <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
+                            showCorrect && isCorrectOption ? "border-green-500 bg-green-500 text-white" :
+                            showCorrect && isSelected && !isCorrectOption ? "border-destructive bg-destructive text-white" :
+                            isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
+                          }`}>
+                            {showCorrect && isCorrectOption ? <CheckCircle2 className="h-4 w-4" /> :
+                              showCorrect && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
+                              String.fromCharCode(65 + optionIndex)}
+                          </div>
+                          <span className="pt-1.5 leading-6">{option.text}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {showAnswer && (<div className="rounded-2xl border bg-muted/50 p-4"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><p className="text-sm leading-6 text-muted-foreground">{currentQuestion.explanation}</p></div>)}
+                {mode === "study" && answered && !showAnswer && <Button variant="outline" onClick={() => setShowAnswer(true)} className="w-full">{t("show_explanation")}</Button>}
+              </CardContent>
+            </Card>
+
+            <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+              <Card className="border-border/70 shadow-card hover:translate-y-0">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">{t("questions")}</CardTitle>
+                  <CardDescription>{currentAnsweredCount}/{totalQ} {t("answered")}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {mode === "exam" && <Progress value={(currentAnsweredCount / totalQ) * 100} className="h-2" />}
+                  <div className="grid grid-cols-5 gap-2">
+                    {Array.from({ length: totalQ }).map((_, i) => {
+                      const q = displayQuestions[i];
+                      const a = q ? answers[q.id] : undefined;
+                      const isCurrent = i === currentIndex;
+                      let stateClass = "border-border bg-muted text-muted-foreground hover:border-primary/50 hover:text-primary";
+                      if (a?.flagged) stateClass = "border-destructive bg-destructive text-destructive-foreground";
+                      else if (a?.optionId) stateClass = "border-primary bg-primary text-primary-foreground";
+                      return (
+                        <button key={i} onClick={() => { setCurrentIndex(i); setSelectedOption(null); setShowAnswer(false); }}
+                          className={`h-10 rounded-xl border text-sm font-semibold transition-all ${stateClass} ${isCurrent ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}>{i + 1}</button>
+                      );
+                    })}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <div className="rounded-xl bg-muted p-3"><span className="block font-semibold text-foreground">{currentAnsweredCount}</span>{t("answered")}</div>
+                    <div className="rounded-xl bg-muted p-3"><span className="block font-semibold text-foreground">{flaggedCount}</span>{t("flagged")}</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-3 shadow-card">
+                <Button variant="outline" onClick={handlePrevious} disabled={currentIndex === 0} className="flex-1"><ArrowLeft className="h-4 w-4 mr-2" /> {t("previous")}</Button>
+                {currentIndex >= totalQ - 1 ? (
+                  mode === "exam" ? <Button onClick={handleRequestSubmit} disabled={submitting} className="flex-1">{submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{t("submit")}</Button> : <Button onClick={handleFinishStudy} className="flex-1">{t("submit")}</Button>
+                ) : <Button onClick={handleNext} disabled={!answered && mode === "exam"} className="flex-1">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>}
               </div>
-            </>
-          )}
+            </aside>
+          </div>
         </div>
-        <ConfirmDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
+        <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { setShowSubmitDialog(open); if (!open && mode === "exam") { document.documentElement.requestFullscreen().catch(() => {}); } }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
         <ConfirmDialog open={showTimeWarning} onOpenChange={setShowTimeWarning} title={t("time_up")} description={t("time_up_desc")} confirmLabel={t("submit")} cancelLabel="" variant="default" onConfirm={handleConfirmSubmit} />
       </PageTransition>
     );

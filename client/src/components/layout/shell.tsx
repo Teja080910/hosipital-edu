@@ -6,9 +6,13 @@ import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
 import { cn } from "@/lib/utils";
 
-export function Shell({ children }: { children: ReactNode }) {
+export function Shell({ children, fullscreen }: { children: ReactNode; fullscreen?: boolean }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  if (fullscreen) {
+    return <div className="min-h-screen bg-background"><main>{children}</main></div>;
+  }
 
   return (
 <div className="min-h-screen bg-background">

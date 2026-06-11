@@ -254,6 +254,7 @@ export class SubscriptionsService {
         status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
+        remainingExamAttempts: plan.maxExamAttempts,
       })
       .returning();
 

@@ -13,6 +13,7 @@ import { QuestionCard } from "@/components/questions/question-card";
 import { EmptyState } from "@/components/empty-state";
 import { examsApi, questionsApi } from "@/lib/api";
 import type { Question } from "@/types";
+import { toast } from "sonner";
 import { FileQuestion, Search, Loader2, GraduationCap, Play } from "lucide-react";
 
 const PAGE_SIZE = 20;
@@ -86,10 +87,10 @@ export default function QuestionsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => selectedExamId && router.push(`/dashboard/exams/${selectedExamId}`)}>
+            <Button variant="outline" onClick={() => { if (!selectedExamId) { toast.error(t("select_exam_first")); return; } router.push(`/dashboard/exams/${selectedExamId}?mode=study`); }}>
               <GraduationCap className="h-4 w-4 mr-2" /> {t("study_mode")}
             </Button>
-            <Button onClick={() => selectedExamId && router.push(`/dashboard/exams/${selectedExamId}`)}>
+            <Button onClick={() => { if (!selectedExamId) { toast.error(t("select_exam_first")); return; } router.push(`/dashboard/exams/${selectedExamId}?mode=exam`); }}>
               <Play className="h-4 w-4 mr-2" /> {t("exam_mode")}
             </Button>
           </div>

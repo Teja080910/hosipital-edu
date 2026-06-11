@@ -1,10 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, XCircle, Clock, Target } from "lucide-react";
+import { CheckCircle, Clock, Target, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ExamResultsProps {
   score: number;
@@ -14,6 +13,7 @@ interface ExamResultsProps {
   timeSpent: number;
   onReview: () => void;
   onRetry: () => void;
+  onGoHome: () => void;
 }
 
 export function ExamResults({
@@ -24,6 +24,7 @@ export function ExamResults({
   timeSpent,
   onReview,
   onRetry,
+  onGoHome,
 }: ExamResultsProps) {
   const t = useTranslations("exams");
   const percentage = Math.round((correctAnswers / totalQuestions) * 100);
@@ -88,6 +89,7 @@ export function ExamResults({
           <div className="flex justify-center gap-4">
             <button onClick={onReview} className="text-sm text-primary hover:underline">{t("review_answers")}</button>
             <button onClick={onRetry} className="text-sm text-primary hover:underline">{t("try_again")}</button>
+            <button onClick={onGoHome} className="text-sm text-primary hover:underline">{t("go_home")}</button>
           </div>
         </CardContent>
       </Card>
