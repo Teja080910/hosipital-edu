@@ -14,13 +14,14 @@ const CONTENT_MAP: Record<string, string> = {
   "faq": "faq_content",
 };
 
-export default function ContentPage({ params }: { params: { key: string } }) {
+export default function ContentPage({ params }: { params: { key: string; locale: string } }) {
   const t = useTranslations("content");
   const router = useRouter();
   const [content, setContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const paramKey = CONTENT_MAP[params.key] || params.key;
+  const locale = params.locale;
 
   useEffect(() => {
     parametersApi.get(paramKey)
@@ -48,8 +49,7 @@ export default function ContentPage({ params }: { params: { key: string } }) {
   }
 
   const val = typeof content.value === "object" ? content.value : { en: String(content.value) };
-  const en = val?.en || "";
-  const es = val?.es || "";
+  const body = val?.[locale] || val?.en || "";
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
@@ -57,19 +57,8 @@ export default function ContentPage({ params }: { params: { key: string } }) {
         <ArrowLeft className="h-4 w-4 mr-2" /> {t("back")}
       </Button>
       <Card>
-        <CardContent className="p-8 space-y-6">
-          {en && (
-            <div>
-              <h2 className="text-lg font-semibold mb-3">English</h2>
-              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{en}</div>
-            </div>
-          )}
-          {es && (
-            <div>
-              <h2 className="text-lg font-semibold mb-3">Español</h2>
-              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{es}</div>
-            </div>
-          )}
+        <CardContent className="p-8">
+          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{body}</div>
         </CardContent>
       </Card>
     </div>

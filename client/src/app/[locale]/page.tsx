@@ -72,11 +72,11 @@ const testimonials = [
   { name: "Dr. Sarah Chen", role: "Internal Medicine", text: "Best ENARM prep platform I've used. The analytics helped me identify and fix my weak areas." },
 ];
 
-const plans = [
-  { name: "Monthly", price: "$29", period: "/month", sortOrder: 0, features: ["Full question bank access", "Basic performance analytics", "Community discussion forum", "Mobile app access"], popular: false },
-  { name: "Quarterly", price: "$69", period: "/quarter", sortOrder: 1, features: ["Everything in Monthly", "Advanced analytics & insights", "Priority email support", "Study planner integration", "Mock exam simulations"], popular: true },
-  { name: "Annual", price: "$199", period: "/year", sortOrder: 2, features: ["Everything in Quarterly", "1-on-1 tutoring session", "Certificate of completion", "Early access to new features", "Lifetime question bank updates"], popular: false },
-];
+const planFeatures: Record<string, string[]> = {
+  monthly: ["Full question bank access", "Basic performance analytics", "Community discussion forum", "Mobile app access"],
+  quarterly: ["Everything in Monthly", "Advanced analytics & insights", "Priority email support", "Study planner integration", "Mock exam simulations"],
+  annual: ["Everything in Quarterly", "1-on-1 tutoring session", "Certificate of completion", "Early access to new features", "Lifetime question bank updates"],
+};
 
 const faqs = [
   { q: "How does the question bank work?", a: "Our question bank contains thousands of exam-style questions organized by specialty and topic. You can study in Study Mode with instant feedback and explanations, or Exam Mode for timed simulation." },
@@ -115,6 +115,15 @@ const sb = useTranslations("subscribe");
     await logout();
   }, [logout]);
   const [subData, setSubData] = useState<{ planSortOrder: number } | null>(null);
+  const [plans, setPlans] = useState<any[]>([]);
+
+  useEffect(() => {
+    subscriptionsApi.plans().then(({ data }) => {
+      if (Array.isArray(data)) {
+        setPlans(data.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (user && user.role !== "admin") {
@@ -126,11 +135,12 @@ const sb = useTranslations("subscribe");
     }
   }, [user]);
 
-  const getPlanButton = (plan: typeof plans[0]) => {
+  const getPlanButton = (plan: any) => {
+    const isPopular = plan.sortOrder === 1;
     if (!user) {
       return (
         <Link href="/register" className="w-full">
-          <Button className="w-full" variant={plan.popular ? "default" : "outline"} size="lg">
+          <Button className="w-full" variant={isPopular ? "default" : "outline"} size="lg">
             {t("get_started")}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -140,7 +150,7 @@ const sb = useTranslations("subscribe");
     if (!subData) {
       return (
         <Link href="/dashboard/subscribe" className="w-full">
-          <Button className="w-full" variant={plan.popular ? "default" : "outline"} size="lg">
+          <Button className="w-full" variant={isPopular ? "default" : "outline"} size="lg">
             {sb("subscribe")}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -159,7 +169,7 @@ const sb = useTranslations("subscribe");
     const isDowngrade = plan.sortOrder < currentOrder;
     return (
       <Link href="/dashboard/subscribe" className="w-full">
-        <Button className="w-full" variant={plan.popular ? "default" : "outline"} size="lg">
+        <Button className="w-full" variant={isPopular ? "default" : "outline"} size="lg">
           {isDowngrade ? sb("downgrade") : sb("upgrade")}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
@@ -449,28 +459,33 @@ const sb = useTranslations("subscribe");
           </motion.div>
 
           <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-            {plans.map((plan, i) => (
-              <motion.div key={plan.name} {...stagger(i)}>
+            {plans.map((plan, i) => {
+              const pName = plan.name?.en || plan.name;
+              const pPopular = plan.sortOrder === 1;
+              const pPeriod = plan.interval === "year" ? "/year" : plan.interval === "quarter" ? "/quarter" : "/month";
+              const features = planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"];
+              return (
+              <motion.div key={plan.id || pName} {...stagger(i)}>
                 <Card className={cn(
                   "relative h-full flex flex-col border-border/50 transition-all duration-300",
-                  plan.popular && "border-primary shadow-card-hover scale-105 md:scale-105 z-10",
+                  pPopular && "border-primary shadow-card-hover scale-105 md:scale-105 z-10",
                 )}>
-                  {plan.popular && (
+                  {pPopular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                       <Badge className="px-4 py-1 text-xs font-semibold bg-primary text-primary-foreground shadow-subtle">
                         {t("most_popular")}
                       </Badge>
                     </div>
                   )}
-                  <CardHeader className={cn(plan.popular && "pt-8")}>
-                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                  <CardHeader className={cn(pPopular && "pt-8")}>
+                    <CardTitle className="text-xl">{pName}</CardTitle>
                     <div className="mt-3">
-                      <span className="text-4xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground ml-1">{plan.period}</span>
+                      <span className="text-4xl font-bold">${plan.price}</span>
+                      <span className="text-muted-foreground ml-1">{pPeriod}</span>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-4">
-                    {plan.features.map((f) => (
+                    {features.map((f) => (
                       <div key={f} className="flex items-start gap-3">
                         <Check className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -478,11 +493,12 @@ const sb = useTranslations("subscribe");
                     ))}
                   </CardContent>
                   <CardFooter>
-                    {getPlanButton(plan)}
+                    {getPlanButton({ ...plan, popular: pPopular })}
                   </CardFooter>
                 </Card>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

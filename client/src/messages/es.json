@@ -593,5 +593,11 @@
       "item_2": "Configurar funciones de IA y auto-traducción",
       "item_3": "Personalizar la página de inicio y contenido de marketing"
     }
+  },
+  "content": {
+    "not_found": "Página No Encontrada",
+    "not_found_desc": "El contenido que buscas no existe o ha sido eliminado.",
+    "go_home": "Ir al Inicio",
+    "back": "Atrás"
   }
 }

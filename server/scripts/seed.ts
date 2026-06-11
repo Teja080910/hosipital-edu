@@ -486,6 +486,51 @@ async function main() {
   }
   console.log(`Plans: ${pCreated}\n`);
 
+  // -- SYSTEM PARAMETERS (Content Pages) --
+  console.log("=== Seeding System Parameters ===");
+  const paramsData = [
+    {
+      key: "terms_of_service",
+      value: {
+        en: "MD Exams Terms of Service\n\n1. Acceptance of Terms\nBy accessing and using MD Exams, you agree to be bound by these Terms of Service.\n\n2. Description of Service\nMD Exams provides an online platform for medical exam preparation including question banks, flashcards, video classes, and courses.\n\n3. User Accounts\nYou are responsible for maintaining the confidentiality of your account credentials.\n\n4. Subscription & Billing\nPaid subscriptions auto-renew unless canceled. Refunds are handled per our refund policy.\n\n5. Intellectual Property\nAll content on MD Exams is protected by copyright and other intellectual property laws.\n\n6. Limitation of Liability\nMD Exams is not responsible for any exam outcomes or medical decisions made using our platform.\n\n7. Contact\nFor questions, contact support@mdexams.com",
+        es: "Términos del Servicio de MD Exams\n\n1. Aceptación de Términos\nAl acceder y usar MD Exams, aceptas estar sujeto a estos Términos del Servicio.\n\n2. Descripción del Servicio\nMD Exams proporciona una plataforma en línea para preparación de exámenes médicos incluyendo bancos de preguntas, tarjetas de estudio, videoclases y cursos.\n\n3. Cuentas de Usuario\nEres responsable de mantener la confidencialidad de tus credenciales de cuenta.\n\n4. Suscripción y Facturación\nLas suscripciones pagadas se renuevan automáticamente a menos que se cancelen.\n\n5. Propiedad Intelectual\nTodo el contenido en MD Exams está protegido por derechos de autor.\n\n6. Limitación de Responsabilidad\nMD Exams no es responsable por resultados de exámenes o decisiones médicas.\n\n7. Contacto\nPara preguntas, contacta a support@mdexams.com"
+      },
+      description: "Terms of Service page content",
+    },
+    {
+      key: "privacy_policy",
+      value: {
+        en: "MD Exams Privacy Policy\n\n1. Information We Collect\nWe collect personal information you provide (name, email) and usage data (questions answered, exam results).\n\n2. How We Use Your Information\nWe use your data to provide and improve our services, send updates, and personalize your experience.\n\n3. Data Security\nWe implement industry-standard security measures to protect your personal information.\n\n4. Third-Party Services\nWe use Stripe for payment processing. Your payment data is handled by Stripe, not stored by us.\n\n5. Cookies\nWe use essential cookies for authentication and analytics cookies to improve our platform.\n\n6. Your Rights\nYou may request access, correction, or deletion of your personal data at any time.\n\n7. Contact\nFor privacy inquiries: privacy@mdexams.com",
+        es: "Política de Privacidad de MD Exams\n\n1. Información que Recopilamos\nRecopilamos información personal que proporcionas (nombre, correo) y datos de uso.\n\n2. Cómo Usamos tu Información\nUsamos tus datos para proporcionar y mejorar nuestros servicios.\n\n3. Seguridad de Datos\nImplementamos medidas de seguridad estándar de la industria.\n\n4. Servicios de Terceros\nUsamos Stripe para procesamiento de pagos.\n\n5. Cookies\nUsamos cookies esenciales para autenticación y cookies analíticas.\n\n6. Tus Derechos\nPuedes solicitar acceso, corrección o eliminación de tus datos.\n\n7. Contacto\nConsultas de privacidad: privacy@mdexams.com"
+      },
+      description: "Privacy Policy page content",
+    },
+    {
+      key: "faq_content",
+      value: {
+        en: "Frequently Asked Questions\n\nQ: How does the question bank work?\nA: Our question bank contains thousands of exam-style questions organized by specialty and topic. You can study in Study Mode with instant feedback or Exam Mode for timed simulation.\n\nQ: What is spaced repetition?\nA: Spaced repetition schedules reviews at optimal intervals. Our SM-2 algorithm ensures you review cards right when you're about to forget them.\n\nQ: Can I access content on mobile?\nA: Yes! Our platform is fully responsive. Mobile app coming soon.\n\nQ: Is there a money-back guarantee?\nA: Yes, we offer a 14-day money-back guarantee on all plans.\n\nQ: How do I upgrade or downgrade my plan?\nA: Visit the Subscribe page in your dashboard and select a new plan. Proration applies.\n\nQ: How do I cancel my subscription?\nA: Go to the Subscribe page and click Cancel Subscription. Access continues until the end of the billing period.",
+        es: "Preguntas Frecuentes\n\nP: ¿Cómo funciona el banco de preguntas?\nR: Nuestro banco contiene miles de preguntas tipo examen organizadas por especialidad y tema.\n\nP: ¿Qué es la repetición espaciada?\nR: La repetición espaciada programa revisiones en intervalos óptimos.\n\nP: ¿Puedo acceder al contenido en mi móvil?\nR: ¡Sí! Nuestra plataforma es totalmente responsive. La app móvil estará disponible pronto.\n\nP: ¿Hay garantía de devolución?\nR: Sí, ofrecemos una garantía de 14 días en todos los planes.\n\nP: ¿Cómo actualizo mi plan?\nR: Ve a la página de Suscripción y selecciona un nuevo plan.\n\nP: ¿Cómo cancelo mi suscripción?\nR: Ve a Suscripción y haz clic en Cancelar Suscripción."
+      },
+      description: "FAQ page content",
+    },
+  ];
+  let paramsCreated = 0;
+  for (const param of paramsData) {
+    const existing = await db
+      .select()
+      .from(schema.systemParameters)
+      .where(eq(schema.systemParameters.key, param.key))
+      .limit(1);
+    if (existing.length) {
+      console.log(`  Skipped (exists): ${param.key}`);
+      continue;
+    }
+    await db.insert(schema.systemParameters).values(param);
+    console.log(`  Created: ${param.key}`);
+    paramsCreated++;
+  }
+  console.log(`System Parameters: ${paramsCreated}\n`);
+
   console.log("=== Seed Complete ===");
   await pool.end();
 }
