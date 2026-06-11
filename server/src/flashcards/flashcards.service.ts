@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException, Inject } from "@nestjs/common";
+import { Injectable, NotFoundException, HttpException, HttpStatus, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import {
   flashcards,
   userFlashcardReviews,
+  users,
+  userSubscriptions,
 } from "../database/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
@@ -81,6 +83,40 @@ export class FlashcardsService {
     quality: number;
   }) {
     const { userId, flashcardId, quality } = data;
+
+    const [user] = await this.db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+
+    if (!isAdmin) {
+      const [sub] = await this.db
+        .select()
+        .from(userSubscriptions)
+        .where(
+          and(
+            eq(userSubscriptions.userId, userId),
+            eq(userSubscriptions.status, "active"),
+          ),
+        )
+        .limit(1);
+
+      if (!sub) {
+        throw new HttpException("No active subscription found.", HttpStatus.FORBIDDEN);
+      }
+
+      if (sub.remainingFlashcardAttempts != null && sub.remainingFlashcardAttempts < 1) {
+        throw new HttpException("No remaining flashcard attempts. Please upgrade your plan.", HttpStatus.FORBIDDEN);
+      }
+
+      await this.db
+        .update(userSubscriptions)
+        .set({ remainingFlashcardAttempts: sub.remainingFlashcardAttempts - 1 })
+        .where(eq(userSubscriptions.id, sub.id));
+    }
 
     const [existing] = await this.db
       .select()

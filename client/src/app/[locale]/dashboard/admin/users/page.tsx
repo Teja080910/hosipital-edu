@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -12,12 +13,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { PageTransition } from "@/components/page-transition";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataGrid } from "@/components/admin/data-grid";
-import { usersApi } from "@/lib/api";
+import { usersApi, subscriptionsApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, CreditCard, Eye } from "lucide-react";
 
 export default function AdminUsersPage() {
   const t = useTranslations("admin");
@@ -27,6 +35,12 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [changingRole, setChangingRole] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [subDialogOpen, setSubDialogOpen] = useState(false);
+  const [subUser, setSubUser] = useState<any | null>(null);
+  const [userSub, setUserSub] = useState<any | null>(null);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [subForm, setSubForm] = useState({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "" });
+  const [savingSub, setSavingSub] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -51,6 +65,45 @@ const deleteUser = async () => {
       fetchUsers();
     } catch {
       toast.error(t("delete_failed"));
+    }
+  };
+
+  const openSubscription = async (user: any) => {
+    setSubUser(user);
+    try {
+      const { data: plansData } = await subscriptionsApi.plans();
+      setPlans(plansData);
+    } catch {}
+    try {
+      const { data } = await usersApi.getSubscription(user.id);
+      setUserSub(data);
+      setSubForm({
+        planId: data?.planId || "",
+        status: data?.status || "active",
+        remainingExamAttempts: data?.remainingExamAttempts?.toString() || "",
+        remainingFlashcardAttempts: data?.remainingFlashcardAttempts?.toString() || "",
+      });
+    } catch {
+      setUserSub(null);
+      setSubForm({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "" });
+    }
+    setSubDialogOpen(true);
+  };
+
+  const saveSubscription = async () => {
+    setSavingSub(true);
+    try {
+      const payload: any = { status: subForm.status };
+      if (subForm.planId) payload.planId = subForm.planId;
+      if (subForm.remainingExamAttempts) payload.remainingExamAttempts = parseInt(subForm.remainingExamAttempts);
+      if (subForm.remainingFlashcardAttempts) payload.remainingFlashcardAttempts = parseInt(subForm.remainingFlashcardAttempts);
+      await usersApi.updateSubscription(subUser!.id, payload);
+      toast.success("Subscription updated");
+      setSubDialogOpen(false);
+    } catch {
+      toast.error("Failed to update subscription");
+    } finally {
+      setSavingSub(false);
     }
   };
 
@@ -106,17 +159,23 @@ const deleteUser = async () => {
     {
       key: "actions",
       header: "",
-      render: (row: any) =>
-        !row.deletedAt && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-destructive"
-            onClick={() => setDeleteTarget(row)}
-          >
-            {t("delete_user")}
+      render: (row: any) => (
+        <div className="flex gap-1">
+          <Button size="sm" variant="ghost" onClick={() => openSubscription(row)}>
+            <CreditCard className="h-3 w-3" />
           </Button>
-        ),
+          {!row.deletedAt && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive"
+              onClick={() => setDeleteTarget(row)}
+            >
+              {t("delete_user")}
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -148,6 +207,62 @@ const deleteUser = async () => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={subDialogOpen} onOpenChange={setSubDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Subscription: {subUser?.name || subUser?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {userSub && (
+              <div className="text-xs text-muted-foreground space-y-1 mb-2">
+                <p>Current plan: <span className="font-medium text-foreground">{userSub.plan?.name?.en || userSub.planId}</span></p>
+                <p>Status: <Badge variant={userSub.status === "active" ? "default" : "secondary"} className="text-xs">{userSub.status}</Badge></p>
+                <p>Period end: {new Date(userSub.currentPeriodEnd).toLocaleDateString()}</p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-xs font-medium">Plan</label>
+              <Select value={subForm.planId} onValueChange={(v) => setSubForm({ ...subForm, planId: v })}>
+                <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
+                <SelectContent>
+                  {plans.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name?.en || p.id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium">Status</label>
+              <Select value={subForm.status} onValueChange={(v) => setSubForm({ ...subForm, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="canceled">Canceled</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium">Remaining Exam Attempts</label>
+                <Input type="number" value={subForm.remainingExamAttempts} onChange={(e) => setSubForm({ ...subForm, remainingExamAttempts: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium">Remaining Flashcard Attempts</label>
+                <Input type="number" value={subForm.remainingFlashcardAttempts} onChange={(e) => setSubForm({ ...subForm, remainingFlashcardAttempts: e.target.value })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSubDialogOpen(false)}>Cancel</Button>
+            <Button onClick={saveSubscription} disabled={savingSub}>
+              {savingSub && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={!!deleteTarget}

@@ -255,7 +255,116 @@ async function main() {
   const userId = adminUser.id;
   console.log(`Using admin user: ${adminUser.email}\n`);
 
-  // -- QUESTIONS --
+  // -- EXAMS & SPECIALTIES --
+  console.log("=== Seeding Exams & Specialties ===");
+  const examsData = [
+    {
+      slug: "enarm",
+      name: { en: "ENARM", es: "ENARM" },
+      description: { en: "Examen Nacional de Aspirantes a Residencias Médicas (Mexico)", es: "Examen Nacional de Aspirantes a Residencias Médicas (México)" },
+      sortOrder: 0,
+      specialties: [
+        { name: { en: "Internal Medicine", es: "Medicina Interna" }, slug: "internal-medicine" },
+        { name: { en: "General Surgery", es: "Cirugía General" }, slug: "general-surgery" },
+        { name: { en: "Pediatrics", es: "Pediatría" }, slug: "pediatrics" },
+        { name: { en: "Obstetrics & Gynecology", es: "Ginecología y Obstetricia" }, slug: "obstetrics-gynecology" },
+        { name: { en: "Family Medicine", es: "Medicina Familiar" }, slug: "family-medicine" },
+        { name: { en: "Emergency Medicine", es: "Medicina de Urgencias" }, slug: "emergency-medicine" },
+        { name: { en: "Anesthesiology", es: "Anestesiología" }, slug: "anesthesiology" },
+        { name: { en: "Traumatology & Orthopedics", es: "Traumatología y Ortopedia" }, slug: "traumatology-orthopedics" },
+      ],
+    },
+    {
+      slug: "enurm",
+      name: { en: "ENURM", es: "ENURM" },
+      description: { en: "Examen Nacional Único de Residencias Médicas (Latin America)", es: "Examen Nacional Único de Residencias Médicas (Latinoamérica)" },
+      sortOrder: 1,
+      specialties: [
+        { name: { en: "Internal Medicine", es: "Medicina Interna" }, slug: "internal-medicine" },
+        { name: { en: "General Surgery", es: "Cirugía General" }, slug: "general-surgery" },
+        { name: { en: "Pediatrics", es: "Pediatría" }, slug: "pediatrics" },
+        { name: { en: "Pharmacology", es: "Farmacología" }, slug: "pharmacology" },
+        { name: { en: "Basic Sciences", es: "Ciencias Básicas" }, slug: "basic-sciences" },
+      ],
+    },
+    {
+      slug: "mir",
+      name: { en: "MIR", es: "MIR" },
+      description: { en: "Médico Interno Residente (Spain)", es: "Médico Interno Residente (España)" },
+      sortOrder: 2,
+      specialties: [
+        { name: { en: "Internal Medicine", es: "Medicina Interna" }, slug: "internal-medicine" },
+        { name: { en: "General Surgery", es: "Cirugía General" }, slug: "general-surgery" },
+        { name: { en: "Pediatrics", es: "Pediatría" }, slug: "pediatrics" },
+        { name: { en: "Pharmacology", es: "Farmacología" }, slug: "pharmacology" },
+        { name: { en: "Basic Sciences", es: "Ciencias Básicas" }, slug: "basic-sciences" },
+        { name: { en: "Cardiology", es: "Cardiología" }, slug: "cardiology" },
+        { name: { en: "Pulmonology", es: "Neumología" }, slug: "pulmonology" },
+        { name: { en: "Nephrology", es: "Nefrología" }, slug: "nephrology" },
+        { name: { en: "Neurology", es: "Neurología" }, slug: "neurology" },
+        { name: { en: "Endocrinology", es: "Endocrinología" }, slug: "endocrinology" },
+      ],
+    },
+    {
+      slug: "usmle-step-1",
+      name: { en: "USMLE Step 1", es: "USMLE Step 1" },
+      description: { en: "United States Medical Licensing Examination Step 1", es: "Examen de Licencia Médica de EE.UU. Step 1" },
+      sortOrder: 3,
+      specialties: [
+        { name: { en: "Basic Sciences", es: "Ciencias Básicas" }, slug: "basic-sciences" },
+        { name: { en: "Pharmacology", es: "Farmacología" }, slug: "pharmacology" },
+        { name: { en: "Pathology", es: "Patología" }, slug: "pathology" },
+        { name: { en: "Microbiology", es: "Microbiología" }, slug: "microbiology" },
+        { name: { en: "Biochemistry", es: "Bioquímica" }, slug: "biochemistry" },
+        { name: { en: "Physiology", es: "Fisiología" }, slug: "physiology" },
+        { name: { en: "Anatomy", es: "Anatomía" }, slug: "anatomy" },
+      ],
+    },
+    {
+      slug: "usmle-step-2-ck",
+      name: { en: "USMLE Step 2 CK", es: "USMLE Step 2 CK" },
+      description: { en: "United States Medical Licensing Examination Step 2 Clinical Knowledge", es: "Examen de Licencia Médica de EE.UU. Step 2 Conocimiento Clínico" },
+      sortOrder: 4,
+      specialties: [
+        { name: { en: "Internal Medicine", es: "Medicina Interna" }, slug: "internal-medicine" },
+        { name: { en: "General Surgery", es: "Cirugía General" }, slug: "general-surgery" },
+        { name: { en: "Pediatrics", es: "Pediatría" }, slug: "pediatrics" },
+        { name: { en: "Obstetrics & Gynecology", es: "Ginecología y Obstetricia" }, slug: "obstetrics-gynecology" },
+        { name: { en: "Psychiatry", es: "Psiquiatría" }, slug: "psychiatry" },
+        { name: { en: "Neurology", es: "Neurología" }, slug: "neurology" },
+      ],
+    },
+  ];
+  let eCreated = 0;
+  for (const exam of examsData) {
+    const existing = await db
+      .select()
+      .from(schema.exams)
+      .where(eq(schema.exams.slug, exam.slug))
+      .limit(1);
+    if (existing.length) {
+      console.log(`  Skipped (exists): ${exam.name.en}`);
+      continue;
+    }
+    const [created] = await db.insert(schema.exams).values({
+      slug: exam.slug,
+      name: exam.name,
+      description: exam.description,
+      sortOrder: exam.sortOrder,
+      isActive: true,
+    }).returning();
+    for (const spec of exam.specialties) {
+      await db.insert(schema.specialties).values({
+        examId: created.id,
+        name: spec.name,
+        slug: spec.slug,
+        sortOrder: 0,
+      });
+    }
+    console.log(`  Created: ${exam.name.en} with ${exam.specialties.length} specialties`);
+    eCreated++;
+  }
+  console.log(`Exams: ${eCreated}\n`);
   console.log("=== Seeding Questions ===");
   let qCreated = 0;
   for (const q of questionsData) {

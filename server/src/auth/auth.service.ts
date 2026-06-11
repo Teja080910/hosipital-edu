@@ -1,13 +1,8 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-  BadRequestException,
-  Inject,
-} from "@nestjs/common";
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import * as bcrypt from "bcryptjs";
+import * as crypto from "crypto";
 import { DRIZZLE } from "../database/database.provider";
 import { users, userQuestionProgress } from "../database/schema";
 import { and, eq, isNull } from "drizzle-orm";
@@ -33,12 +28,26 @@ export class AuthService {
     if (existing.length) throw new ConflictException("Email already in use");
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+    const referralCode = crypto.randomBytes(4).toString("hex").toUpperCase();
+
+    let referredBy: string | null = null;
+    if (dto.referralCode) {
+      const [referrer] = await this.db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.referralCode, dto.referralCode))
+        .limit(1);
+      if (referrer) referredBy = referrer.id;
+    }
+
     const [user] = await this.db
       .insert(users)
       .values({
         email: dto.email,
         passwordHash,
         name: dto.name,
+        referralCode,
+        referredBy,
       })
       .returning();
 
@@ -58,7 +67,18 @@ export class AuthService {
       .from(users)
       .where(and(eq(users.email, email), isNull(users.deletedAt)))
       .limit(1);
-    if (!user || !user.passwordHash) throw new UnauthorizedException("Email not found");
+    if (!user) throw new UnauthorizedException("Email not found");
+    if (!user.passwordHash) {
+      const autoReset = this.config.get<string>("AUTO_SEND_RESET_ON_MIGRATED", "false") === "true";
+      if (autoReset) {
+        const token = this.jwtService.sign(
+          { sub: user.id, purpose: "password-reset" },
+          { expiresIn: "1h" },
+        );
+        await this.mailService.sendPasswordReset(user.email, user.name, token);
+      }
+      throw new UnauthorizedException("Your account was migrated. Please check your email to set a new password.");
+    }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new UnauthorizedException("Incorrect password");
     const tokens = await this.generateTokens(user);

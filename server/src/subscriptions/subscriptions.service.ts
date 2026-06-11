@@ -255,6 +255,7 @@ export class SubscriptionsService {
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         remainingExamAttempts: plan.maxExamAttempts,
+        remainingFlashcardAttempts: plan.maxFlashcardAttempts,
       })
       .returning();
 

@@ -30,6 +30,7 @@ import {
   BookOpenText,
   Crown,
   Sparkles,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { subscriptionsApi } from "@/lib/api";
@@ -53,6 +54,7 @@ const adminItems = [
   { href: "/dashboard/admin/videos", icon: Video, label: "videos_title" },
   { href: "/dashboard/admin/users", icon: Users, label: "user_mgmt_title" },
   { href: "/dashboard/admin/subscriptions", icon: CreditCard, label: "subscription_mgmt_title" },
+  { href: "/dashboard/admin/parameters", icon: SlidersHorizontal, label: "parameters_title" },
   { href: "/dashboard/admin/translations", icon: Languages, label: "translations_title" },
   { href: "/dashboard/admin/analytics", icon: BarChart, label: "analytics_title" },
 ];

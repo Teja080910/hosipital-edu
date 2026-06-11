@@ -38,6 +38,7 @@
     "talk_to_sales": "Hablar con Ventas",
     "privacy": "Política de Privacidad",
     "terms": "Términos del Servicio",
+    "faq": "Preguntas Frecuentes",
     "contact": "Contacto",
     "copyright": "© 2024 MD Exams. Todos los derechos reservados."
   },
@@ -194,7 +195,16 @@
     "email_updates": "Actualizaciones por Correo",
     "email_updates_desc": "Recibe correos sobre nuevo contenido",
     "saved": "Perfil actualizado exitosamente",
-    "save_failed": "Error al actualizar el perfil"
+    "save_failed": "Error al actualizar el perfil",
+    "referral_title": "Programa de Referidos",
+    "referral_code": "Tu Código de Referido",
+    "referral_url": "Tu Enlace de Referido",
+    "refer_friend": "Recomienda a un Amigo",
+    "share_link": "Compartir Enlace",
+    "referral_desc": "¡Comparte tu enlace de referido con amigos y gana recompensas cuando se suscriban!",
+    "copy_link": "Copiar Enlace",
+    "copied": "¡Copiado!",
+    "total_referred": "Total de amigos referidos: {count}"
   },
   "courses": {
     "title": "Cursos",
@@ -309,7 +319,9 @@
     "auto_translate_done": "Auto-traducción completada",
     "auto_translate_failed": "Error en auto-traducción",
     "translations_load_failed": "Error al cargar traducciones",
-    "enter_key": "Ingresa la clave de traducción (ej. nav.home):"
+    "enter_key": "Ingresa la clave de traducción (ej. nav.home):",
+    "parameters_title": "Parámetros del Sistema",
+    "parameters_subtitle": "Gestiona los valores de configuración del sistema"
   },
   "progress": {
     "title": "Progreso",
@@ -386,7 +398,10 @@
     "subtopic": "Subtema",
     "all_specialties": "Todas las Especialidades",
     "all_topics": "Todos los Temas",
-    "all_subtopics": "Todos los Subtemas"
+    "all_subtopics": "Todos los Subtemas",
+    "custom_title": "Título Personalizado",
+    "custom_title_placeholder": "Ingresa un nombre para esta sesión",
+    "reference": "Referencia:"
   },
   "subscribe": {
     "title": "Elige Tu Plan",

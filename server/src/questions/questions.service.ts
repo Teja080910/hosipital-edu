@@ -135,6 +135,17 @@ export class QuestionsService {
         .values(options.map((o: any) => ({ ...o, questionId: id })));
     }
 
+    if (images) {
+      await this.db
+        .delete(questionImages)
+        .where(eq(questionImages.questionId, id));
+      if (images.length > 0) {
+        await this.db
+          .insert(questionImages)
+          .values(images.map((i: any) => ({ ...i, questionId: id })));
+      }
+    }
+
     return this.findById(id);
   }
 

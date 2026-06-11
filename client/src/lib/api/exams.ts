@@ -8,7 +8,7 @@ export const examsApi = {
 };
 
 export const attemptsApi = {
-  create: (data: { examId: string; mode: string; questionCount: number; timeLimit?: number }) =>
+  create: (data: { examId: string; mode: string; questionCount: number; timeLimit?: number; customTitle?: string }) =>
     api.post("/exam-attempts", data),
   list: () => api.get("/exam-attempts"),
   get: (id: string) => api.get(`/exam-attempts/${id}`),

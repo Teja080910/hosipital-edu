@@ -1,25 +1,35 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
-import { useTranslations } from "next-intl";
-import { useRouter } from "@/routing";
-import { useSearchParams } from "next/navigation";
-import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { ExamResults } from "@/components/exams/exam-results";
 import { PageTransition } from "@/components/page-transition";
 import { QuestionTimer } from "@/components/questions/question-timer";
-import { ExamResults } from "@/components/exams/exam-results";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { examsApi, attemptsApi, questionsApi } from "@/lib/api";
-import {
-  Loader2, ArrowLeft, ArrowRight, Flag, FlagOff, CheckCircle2, XCircle,
-  GraduationCap, Settings2, Play, AlertTriangle, ChevronDown, Check,
-} from "lucide-react";
+import { attemptsApi, examsApi, questionsApi } from "@/lib/api";
+import { useRouter } from "@/routing";
 import type { Question } from "@/types";
+import {
+  AlertTriangle,
+  ArrowLeft, ArrowRight,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Flag, FlagOff,
+  GraduationCap,
+  Loader2,
+  Play,
+  Settings2,
+  XCircle,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 type PageState = "config" | "taking" | "results";
 
@@ -46,6 +56,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
 
   const [pageState, setPageState] = useState<PageState>("config");
   const [mode, setMode] = useState<"study" | "exam">("exam");
+  const [customTitle, setCustomTitle] = useState("");
   const [questionLimit, setQuestionLimit] = useState(10);
   const [exam, setExam] = useState<any>(null);
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
@@ -109,7 +120,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
     if (totalQuestions === 0) return;
     (async () => {
       try {
-        const { data: attempt } = await attemptsApi.create({ examId: id, mode, questionCount: totalQuestions, timeLimit: mode === "exam" ? timeLimit : undefined });
+        const { data: attempt } = await attemptsApi.create({ examId: id, mode, questionCount: totalQuestions, timeLimit: mode === "exam" ? timeLimit : undefined, customTitle: customTitle || undefined });
         const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
         setExamQuestions(shuffled);
         setAttemptId(attempt.id);
@@ -188,6 +199,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
         examId: id, mode,
         questionCount: totalQuestions,
         timeLimit: mode === "exam" ? timeLimit : undefined,
+        customTitle: customTitle || undefined,
       });
       const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
       setExamQuestions(shuffled);
@@ -219,6 +231,9 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
     setSelectedOption(optionId);
     if (mode === "exam") {
       try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: optionId, timeSpent: elapsed }); } catch { /* silent */ }
+      if (currentIndex < displayQuestions.length - 1) {
+        setTimeout(() => handleNext(), 200);
+      }
     } else { setShowAnswer(true); }
   };
 
@@ -379,22 +394,26 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                 <div className="space-y-3">
                   {currentQuestion.options.map((option, optionIndex) => {
                     const isSelected = answered === option.id;
-                    const showCorrect = showAnswer || (mode === "exam" && answered !== null && isSelected);
                     const isCorrectOption = option.isCorrect;
                     let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
-                    if (showCorrect && isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
-                    else if (showCorrect && isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
-                    else if (isSelected && mode === "exam") optionClass = "border-primary bg-primary/10 shadow-subtle";
+                    if (mode === "exam") {
+                      if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                    } else {
+                      const showCorrect = showAnswer || (answered !== null && isSelected);
+                      if (showCorrect && isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
+                      else if (showCorrect && isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
+                      else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                    }
                     return (
                       <button key={option.id} onClick={() => !answered && handleAnswer(option.id)} disabled={answered !== null && mode === "study"} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
                         <div className="flex items-start gap-4">
                           <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
-                            showCorrect && isCorrectOption ? "border-green-500 bg-green-500 text-white" :
-                            showCorrect && isSelected && !isCorrectOption ? "border-destructive bg-destructive text-white" :
+                            mode !== "exam" && showAnswer && isCorrectOption ? "border-green-500 bg-green-500 text-white" :
+                            mode !== "exam" && showAnswer && isSelected && !isCorrectOption ? "border-destructive bg-destructive text-white" :
                             isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
                           }`}>
-                            {showCorrect && isCorrectOption ? <CheckCircle2 className="h-4 w-4" /> :
-                              showCorrect && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
+                            {mode !== "exam" && showAnswer && isCorrectOption ? <CheckCircle2 className="h-4 w-4" /> :
+                              mode !== "exam" && showAnswer && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
                               String.fromCharCode(65 + optionIndex)}
                           </div>
                           <span className="pt-1.5 leading-6">{option.text}</span>
@@ -403,7 +422,8 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                     );
                   })}
                 </div>
-                {showAnswer && (<div className="rounded-2xl border bg-muted/50 p-4"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><p className="text-sm leading-6 text-muted-foreground">{currentQuestion.explanation}</p></div>)}
+                {mode === "study" && showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><p className="text-sm leading-6 text-muted-foreground">{currentQuestion.explanation}</p></div>)}
+                {mode === "study" && showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground">{currentQuestion.reference}</p></div>)}
                 {mode === "study" && answered && !showAnswer && <Button variant="outline" onClick={() => setShowAnswer(true)} className="w-full">{t("show_explanation")}</Button>}
               </CardContent>
             </Card>
@@ -478,6 +498,16 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
+            <div>
+              <label className="text-sm font-medium mb-2 block">{t("custom_title")}</label>
+              <Input
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                placeholder={t("custom_title_placeholder")}
+                className="w-full"
+              />
+            </div>
+
             {specialties.length > 0 && (
               <div>
                 <label className="text-sm font-medium mb-2 block">{t("specialty")}</label>
@@ -549,7 +579,17 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
 
             <div>
               <label className="text-sm font-medium mb-2 block">{t("select_questions")} (max {maxQuestions})</label>
-              <input type="range" min={1} max={Math.max(1, maxQuestions)} step={1} value={Math.min(questionLimit, maxQuestions)} onChange={(e) => setQuestionLimit(Number(e.target.value))} className="w-full accent-primary" />
+              <div className="flex items-center gap-4">
+                <input type="range" min={1} max={Math.max(1, maxQuestions)} step={1} value={Math.min(questionLimit, maxQuestions)} onChange={(e) => setQuestionLimit(Number(e.target.value))} className="flex-1 accent-primary" />
+                <Input
+                  type="number"
+                  min={1}
+                  max={maxQuestions}
+                  value={Math.min(questionLimit, maxQuestions)}
+                  onChange={(e) => setQuestionLimit(Math.min(Math.max(1, Number(e.target.value) || 1), maxQuestions))}
+                  className="w-20 text-center"
+                />
+              </div>
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>1</span>
                 <span className="font-medium text-sm">{Math.min(questionLimit, maxQuestions)} questions</span>

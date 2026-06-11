@@ -23,7 +23,7 @@ export class AttemptsController {
   @Post()
   @ApiOperation({ summary: "Start new exam attempt" })
   async create(
-    @Body() data: { examId: string; mode: string; questionCount: number; timeLimit?: number },
+    @Body() data: { examId: string; mode: string; questionCount: number; timeLimit?: number; customTitle?: string },
     @CurrentUser() user: any,
   ) {
     return this.attemptsService.create({ ...data, userId: user.id });

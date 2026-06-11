@@ -13,6 +13,7 @@ import {
   exams,
   questionOptions,
   questions,
+  subscriptionPlans,
   userQuestionProgress,
   userSubscriptions,
   users,
@@ -28,6 +29,7 @@ export class AttemptsService {
     mode: string;
     questionCount: number;
     timeLimit?: number;
+    customTitle?: string;
   }) {
     const [user] = await this.db
       .select({ role: users.role })
@@ -42,6 +44,7 @@ export class AttemptsService {
       [sub] = await this.db
         .select()
         .from(userSubscriptions)
+        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
         .where(
           and(
             eq(userSubscriptions.userId, data.userId),
@@ -54,7 +57,16 @@ export class AttemptsService {
         throw new HttpException("No active subscription found.", HttpStatus.FORBIDDEN);
       }
 
-      if (sub.remainingExamAttempts != null && sub.remainingExamAttempts < 1) {
+      const plan = sub.subscription_plans;
+      if (plan.isCourseOnly) {
+        throw new HttpException("Your plan only grants access to courses, not exams.", HttpStatus.FORBIDDEN);
+      }
+
+      if (plan.examId && plan.examId !== data.examId) {
+        throw new HttpException("Your subscription does not include this exam type.", HttpStatus.FORBIDDEN);
+      }
+
+      if (sub.user_subscriptions.remainingExamAttempts != null && sub.user_subscriptions.remainingExamAttempts < 1) {
         throw new HttpException("No remaining exam attempts. Please upgrade your plan.", HttpStatus.FORBIDDEN);
       }
     }
@@ -67,14 +79,15 @@ export class AttemptsService {
         mode: data.mode,
         questionCount: data.questionCount,
         timeLimit: data.timeLimit,
+        customTitle: data.customTitle,
       })
       .returning();
 
-    if (sub && sub.remainingExamAttempts != null) {
+    if (sub && sub.user_subscriptions.remainingExamAttempts != null) {
       await this.db
         .update(userSubscriptions)
-        .set({ remainingExamAttempts: sub.remainingExamAttempts - 1 })
-        .where(eq(userSubscriptions.id, sub.id));
+        .set({ remainingExamAttempts: sub.user_subscriptions.remainingExamAttempts - 1 })
+        .where(eq(userSubscriptions.id, sub.user_subscriptions.id));
     }
 
     return attempt;
@@ -128,6 +141,7 @@ export class AttemptsService {
       .select({
         id: examAttempts.id,
         examId: examAttempts.examId,
+        customTitle: examAttempts.customTitle,
         mode: examAttempts.mode,
         status: examAttempts.status,
         questionCount: examAttempts.questionCount,

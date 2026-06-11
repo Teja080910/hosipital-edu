@@ -45,6 +45,10 @@ import {
   Target,
   Clock,
   Crown,
+  Facebook,
+  Twitter,
+  Instagram,
+  Youtube,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -580,13 +584,27 @@ const sb = useTranslations("subscribe");
             </Link>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
-              <Link href="#" className="hover:text-foreground transition-colors">{t("privacy")}</Link>
-              <Link href="#" className="hover:text-foreground transition-colors">{t("terms")}</Link>
-              <Link href="#" className="hover:text-foreground transition-colors">{t("contact")}</Link>
+              <Link href="/content/terms" className="hover:text-foreground transition-colors">{t("terms")}</Link>
+              <Link href="/content/privacy" className="hover:text-foreground transition-colors">{t("privacy")}</Link>
+              <Link href="/content/faq" className="hover:text-foreground transition-colors">{t("faq_title")}</Link>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {t("copyright")}
-            </p>
+            <div className="flex items-center gap-4">
+              <a href="https://facebook.com/mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                <Facebook className="h-5 w-5" />
+              </a>
+              <a href="https://twitter.com/mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                <Twitter className="h-5 w-5" />
+              </a>
+              <a href="https://instagram.com/mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                <Instagram className="h-5 w-5" />
+              </a>
+              <a href="https://youtube.com/@mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                <Youtube className="h-5 w-5" />
+              </a>
+            </div>
+          </div>
+          <div className="mt-6 text-center text-sm text-muted-foreground">
+            {t("copyright")}
           </div>
         </div>
       </footer>

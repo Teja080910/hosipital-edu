@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { usersApi } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, Copy, Share2, Gift } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -23,11 +23,15 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [referral, setReferral] = useState<{ referralCode: string; referralUrl: string; totalReferred: number } | null>(null);
+  const [loadingRef, setLoadingRef] = useState(false);
 
   useEffect(() => {
     if (user) {
       setName(user.name);
       setEmail(user.email);
+      setLoadingRef(true);
+      usersApi.getReferral(user.id).then(({ data }) => setReferral(data)).catch(() => {}).finally(() => setLoadingRef(false));
     }
   }, [user]);
 
@@ -137,6 +141,36 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {referral && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Gift className="h-5 w-5 text-primary" />
+                <CardTitle>{t("referral_title")}</CardTitle>
+              </div>
+              <CardDescription>{t("referral_desc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl border">
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-muted-foreground">{t("your_code")}</p>
+                  <p className="text-lg font-bold tracking-wider">{referral.referralCode}</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(referral.referralCode); toast.success(t("copied")); }}>
+                  <Copy className="h-4 w-4 mr-1" /> {t("copy")}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{t("total_referred")}</span>
+                <span className="font-semibold">{referral.totalReferred}</span>
+              </div>
+              <Button className="w-full" variant="outline" onClick={() => { navigator.clipboard.writeText(referral.referralUrl); toast.success(t("link_copied")); }}>
+                <Share2 className="h-4 w-4 mr-2" /> {t("share_link")}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </PageTransition>
   );

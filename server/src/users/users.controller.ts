@@ -42,6 +42,34 @@ export class UsersController {
     return this.usersService.findById(id);
   }
 
+  @Get(":id/referral")
+  @ApiOperation({ summary: "Get user's referral info" })
+  async getReferral(@Param("id") id: string, @CurrentUser() user: any) {
+    if (user.role !== "admin" && user.id !== id) {
+      return { message: "Access denied" };
+    }
+    return this.usersService.getReferralInfo(id);
+  }
+
+  @Get(":id/subscription")
+  @UseGuards(RolesGuard)
+  @Roles("admin")
+  @ApiOperation({ summary: "Get user subscription (admin)" })
+  async getSubscription(@Param("id") id: string) {
+    return this.usersService.getSubscription(id);
+  }
+
+  @Patch(":id/subscription")
+  @UseGuards(RolesGuard)
+  @Roles("admin")
+  @ApiOperation({ summary: "Update user subscription (admin)" })
+  async updateSubscription(
+    @Param("id") id: string,
+    @Body() data: { planId?: string; status?: string; remainingExamAttempts?: number; currentPeriodEnd?: string },
+  ) {
+    return this.usersService.updateSubscription(id, data);
+  }
+
   @Patch(":id")
   @ApiOperation({ summary: "Update user" })
   async update(

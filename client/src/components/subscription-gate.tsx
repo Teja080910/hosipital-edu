@@ -13,7 +13,6 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -23,12 +22,6 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
       return;
     }
     if (user.role === "admin") {
-      setHasAccess(true);
-      setChecking(false);
-      return;
-    }
-    if (pathname.includes("/dashboard/subscribe")) {
-      setHasAccess(true);
       setChecking(false);
       return;
     }
@@ -41,12 +34,11 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
           if (data.status === "active") {
             const url = pathname.replace("?checkout=success", "").replace(`&session_id=${sessionId}`, "").replace(`?session_id=${sessionId}`, "");
             router.replace(url);
-            setHasAccess(true);
             setChecking(false);
             return true;
           }
         } catch {
-          // fall through to normal check
+          // fall through
         }
       }
       return false;
@@ -59,20 +51,11 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
       subscriptionsApi.mySubscription()
         .then(({ data }) => {
           if (data?.status === "active") {
-            setHasAccess(true);
-            setChecking(false);
             if (pollRef.current) clearInterval(pollRef.current);
-          } else if (!pathname.includes("checkout=success")) {
-            router.replace("/dashboard/subscribe");
-            setChecking(false);
           }
+          setChecking(false);
         })
-        .catch(() => {
-          if (!pathname.includes("checkout=success")) {
-            router.replace("/dashboard/subscribe");
-            setChecking(false);
-          }
-        });
+        .catch(() => setChecking(false));
     };
 
     checkSubscription();
@@ -81,7 +64,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
       pollRef.current = setInterval(checkSubscription, 2000);
       setTimeout(() => {
         if (pollRef.current) clearInterval(pollRef.current);
-        if (!hasAccess) router.replace("/dashboard/subscribe");
+        setChecking(false);
       }, 15000);
     }
 
@@ -97,8 +80,6 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
-
-  if (!hasAccess) return null;
 
   return <>{children}</>;
 }

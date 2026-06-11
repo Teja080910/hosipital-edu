@@ -31,6 +31,8 @@ export class UploadService {
     });
 
     const url = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
-    return { url, key };
+    const publicUrlBase = this.config.get<string>("R2_PUBLIC_URL");
+    const publicUrl = publicUrlBase ? `${publicUrlBase}/${key}` : url;
+    return { url, key, publicUrl };
   }
 }

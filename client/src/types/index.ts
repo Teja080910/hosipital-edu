@@ -10,7 +10,7 @@ export interface Question {
   id: string;
   text: string;
   options: { id: string; text: string; isCorrect: boolean }[];
-  images?: { id: string; url: string; caption?: string; sortOrder: number }[];
+  images?: { id: string; url: string; section?: string; caption?: string; sortOrder: number }[];
   specialtyId?: string;
   topicId?: string;
   subtopicId?: string;
@@ -18,6 +18,7 @@ export interface Question {
   topic: string;
   difficulty: "easy" | "medium" | "hard";
   explanation?: string;
+  reference?: string;
 }
 
 export interface Flashcard {

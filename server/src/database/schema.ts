@@ -68,6 +68,8 @@ export const users = pgTable("users", {
   emailVerifiedAt: timestamp("email_verified_at"),
   googleId: text("google_id").unique(),
   preferredLocale: text("preferred_locale").default("en").notNull(),
+  referralCode: text("referral_code").unique(),
+  referredBy: uuid("referred_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
@@ -90,6 +92,7 @@ export const specialties = pgTable("specialties", {
     .references(() => exams.id, { onDelete: "cascade" }),
   name: jsonb("name").notNull(),
   slug: text("slug").notNull(),
+  maxQuestions: integer("max_questions"),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -101,6 +104,7 @@ export const topics = pgTable("topics", {
     .references(() => specialties.id, { onDelete: "cascade" }),
   name: jsonb("name").notNull(),
   slug: text("slug").notNull(),
+  maxQuestions: integer("max_questions"),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -112,6 +116,7 @@ export const subtopics = pgTable("subtopics", {
     .references(() => topics.id, { onDelete: "cascade" }),
   name: jsonb("name").notNull(),
   slug: text("slug").notNull(),
+  maxQuestions: integer("max_questions"),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -154,6 +159,7 @@ export const questionImages = pgTable("question_images", {
   questionId: uuid("question_id")
     .notNull()
     .references(() => questions.id, { onDelete: "cascade" }),
+  section: text("section").notNull().default("title"),
   url: text("url").notNull(),
   caption: text("caption"),
   sortOrder: integer("sort_order").default(0).notNull(),
@@ -485,6 +491,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxFlashcards: integer("max_flashcards"),
   maxVideos: integer("max_videos"),
   maxExamAttempts: integer("max_exam_attempts"),
+  maxFlashcardAttempts: integer("max_flashcard_attempts"),
   isDefault: boolean("is_default").default(false),
   isCourseOnly: boolean("is_course_only").default(false),
   isVisible: boolean("is_visible").default(true).notNull(),
@@ -509,6 +516,7 @@ export const userSubscriptions = pgTable("user_subscriptions", {
   currentPeriodEnd: timestamp("current_period_end").notNull(),
   canceledAt: timestamp("canceled_at"),
   remainingExamAttempts: integer("remaining_exam_attempts"),
+  remainingFlashcardAttempts: integer("remaining_flashcard_attempts"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -629,6 +637,18 @@ export const landingPageConfig = pgTable("landing_page_config", {
   section: text("section").notNull(),
   config: jsonb("config").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const systemParameters = pgTable("system_parameters", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  key: text("key").notNull().unique(),
+  value: jsonb("value").notNull(),
+  description: text("description"),
+  updatedBy: uuid("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

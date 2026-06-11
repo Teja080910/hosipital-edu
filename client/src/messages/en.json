@@ -38,6 +38,7 @@
     "talk_to_sales": "Talk to Sales",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
+    "faq": "FAQ",
     "contact": "Contact",
     "copyright": "© 2024 MD Exams. All rights reserved."
   },
@@ -194,7 +195,16 @@
     "email_updates": "Email Updates",
     "email_updates_desc": "Receive emails about new content",
     "saved": "Profile updated successfully",
-    "save_failed": "Failed to update profile"
+    "save_failed": "Failed to update profile",
+    "referral_title": "Referral Program",
+    "referral_code": "Your Referral Code",
+    "referral_url": "Your Referral Link",
+    "refer_friend": "Refer a Friend",
+    "share_link": "Share Link",
+    "referral_desc": "Share your referral link with friends and earn rewards when they subscribe!",
+    "copy_link": "Copy Link",
+    "copied": "Copied!",
+    "total_referred": "Total friends referred: {count}"
   },
   "courses": {
     "title": "Courses",
@@ -309,7 +319,9 @@
     "auto_translate_done": "Auto-translate complete",
     "auto_translate_failed": "Auto-translate failed",
     "translations_load_failed": "Failed to load translations",
-    "enter_key": "Enter translation key (e.g. nav.home):"
+    "enter_key": "Enter translation key (e.g. nav.home):",
+    "parameters_title": "System Parameters",
+    "parameters_subtitle": "Manage system-wide configuration values"
   },
   "progress": {
     "title": "Progress",
@@ -386,7 +398,10 @@
     "subtopic": "Subtopic",
     "all_specialties": "All Specialties",
     "all_topics": "All Topics",
-    "all_subtopics": "All Subtopics"
+    "all_subtopics": "All Subtopics",
+    "custom_title": "Custom Title",
+    "custom_title_placeholder": "Enter a name for this exam session",
+    "reference": "Reference:"
   },
   "subscribe": {
     "title": "Choose Your Plan",

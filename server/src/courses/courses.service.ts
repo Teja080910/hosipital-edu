@@ -7,6 +7,9 @@ import {
   courseQuizzes,
   userCourseEnrollments,
   userCourseProgress,
+  userSubscriptions,
+  subscriptionPlans,
+  exams,
 } from "../database/schema";
 import { eq, and, asc, inArray, sql, type SQL } from "drizzle-orm";
 
@@ -137,19 +140,47 @@ export class CoursesService {
 
     if (existing) throw new BadRequestException("Already enrolled in this course");
 
-    const accessExpiresAt = new Date();
-    accessExpiresAt.setDate(accessExpiresAt.getDate() + course.durationDays);
+    if (parseFloat(course.price) === 0 || stripePaymentId) {
+      const [enrollment] = await this.db
+        .insert(userCourseEnrollments)
+        .values({
+          userId,
+          courseId,
+          stripePaymentId,
+          accessExpiresAt: new Date(Date.now() + course.durationDays * 86400000),
+        })
+        .returning();
+      return enrollment;
+    }
 
-    const [enrollment] = await this.db
-      .insert(userCourseEnrollments)
-      .values({
-        userId,
-        courseId,
-        stripePaymentId,
-        accessExpiresAt,
-      })
-      .returning();
-    return enrollment;
+    const [sub] = await this.db
+      .select()
+      .from(userSubscriptions)
+      .innerJoin(
+        subscriptionPlans,
+        eq(userSubscriptions.planId, subscriptionPlans.id),
+      )
+      .where(
+        and(
+          eq(userSubscriptions.userId, userId),
+          eq(userSubscriptions.status, "active"),
+        ),
+      )
+      .limit(1);
+
+    if (sub && !sub.subscription_plans.isCourseOnly) {
+      const [enrollment] = await this.db
+        .insert(userCourseEnrollments)
+        .values({
+          userId,
+          courseId,
+          accessExpiresAt: new Date(Date.now() + course.durationDays * 86400000),
+        })
+        .returning();
+      return enrollment;
+    }
+
+    throw new BadRequestException("Payment required for this course");
   }
 
   async getEnrollment(userId: string, courseId: string) {

@@ -7,6 +7,7 @@ export { coursesApi } from "./courses";
 export { examsApi, attemptsApi } from "./exams";
 export { flashcardsApi } from "./flashcards";
 export { landingApi } from "./landing";
+export { parametersApi } from "./parameters";
 export { questionsApi } from "./questions";
 export { subscriptionsApi } from "./subscriptions";
 export { translationsApi } from "./translations";

@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, Suspense } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/routing";
-import { Link } from "@/routing";
+import { useRouter, Link } from "@/routing";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,18 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export default function RegisterPage() {
+export default function RegisterPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>}>
+      <RegisterPage />
+    </Suspense>
+  );
+}
+
+function RegisterPage() {
   const t = useTranslations("auth");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,6 +37,8 @@ export default function RegisterPage() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const submittingRef = useRef(false);
+
+  const referralCode = searchParams.get("ref") || undefined;
 
   const passwordChecks = {
     length: password.length >= 8,
@@ -49,7 +60,7 @@ export default function RegisterPage() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      await register(name, email, password);
+      await register(name, email, password, referralCode);
       toast.success(t("account_created"));
       setLoading(false);
       router.push("/dashboard");

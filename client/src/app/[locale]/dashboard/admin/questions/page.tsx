@@ -24,12 +24,13 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
-import { questionsApi, examsApi } from "@/lib/api";
+import { questionsApi, examsApi, uploadApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Check, Eye, BookOpen, Lightbulb, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Check, Eye, BookOpen, Lightbulb, CheckCircle2, XCircle, ImageIcon, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EMPTY_OPTIONS = [
+  { text: "", isCorrect: false },
   { text: "", isCorrect: false },
   { text: "", isCorrect: false },
   { text: "", isCorrect: false },
@@ -53,11 +54,14 @@ export default function AdminQuestionsPage() {
   const [form, setForm] = useState({
     text: "",
     explanation: "",
+    reference: "",
     difficulty: "medium",
     specialtyId: "",
     examId: "",
     options: EMPTY_OPTIONS,
+    images: [] as { url: string; section: string; caption?: string; sortOrder: number }[],
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const fetchQuestions = useCallback(async () => {
     try {
@@ -75,7 +79,7 @@ export default function AdminQuestionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ text: "", explanation: "", difficulty: "medium", specialtyId: "", examId: "", options: EMPTY_OPTIONS });
+    setForm({ text: "", explanation: "", reference: "", difficulty: "medium", specialtyId: "", examId: "", options: EMPTY_OPTIONS, images: [] });
     setDialogOpen(true);
   };
 
@@ -86,15 +90,16 @@ export default function AdminQuestionsPage() {
       const { data } = await questionsApi.get(q.id);
       setEditing(data);
       const opts = (data.options || []).map((o: any) => ({ text: o.text, isCorrect: o.isCorrect }));
-      // Pad to at least 4 options
-      while (opts.length < 4) opts.push({ text: "", isCorrect: false });
+      while (opts.length < 5) opts.push({ text: "", isCorrect: false });
       setForm({
         text: data.text || "",
         explanation: data.explanation || "",
+        reference: data.reference || "",
         difficulty: data.difficulty || "medium",
         specialtyId: data.specialtyId || "",
         examId: data.examId || "",
         options: opts,
+        images: (data.images || []).map((i: any) => ({ url: i.url, section: i.section || "title", caption: i.caption, sortOrder: i.sortOrder || 0 })),
       });
       setDialogOpen(true);
     } catch {
@@ -127,12 +132,14 @@ export default function AdminQuestionsPage() {
       const payload: any = {
         text: form.text,
         explanation: form.explanation,
+        reference: form.reference,
         difficulty: form.difficulty,
         specialtyId: null,
         topicId: null,
         examId: !form.examId || form.examId === "__none__" || form.examId === "none" ? null : form.examId,
       };
       if (opts.length > 0) payload.options = opts;
+      if (form.images.length > 0) payload.images = form.images;
       if (editing) {
         await questionsApi.update(editing.id, payload);
         toast.success("Question updated");
@@ -159,6 +166,25 @@ export default function AdminQuestionsPage() {
     } catch {
       toast.error("Failed to delete");
     }
+  };
+
+  const uploadImage = async (file: File, section: string) => {
+    setUploadingImage(true);
+    try {
+      const key = `questions/${Date.now()}-${file.name}`;
+      const { data } = await uploadApi.presignedUrl(key, file.type);
+      await fetch(data.url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      const publicUrl = data.publicUrl || data.url.split("?")[0];
+      setForm((f) => ({ ...f, images: [...f.images, { url: publicUrl, section, sortOrder: f.images.length }] }));
+    } catch {
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
   };
 
   const setOption = (i: number, field: string, value: any) => {
@@ -279,6 +305,16 @@ export default function AdminQuestionsPage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Reference</label>
+              <Input
+                value={form.reference}
+                onChange={(e) => setForm({ ...form, reference: e.target.value })}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
+                placeholder="Bibliographic reference or source URL..."
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Difficulty</label>
@@ -320,6 +356,55 @@ export default function AdminQuestionsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Images */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Images</label>
+              <div className="flex gap-2 flex-wrap">
+                {(["title", "explanation", "reference"] as const).map((section) => (
+                  <label key={section} className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-xl border border-border/80 cursor-pointer hover:bg-muted/30 transition-colors text-sm",
+                    uploadingImage && "pointer-events-none opacity-60"
+                  )}>
+                    <Upload className="h-4 w-4" />
+                    <span className="capitalize">{section}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingImage}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadImage(file, section);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+              {form.images.length > 0 && (
+                <div className="flex flex-wrap gap-3 pt-1">
+                  {form.images.map((img, i) => (
+                    <div key={i} className="relative group">
+                      <img src={img.url} alt="" className="w-24 h-24 rounded-lg border object-cover" />
+                      <span className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded capitalize">{img.section}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {uploadingImage && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Uploading...
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -370,6 +455,16 @@ export default function AdminQuestionsPage() {
                     </div>
                   );
                 })}
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, options: [...form.options, { text: "", isCorrect: false }] })}>
+                  + Add Option
+                </Button>
+                {form.options.length > 2 && (
+                  <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setForm({ ...form, options: form.options.slice(0, -1) })}>
+                    Remove Last
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -469,6 +564,35 @@ export default function AdminQuestionsPage() {
                       <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                       <p className="text-sm leading-relaxed text-foreground/80">{viewQuestion.explanation}</p>
                     </div>
+                  </div>
+                )}
+
+                {/* Reference */}
+                {viewQuestion.reference && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Reference</p>
+                    <div className="rounded-xl border border-blue-200/60 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-800/40 px-4 py-3 text-sm leading-relaxed text-foreground/80">
+                      {viewQuestion.reference}
+                    </div>
+                  </div>
+                )}
+
+                {/* Images */}
+                {viewQuestion.images && viewQuestion.images.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Images</p>
+                    {["title", "explanation", "reference"].filter(s => viewQuestion.images.some((i: any) => i.section === s)).map(section => (
+                      <div key={section} className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground capitalize">{section} images</p>
+                        <div className="flex flex-wrap gap-3">
+                          {viewQuestion.images.filter((i: any) => i.section === section).map((img: any) => (
+                            <a key={img.id} href={img.url} target="_blank" rel="noopener noreferrer">
+                              <img src={img.url} alt={img.caption || ""} className="rounded-lg border max-w-[200px] max-h-[200px] object-contain" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </>
