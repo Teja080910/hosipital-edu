@@ -99,9 +99,9 @@ export default function ProgressPage() {
                     <div
                       key={i}
                       className={`h-8 w-8 rounded-sm flex items-center justify-center text-xs ${
-                        i < data?.streak
+                        i < (data?.streak ?? 0)
                           ? "bg-primary text-primary-foreground"
-                          : i === data?.streak
+                          : i === (data?.streak ?? 0)
                           ? "border-2 border-primary bg-primary/20"
                           : "bg-muted text-muted-foreground"
                       }`}
