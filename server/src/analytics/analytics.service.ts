@@ -115,7 +115,9 @@ export class AnalyticsService {
 
   private async computeStreak(userId: string) {
     const rows = await this.db
-      .select({ day: sql<string>`distinct date_trunc('day', ${userQuestionProgress.lastAnsweredAt})::date` })
+      .select({
+        day: sql<string>`date_trunc('day', ${userQuestionProgress.lastAnsweredAt})::date`,
+      })
       .from(userQuestionProgress)
       .where(
         and(
@@ -123,7 +125,8 @@ export class AnalyticsService {
           sql`${userQuestionProgress.lastAnsweredAt} IS NOT NULL`,
         ),
       )
-      .orderBy(desc(sql`date_trunc('day', ${userQuestionProgress.lastAnsweredAt})`));
+      .groupBy(sql`date_trunc('day', ${userQuestionProgress.lastAnsweredAt})::date`)
+      .orderBy(desc(sql`date_trunc('day', ${userQuestionProgress.lastAnsweredAt})::date`));
 
     if (!rows.length) return 0;
 
