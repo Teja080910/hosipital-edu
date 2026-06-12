@@ -64,6 +64,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   zipCode: text("zip_code"),
   role: text("role").default("student").notNull(),
+  accountType: text("account_type").default("full").notNull(),
   avatarUrl: text("avatar_url"),
   emailVerifiedAt: timestamp("email_verified_at"),
   googleId: text("google_id").unique(),
@@ -390,6 +391,24 @@ export const courseQuizzes = pgTable("course_quizzes", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const courseQuizAttempts = pgTable("course_quiz_attempts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  quizId: uuid("quiz_id")
+    .notNull()
+    .references(() => courseQuizzes.id, { onDelete: "cascade" }),
+  score: integer("score").default(0).notNull(),
+  totalQuestions: integer("total_questions").default(0).notNull(),
+  correctAnswers: integer("correct_answers").default(0).notNull(),
+  answers: jsonb("answers").notNull().default([]),
+  passed: boolean("passed").default(false).notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const userCourseEnrollments = pgTable("user_course_enrollments", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
@@ -492,6 +511,8 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxVideos: integer("max_videos"),
   maxExamAttempts: integer("max_exam_attempts"),
   maxFlashcardAttempts: integer("max_flashcard_attempts"),
+  maxDays: integer("max_days"),
+  maxUses: integer("max_uses"),
   isDefault: boolean("is_default").default(false),
   isCourseOnly: boolean("is_course_only").default(false),
   isVisible: boolean("is_visible").default(true).notNull(),
@@ -517,6 +538,7 @@ export const userSubscriptions = pgTable("user_subscriptions", {
   canceledAt: timestamp("canceled_at"),
   remainingExamAttempts: integer("remaining_exam_attempts"),
   remainingFlashcardAttempts: integer("remaining_flashcard_attempts"),
+  remainingUses: integer("remaining_uses"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, Inject } from "@nestjs/common";
+import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { systemParameters } from "../database/schema";
 import { eq } from "drizzle-orm";
@@ -22,14 +23,14 @@ export class ParametersService {
   }
 
   async create(data: { key: string; value: any; description?: string; updatedBy?: string }) {
-    const [param] = await this.db.insert(systemParameters).values(data).returning();
+    const [param] = await this.db.insert(systemParameters).values(stripTimestamps(data)).returning();
     return param;
   }
 
   async update(key: string, data: { value?: any; description?: string; updatedBy?: string }) {
     const [param] = await this.db
       .update(systemParameters)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(eq(systemParameters.key, key))
       .returning();
     if (!param) throw new NotFoundException("Parameter not found");

@@ -141,6 +141,99 @@ export class CoursesController {
     return this.coursesService.deleteLesson(lessonId);
   }
 
+  @Post(":slug/lessons/:lessonId/complete")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Mark lesson as complete" })
+  async completeLesson(
+    @Param("slug") slug: string,
+    @Param("lessonId", ParseUUIDPipe) lessonId: string,
+    @CurrentUser() user: any,
+  ) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.completeLesson(user.id, courseId, lessonId);
+  }
+
+  @Post(":slug/lessons/:lessonId/incomplete")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Mark lesson as incomplete" })
+  async incompleteLesson(
+    @Param("slug") slug: string,
+    @Param("lessonId", ParseUUIDPipe) lessonId: string,
+    @CurrentUser() user: any,
+  ) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.incompleteLesson(user.id, courseId, lessonId);
+  }
+
+  @Get(":slug/comments")
+  @ApiOperation({ summary: "Get comments for a course" })
+  async getComments(@Param("slug") slug: string) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.getComments(courseId);
+  }
+
+  @Post(":slug/comments")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Add a comment to a course" })
+  async addComment(
+    @Param("slug") slug: string,
+    @Body() data: { body: string; lessonId?: string; parentId?: string },
+    @CurrentUser() user: any,
+  ) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.addComment(user.id, courseId, data);
+  }
+
+  @Delete("comments/:commentId")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete a comment" })
+  async deleteComment(
+    @Param("commentId", ParseUUIDPipe) commentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.coursesService.deleteComment(commentId, user.id);
+  }
+
+  @Get(":slug/lessons/:lessonId/quiz")
+  @ApiOperation({ summary: "Get quiz for a lesson" })
+  async getLessonQuiz(@Param("lessonId", ParseUUIDPipe) lessonId: string) {
+    return this.coursesService.getLessonQuiz(lessonId);
+  }
+
+  @Get(":slug/pre-test")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get pre-test quiz for a course" })
+  async getPreTest(@Param("slug") slug: string) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.getCourseQuiz(courseId, "pre_test");
+  }
+
+  @Get(":slug/post-test")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get post-test quiz for a course" })
+  async getPostTest(@Param("slug") slug: string) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.getCourseQuiz(courseId, "post_test");
+  }
+
+  @Get(":slug/test-results")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get pre/post test results for a course" })
+  async getTestResults(
+    @Param("slug") slug: string,
+    @CurrentUser() user: any,
+  ) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.getTestResults(user.id, courseId);
+  }
+
   @Get(":slug")
   @ApiOperation({ summary: "Get course with modules and lessons" })
   async findOne(@Param("slug") slug: string) {

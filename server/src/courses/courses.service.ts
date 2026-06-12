@@ -1,17 +1,19 @@
-import { Injectable, NotFoundException, Inject, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import {
   courses,
   courseModules,
   courseLessons,
   courseQuizzes,
+  courseQuizAttempts,
   userCourseEnrollments,
   userCourseProgress,
+  courseComments,
   userSubscriptions,
   subscriptionPlans,
   exams,
 } from "../database/schema";
-import { eq, and, asc, inArray, sql, type SQL } from "drizzle-orm";
+import { eq, and, asc, inArray, sql, desc, type SQL } from "drizzle-orm";
 
 @Injectable()
 export class CoursesService {
@@ -94,14 +96,16 @@ export class CoursesService {
   }
 
   async create(data: any) {
-    const [course] = await this.db.insert(courses).values(data).returning();
+    const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
+    const [course] = await this.db.insert(courses).values(cleanData).returning();
     return course;
   }
 
   async update(id: string, data: any) {
+    const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
     const [course] = await this.db
       .update(courses)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...cleanData, updatedAt: new Date() })
       .where(eq(courses.id, id))
       .returning();
     if (!course) throw new NotFoundException("Course not found");
@@ -207,9 +211,10 @@ export class CoursesService {
   }
 
   async updateModule(moduleId: string, data: { title?: any; description?: any; sortOrder?: number }) {
+    const { createdAt, updatedAt, deletedAt, ...cleanData } = data as any;
     const [mod] = await this.db
       .update(courseModules)
-      .set(data)
+      .set(cleanData)
       .where(eq(courseModules.id, moduleId))
       .returning();
     if (!mod) throw new NotFoundException("Module not found");
@@ -244,9 +249,10 @@ export class CoursesService {
   }
 
   async updateLesson(lessonId: string, data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
+    const { createdAt, updatedAt, deletedAt, ...cleanData } = data as any;
     const [lesson] = await this.db
       .update(courseLessons)
-      .set(data)
+      .set(cleanData)
       .where(eq(courseLessons.id, lessonId))
       .returning();
     if (!lesson) throw new NotFoundException("Lesson not found");
@@ -260,6 +266,173 @@ export class CoursesService {
       .returning({ id: courseLessons.id });
     if (!lesson) throw new NotFoundException("Lesson not found");
     return { message: "Lesson deleted" };
+  }
+
+  async completeLesson(userId: string, courseId: string, lessonId: string) {
+    const [existing] = await this.db
+      .select()
+      .from(userCourseProgress)
+      .where(
+        and(
+          eq(userCourseProgress.userId, userId),
+          eq(userCourseProgress.lessonId, lessonId),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await this.db
+        .update(userCourseProgress)
+        .set({ isCompleted: true, completedAt: new Date(), updatedAt: new Date() })
+        .where(eq(userCourseProgress.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [lesson] = await this.db
+      .select({ moduleId: courseLessons.moduleId })
+      .from(courseLessons)
+      .where(eq(courseLessons.id, lessonId))
+      .limit(1);
+    if (!lesson) throw new NotFoundException("Lesson not found");
+
+    const [progress] = await this.db
+      .insert(userCourseProgress)
+      .values({
+        userId,
+        courseId,
+        moduleId: lesson.moduleId,
+        lessonId,
+        isCompleted: true,
+        completedAt: new Date(),
+      })
+      .returning();
+    return progress;
+  }
+
+  async incompleteLesson(userId: string, courseId: string, lessonId: string) {
+    const [existing] = await this.db
+      .select()
+      .from(userCourseProgress)
+      .where(
+        and(
+          eq(userCourseProgress.userId, userId),
+          eq(userCourseProgress.lessonId, lessonId),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await this.db
+        .update(userCourseProgress)
+        .set({ isCompleted: false, completedAt: null, updatedAt: new Date() })
+        .where(eq(userCourseProgress.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    throw new NotFoundException("Progress record not found");
+  }
+
+  async getComments(courseId: string) {
+    return this.db
+      .select()
+      .from(courseComments)
+      .where(
+        and(
+          eq(courseComments.courseId, courseId),
+          sql`${courseComments.deletedAt} IS NULL`,
+        ),
+      )
+      .orderBy(asc(courseComments.createdAt));
+  }
+
+  async addComment(userId: string, courseId: string, data: { body: string; lessonId?: string; parentId?: string }) {
+    const [comment] = await this.db
+      .insert(courseComments)
+      .values({
+        userId,
+        courseId,
+        lessonId: data.lessonId,
+        parentId: data.parentId,
+        body: data.body,
+      })
+      .returning();
+    return comment;
+  }
+
+  async deleteComment(commentId: string, userId: string) {
+    const [comment] = await this.db
+      .select()
+      .from(courseComments)
+      .where(eq(courseComments.id, commentId))
+      .limit(1);
+    if (!comment) throw new NotFoundException("Comment not found");
+    if (comment.userId !== userId) throw new ForbiddenException("Not your comment");
+
+    const [deleted] = await this.db
+      .update(courseComments)
+      .set({ deletedAt: new Date() })
+      .where(eq(courseComments.id, commentId))
+      .returning();
+    return { message: "Comment deleted" };
+  }
+
+  async getLessonQuiz(lessonId: string) {
+    const [quiz] = await this.db
+      .select()
+      .from(courseQuizzes)
+      .where(eq(courseQuizzes.lessonId, lessonId))
+      .limit(1);
+    return quiz || null;
+  }
+
+  async getCourseQuiz(courseId: string, type: "pre_test" | "post_test") {
+    const [quiz] = await this.db
+      .select()
+      .from(courseQuizzes)
+      .where(
+        and(
+          eq(courseQuizzes.courseId, courseId),
+          eq(courseQuizzes.type, type),
+        ),
+      )
+      .limit(1);
+    return quiz || null;
+  }
+
+  async getTestResults(userId: string, courseId: string) {
+    const quizzes = await this.db
+      .select()
+      .from(courseQuizzes)
+      .where(
+        and(
+          eq(courseQuizzes.courseId, courseId),
+          inArray(courseQuizzes.type, ["pre_test", "post_test"]),
+        ),
+      );
+
+    const results: Record<string, any> = {};
+    for (const quiz of quizzes) {
+      const [best] = await this.db
+        .select()
+        .from(courseQuizAttempts)
+        .where(
+          and(
+            eq(courseQuizAttempts.quizId, quiz.id),
+            eq(courseQuizAttempts.userId, userId),
+            eq(courseQuizAttempts.passed, true),
+          ),
+        )
+        .orderBy(desc(courseQuizAttempts.score))
+        .limit(1);
+
+      results[quiz.type] = best
+        ? { score: best.score, passed: true, completedAt: best.completedAt }
+        : null;
+    }
+
+    return results;
   }
 
   async getProgress(userId: string, courseId: string) {

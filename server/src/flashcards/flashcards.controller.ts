@@ -13,7 +13,8 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { FlashcardsService } from "./flashcards.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
-import { Roles } from "../common/decorators/roles.decorator";
+import { AccountTypeGuard } from "../common/guards/account-type.guard";
+import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("flashcards")
@@ -22,6 +23,9 @@ export class FlashcardsController {
   constructor(private flashcardsService: FlashcardsService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full")
+  @ApiBearerAuth()
   @ApiOperation({ summary: "List flashcards with filters" })
   async findAll(
     @Query("examId") examId?: string,
@@ -34,7 +38,8 @@ export class FlashcardsController {
   }
 
   @Get("due")
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get due flashcards for review" })
   async findDue(@CurrentUser() user: any, @Query("limit") limit?: number) {

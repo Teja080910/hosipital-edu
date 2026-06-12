@@ -1,4 +1,5 @@
 import { Injectable, Inject } from "@nestjs/common";
+import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { calendarEvents } from "../database/schema";
 import { eq, and, gte, lte, type SQL } from "drizzle-orm";
@@ -16,14 +17,22 @@ export class CalendarService {
   }
 
   async create(data: any) {
-    const [event] = await this.db.insert(calendarEvents).values(data).returning();
+    const cleaned: any = stripTimestamps(data);
+    if (cleaned.eventDate && typeof cleaned.eventDate === "string") {
+      cleaned.eventDate = new Date(cleaned.eventDate);
+    }
+    const [event] = await this.db.insert(calendarEvents).values(cleaned).returning();
     return event;
   }
 
   async update(id: string, data: any) {
+    const cleaned: any = stripTimestamps(data);
+    if (cleaned.eventDate && typeof cleaned.eventDate === "string") {
+      cleaned.eventDate = new Date(cleaned.eventDate);
+    }
     const [event] = await this.db
       .update(calendarEvents)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...cleaned, updatedAt: new Date() })
       .where(eq(calendarEvents.id, id))
       .returning();
     return event;

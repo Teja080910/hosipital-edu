@@ -9,6 +9,8 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { VideosService } from "./videos.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { AccountTypeGuard } from "../common/guards/account-type.guard";
+import { AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("videos")
@@ -29,7 +31,8 @@ export class VideosController {
   }
 
   @Get("progress/:lessonId")
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get watch progress for a lesson" })
   async getProgress(

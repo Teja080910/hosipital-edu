@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsOptional } from "class-validator";
+import { IsEmail, IsString, MinLength, IsOptional, IsIn } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class RegisterDto {
@@ -20,4 +20,9 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   referralCode?: string;
+
+  @ApiPropertyOptional({ enum: ["full", "course_only"], default: "full" })
+  @IsOptional()
+  @IsIn(["full", "course_only"])
+  accountType?: string;
 }

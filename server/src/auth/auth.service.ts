@@ -48,6 +48,7 @@ export class AuthService {
         name: dto.name,
         referralCode,
         referredBy,
+        accountType: dto.accountType || "full",
       })
       .returning();
 
@@ -158,7 +159,7 @@ export class AuthService {
       .from(users)
       .where(and(eq(users.email, email), isNull(users.deletedAt)))
       .limit(1);
-    if (!user || !user.passwordHash) {
+    if (!user) {
       return { message: "If the email exists, a reset link has been sent" };
     }
     const token = this.jwtService.sign(
@@ -193,7 +194,7 @@ export class AuthService {
   }
 
   async generateTokens(user: any) {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = { sub: user.id, email: user.email, role: user.role, accountType: user.accountType || "full" };
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, {

@@ -16,6 +16,7 @@ import {
   BookOpen,
   BarChart3,
   Video,
+  Calendar,
   Settings,
   Shield,
   ChevronLeft,
@@ -36,14 +37,15 @@ import { useState, useEffect } from "react";
 import { subscriptionsApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
-const navItems = [
+const allNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "dashboard" },
-  { href: "/dashboard/questions", icon: FileQuestion, label: "questions" },
-  { href: "/dashboard/flashcards", icon: Library, label: "flashcards" },
-  { href: "/dashboard/exams", icon: GraduationCap, label: "exams" },
+  { href: "/dashboard/questions", icon: FileQuestion, label: "questions", accountTypes: ["full"] },
+  { href: "/dashboard/flashcards", icon: Library, label: "flashcards", accountTypes: ["full"] },
+  { href: "/dashboard/exams", icon: GraduationCap, label: "exams", accountTypes: ["full"] },
   { href: "/dashboard/courses", icon: BookOpen, label: "courses" },
+  { href: "/dashboard/calendar", icon: Calendar, label: "calendar" },
   { href: "/dashboard/progress", icon: BarChart3, label: "progress" },
-  { href: "/dashboard/videos", icon: Video, label: "videos" },
+  { href: "/dashboard/videos", icon: Video, label: "videos", accountTypes: ["full"] },
 ];
 
 const adminItems = [
@@ -71,9 +73,13 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const n = useTranslations("nav");
   const a = useTranslations("admin");
   const sbs = useTranslations("subscribe");
+  const { user } = useAuth();
   const pathname = usePathname();
   const [adminOpen, setAdminOpen] = useState(true);
-  const { user } = useAuth();
+  const navItems = allNavItems.filter(item => {
+    if (!item.accountTypes) return true;
+    return item.accountTypes.includes(user?.accountType || "full");
+  });
   const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
 
   useEffect(() => {

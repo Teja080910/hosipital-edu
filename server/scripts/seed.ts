@@ -1,7 +1,7 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../src/database/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/hospital_edu" });
 const db = drizzle(pool, { schema });
@@ -134,8 +134,8 @@ const coursesData = [
         description: { en: "Heart anatomy, cardiac physiology, and cardiovascular pathology" },
         sortOrder: 0,
         lessons: [
-          { title: { en: "Cardiac Anatomy and Embryology" }, contentType: "video", duration: 1800, content: "Detailed overview of cardiac anatomy including chambers, valves, coronary circulation, and cardiac embryology.", sortOrder: 0, isFreePreview: true },
-          { title: { en: "Cardiac Physiology" }, contentType: "video", duration: 2400, content: "Cardiac cycle, hemodynamics, ECG interpretation, and cardiac output regulation.", sortOrder: 1, isFreePreview: false },
+          { title: { en: "Cardiac Anatomy and Embryology" }, contentType: "video", videoUrl: "https://customer-ohx6f4u7x4k5k5qk.cloudflarestream.com/b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6a7/iframe", duration: 1800, content: "Detailed overview of cardiac anatomy including chambers, valves, coronary circulation, and cardiac embryology.", sortOrder: 0, isFreePreview: true },
+          { title: { en: "Cardiac Physiology" }, contentType: "video", videoUrl: "https://customer-ohx6f4u7x4k5k5qk.cloudflarestream.com/h8i9j0k1l2m3n4o5p6a7b8c9d0e1f2g3/iframe", duration: 2400, content: "Cardiac cycle, hemodynamics, ECG interpretation, and cardiac output regulation.", sortOrder: 1, isFreePreview: false },
         ],
       },
       {
@@ -143,8 +143,8 @@ const coursesData = [
         description: { en: "Pulmonary anatomy, physiology, and respiratory pathology" },
         sortOrder: 1,
         lessons: [
-          { title: { en: "Pulmonary Anatomy" }, contentType: "video", duration: 1500, content: "Upper and lower respiratory tract anatomy, bronchopulmonary segments, and pleural spaces.", sortOrder: 0, isFreePreview: true },
-          { title: { en: "Ventilation and Gas Exchange" }, contentType: "video", duration: 2100, content: "Mechanics of breathing, lung volumes, diffusion, and ventilation-perfusion matching.", sortOrder: 1, isFreePreview: false },
+          { title: { en: "Pulmonary Anatomy" }, contentType: "video", videoUrl: "https://customer-ohx6f4u7x4k5k5qk.cloudflarestream.com/c3d4e5f6g7h8i9j0k1l2m3n4o5p6a7b8/iframe", duration: 1500, content: "Upper and lower respiratory tract anatomy, bronchopulmonary segments, and pleural spaces.", sortOrder: 0, isFreePreview: true },
+          { title: { en: "Ventilation and Gas Exchange" }, contentType: "video", videoUrl: "https://customer-ohx6f4u7x4k5k5qk.cloudflarestream.com/g7h8i9j0k1l2m3n4o5p6a7b8c9d0e1f2/iframe", duration: 2100, content: "Mechanics of breathing, lung volumes, diffusion, and ventilation-perfusion matching.", sortOrder: 1, isFreePreview: false },
         ],
       },
     ],
@@ -163,8 +163,8 @@ const coursesData = [
         description: { en: "High-yield internal medicine topics for ENARM" },
         sortOrder: 0,
         lessons: [
-          { title: { en: "Cardiovascular Diseases in Mexico" }, contentType: "video", duration: 2000, content: "Epidemiology and management of cardiovascular diseases prevalent in the Mexican population.", sortOrder: 0, isFreePreview: true },
-          { title: { en: "Diabetes and Metabolic Syndrome" }, contentType: "video", duration: 1800, content: "Management of diabetes and metabolic syndrome according to Mexican clinical guidelines.", sortOrder: 1, isFreePreview: false },
+          { title: { en: "Cardiovascular Diseases in Mexico" }, contentType: "video", videoUrl: "https://customer-ohx6f4u7x4k5k5qk.cloudflarestream.com/d4e5f6g7h8i9j0k1l2m3n4o5p6a7b8c9/iframe", duration: 2000, content: "Epidemiology and management of cardiovascular diseases prevalent in the Mexican population.", sortOrder: 0, isFreePreview: true },
+          { title: { en: "Diabetes and Metabolic Syndrome" }, contentType: "video", videoUrl: "https://customer-ohx6f4u7x4k5k5qk.cloudflarestream.com/i9j0k1l2m3n4o5p6a7b8c9d0e1f2g3h4/iframe", duration: 1800, content: "Management of diabetes and metabolic syndrome according to Mexican clinical guidelines.", sortOrder: 1, isFreePreview: false },
         ],
       },
       {
@@ -172,7 +172,7 @@ const coursesData = [
         description: { en: "Tropical and infectious diseases common in Latin America" },
         sortOrder: 1,
         lessons: [
-          { title: { en: "Vector-Borne Diseases" }, contentType: "video", duration: 2200, content: "Dengue, Chikungunya, Zika, and other arboviruses prevalent in Mexico and Latin America.", sortOrder: 0, isFreePreview: true },
+          { title: { en: "Vector-Borne Diseases" }, contentType: "video", videoUrl: "https://customer-ohx6f4u7x4k5k5qk.cloudflarestream.com/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6/iframe", duration: 2200, content: "Dengue, Chikungunya, Zika, and other arboviruses prevalent in Mexico and Latin America.", sortOrder: 0, isFreePreview: true },
         ],
       },
     ],
@@ -191,8 +191,8 @@ const coursesData = [
         description: { en: "Core surgical topics for MIR" },
         sortOrder: 0,
         lessons: [
-          { title: { en: "General Surgery Principles" }, contentType: "video", duration: 2500, content: "Preoperative evaluation, wound healing, surgical infections, and postoperative care.", sortOrder: 0, isFreePreview: true },
-          { title: { en: "Abdominal Surgery" }, contentType: "video", duration: 2000, content: "Management of acute abdomen, appendicitis, cholecystitis, and intestinal obstruction.", sortOrder: 1, isFreePreview: false },
+          { title: { en: "General Surgery Principles" }, contentType: "video", videoUrl: "https://customer-ohx6f4u7x4k5k5qk.cloudflarestream.com/e5f6g7h8i9j0k1l2m3n4o5p6a7b8c9d0/iframe", duration: 2500, content: "Preoperative evaluation, wound healing, surgical infections, and postoperative care.", sortOrder: 0, isFreePreview: true },
+          { title: { en: "Abdominal Surgery" }, contentType: "video", videoUrl: "https://customer-ohx6f4u7x4k5k5qk.cloudflarestream.com/f6g7h8i9j0k1l2m3n4o5p6a7b8c9d0e1/iframe", duration: 2000, content: "Management of acute abdomen, appendicitis, cholecystitis, and intestinal obstruction.", sortOrder: 1, isFreePreview: false },
         ],
       },
     ],
@@ -396,6 +396,28 @@ async function main() {
 
     if (existing.length) {
       console.log(`  Skipped (exists): ${course.title.en}`);
+      const existingCourse = existing[0];
+      const modCount = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.courseModules)
+        .where(eq(schema.courseModules.courseId, existingCourse.id));
+      if ((modCount[0]?.count || 0) === 0) {
+        console.log(`  Inserting modules/lessons for existing course: ${course.title.en}`);
+        for (const mod of course.modules) {
+          const [module] = await db.insert(schema.courseModules).values({
+            courseId: existingCourse.id,
+            title: mod.title,
+            description: mod.description,
+            sortOrder: mod.sortOrder,
+          }).returning();
+          for (const lesson of mod.lessons) {
+            await db.insert(schema.courseLessons).values({
+              moduleId: module.id,
+              ...lesson,
+            });
+          }
+        }
+      }
       continue;
     }
 
@@ -474,7 +496,7 @@ async function main() {
     const existing = await db
       .select()
       .from(schema.subscriptionPlans)
-      .where(eq(schema.subscriptionPlans.sortOrder, plan.sortOrder))
+      .where(sql`${schema.subscriptionPlans.name}->>'en' = ${plan.name.en}`)
       .limit(1);
     if (existing.length) {
       console.log(`  Skipped (exists): ${plan.name.en}`);

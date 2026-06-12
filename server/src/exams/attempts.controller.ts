@@ -11,11 +11,14 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { AttemptsService } from "./attempts.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { AccountTypeGuard } from "../common/guards/account-type.guard";
+import { AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("exam-attempts")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AccountTypeGuard)
+@AllowedAccountTypes("full")
 @Controller("exam-attempts")
 export class AttemptsController {
   constructor(private attemptsService: AttemptsService) {}

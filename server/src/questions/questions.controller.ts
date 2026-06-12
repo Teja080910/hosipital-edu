@@ -13,7 +13,8 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from "@nestjs/swagger"
 import { QuestionsService } from "./questions.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
-import { Roles } from "../common/decorators/roles.decorator";
+import { AccountTypeGuard } from "../common/guards/account-type.guard";
+import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("questions")
@@ -22,6 +23,9 @@ export class QuestionsController {
   constructor(private questionsService: QuestionsService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full")
+  @ApiBearerAuth()
   @ApiOperation({ summary: "List questions with filters" })
   @ApiQuery({ name: "examId", required: false })
   @ApiQuery({ name: "specialtyId", required: false })

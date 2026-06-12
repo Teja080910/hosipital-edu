@@ -69,6 +69,18 @@ export class AttemptsService {
       if (sub.user_subscriptions.remainingExamAttempts != null && sub.user_subscriptions.remainingExamAttempts < 1) {
         throw new HttpException("No remaining exam attempts. Please upgrade your plan.", HttpStatus.FORBIDDEN);
       }
+
+      if (sub.user_subscriptions.remainingUses != null && sub.user_subscriptions.remainingUses < 1) {
+        throw new HttpException("You have exceeded the total usage limit for your plan.", HttpStatus.FORBIDDEN);
+      }
+
+      if (plan.maxDays) {
+        const created = new Date(sub.user_subscriptions.createdAt);
+        const expired = new Date(created.getTime() + plan.maxDays * 24 * 60 * 60 * 1000);
+        if (new Date() > expired) {
+          throw new HttpException("Your plan duration has expired.", HttpStatus.FORBIDDEN);
+        }
+      }
     }
 
     const [attempt] = await this.db
@@ -87,6 +99,13 @@ export class AttemptsService {
       await this.db
         .update(userSubscriptions)
         .set({ remainingExamAttempts: sub.user_subscriptions.remainingExamAttempts - 1 })
+        .where(eq(userSubscriptions.id, sub.user_subscriptions.id));
+    }
+
+    if (sub && sub.user_subscriptions.remainingUses != null) {
+      await this.db
+        .update(userSubscriptions)
+        .set({ remainingUses: sub.user_subscriptions.remainingUses - 1 })
         .where(eq(userSubscriptions.id, sub.user_subscriptions.id));
     }
 
@@ -177,16 +196,41 @@ export class AttemptsService {
 
     const isCorrect = option?.isCorrect || false;
 
-    const [answer] = await this.db
-      .insert(examAnswers)
-      .values({
-        attemptId: data.attemptId,
-        questionId: data.questionId,
-        selectedOptionId: data.selectedOptionId,
-        isCorrect,
-        timeSpent: data.timeSpent,
-      })
-      .returning();
+    const [existingAnswer] = await this.db
+      .select()
+      .from(examAnswers)
+      .where(
+        and(
+          eq(examAnswers.attemptId, data.attemptId),
+          eq(examAnswers.questionId, data.questionId),
+        ),
+      )
+      .limit(1);
+
+    let answer: any;
+    if (existingAnswer) {
+      [answer] = await this.db
+        .update(examAnswers)
+        .set({
+          selectedOptionId: data.selectedOptionId,
+          isCorrect,
+          timeSpent: data.timeSpent,
+          answeredAt: new Date(),
+        })
+        .where(eq(examAnswers.id, existingAnswer.id))
+        .returning();
+    } else {
+      [answer] = await this.db
+        .insert(examAnswers)
+        .values({
+          attemptId: data.attemptId,
+          questionId: data.questionId,
+          selectedOptionId: data.selectedOptionId,
+          isCorrect,
+          timeSpent: data.timeSpent,
+        })
+        .returning();
+    }
 
     const [attempt] = await this.db
       .select()
@@ -194,13 +238,18 @@ export class AttemptsService {
       .where(eq(examAttempts.id, data.attemptId))
       .limit(1);
 
-    const answeredCount = (attempt?.answeredCount || 0) + 1;
-    const correctCount = (attempt?.correctCount || 0) + (isCorrect ? 1 : 0);
-    const accumulatedTime = (attempt?.timeSpent || 0) + data.timeSpent;
+    const allAnswers = await this.db
+      .select()
+      .from(examAnswers)
+      .where(eq(examAnswers.attemptId, data.attemptId));
+
+    const answeredCount = allAnswers.length;
+    const totalCorrect = allAnswers.filter((a: any) => a.isCorrect).length;
+    const accumulatedTime = allAnswers.reduce((sum: number, a: any) => sum + (a.timeSpent || 0), 0);
 
     await this.db
       .update(examAttempts)
-      .set({ answeredCount, correctCount, timeSpent: accumulatedTime })
+      .set({ answeredCount, correctCount: totalCorrect, timeSpent: accumulatedTime })
       .where(eq(examAttempts.id, data.attemptId));
 
     const [existing] = await this.db

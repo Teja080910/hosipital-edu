@@ -11,7 +11,8 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { ExamsService } from "./exams.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
-import { Roles } from "../common/decorators/roles.decorator";
+import { AccountTypeGuard } from "../common/guards/account-type.guard";
+import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 
 @ApiTags("exams")
 @Controller("exams")

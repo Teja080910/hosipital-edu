@@ -318,7 +318,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
     const answered = answers[currentQuestion.id]?.optionId ?? null;
     const flagged = answers[currentQuestion.id]?.flagged ?? false;
     const currentAnsweredCount = Object.values(answers).filter((a) => a.optionId !== null).length;
-    const totalQ = displayQuestions.length;
+    const totalQ = examQuestions.length;
 
     return (
       <PageTransition>
@@ -405,7 +405,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                       else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
                     }
                     return (
-                      <button key={option.id} onClick={() => !answered && handleAnswer(option.id)} disabled={answered !== null && mode === "study"} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
+                      <button key={option.id} onClick={() => handleAnswer(option.id)} disabled={answered !== null && mode === "study"} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
                         <div className="flex items-start gap-4">
                           <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
                             mode !== "exam" && showAnswer && isCorrectOption ? "border-green-500 bg-green-500 text-white" :

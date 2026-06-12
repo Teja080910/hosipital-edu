@@ -1,4 +1,5 @@
 import { Injectable, Inject, ConflictException } from "@nestjs/common";
+import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { translations } from "../database/schema";
 import { eq, and, type SQL } from "drizzle-orm";
@@ -21,14 +22,14 @@ export class TranslationsService {
       .where(and(eq(translations.key, data.key), eq(translations.locale, data.locale)))
       .limit(1);
     if (existing) throw new ConflictException("A translation with this key and locale already exists");
-    const [t] = await this.db.insert(translations).values(data).returning();
+    const [t] = await this.db.insert(translations).values(stripTimestamps(data)).returning();
     return t;
   }
 
   async update(id: string, data: { value?: string; updatedBy?: string }) {
     const [t] = await this.db
       .update(translations)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(eq(translations.id, id))
       .returning();
     return t;

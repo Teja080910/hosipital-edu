@@ -84,14 +84,16 @@ export class ExamsService {
   }
 
   async create(data: any) {
-    const [exam] = await this.db.insert(exams).values(data).returning();
+    const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
+    const [exam] = await this.db.insert(exams).values(cleanData).returning();
     return exam;
   }
 
   async update(id: string, data: any) {
+    const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
     const [exam] = await this.db
       .update(exams)
-      .set(data)
+      .set(cleanData)
       .where(eq(exams.id, id))
       .returning();
     if (!exam) throw new NotFoundException("Exam not found");

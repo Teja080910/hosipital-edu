@@ -6,6 +6,7 @@
     "exams": "Exámenes",
     "courses": "Cursos",
     "progress": "Progreso",
+    "calendar": "Calendario",
     "videos": "Videos",
     "settings": "Configuración",
     "admin": "Admin",
@@ -133,7 +134,8 @@
     "load_more": "Cargar Más",
     "easy": "Fácil",
     "medium": "Medio",
-    "hard": "Difícil"
+    "hard": "Difícil",
+    "exam_history": "Historial de Exámenes"
   },
   "flashcards": {
     "title": "Tarjetas de Estudio",
@@ -225,8 +227,25 @@
     "go_back": "Volver",
     "lessons": "lecciones",
     "progress": "Progreso",
+    "course_complete": "Curso Completado!",
+    "certificate_available": "Has completado todas las lecciones. Obtén tu certificado ahora.",
+    "get_certificate": "Obtener Certificado",
+    "view_certificate": "Ver Certificado",
+    "certificate_generated": "Certificado generado exitosamente!",
+    "certificate_failed": "Error al generar el certificado",
     "start_exam": "Comenzar Examen",
-    "exam_history": "Historial de Exámenes"
+    "exam_history": "Historial de Exámenes",
+    "pre_test": "Pre-Test",
+    "post_test": "Post-Test",
+    "pre_test_desc": "Evalúa tus conocimientos antes de empezar",
+    "post_test_desc": "Evalúa tus conocimientos después de completar el curso",
+    "pre_test_passed": "¡Pre-Test aprobado!",
+    "post_test_passed": "¡Post-Test aprobado!",
+    "score": "Puntuación",
+    "retake": "Reintentar",
+    "start": "Comenzar",
+    "test_comparison": "Comparación Pre vs Post Test",
+    "improvement": "Mejora"
   },
   "lessons": {
     "not_found": "Lección no encontrada",
@@ -235,8 +254,10 @@
     "free_preview": "Vista Previa Gratuita",
     "open_pdf": "Abrir PDF",
     "quiz_coming": "El contenido del cuestionario estará disponible en el visor de lecciones.",
+    "loading_quiz": "Cargando cuestionario...",
     "back_to_course": "Volver al Curso",
     "mark_complete": "Marcar como Completada",
+    "completed": "Completada",
     "load_failed": "Error al cargar la lección"
   },
   "admin": {
@@ -593,6 +614,29 @@
       "item_2": "Configurar funciones de IA y auto-traducción",
       "item_3": "Personalizar la página de inicio y contenido de marketing"
     }
+  },
+  "calendar": {
+    "subtitle": "Gestiona tu horario de estudio",
+    "add_event": "Añadir Evento",
+    "new_event": "Nuevo Evento",
+    "edit_event": "Editar Evento",
+    "events": "Eventos",
+    "add": "Añadir",
+    "select_day": "Selecciona un día para ver eventos",
+    "no_events": "No hay eventos en este día",
+    "create_first": "Crea tu primer evento",
+    "title": "Título",
+    "type": "Tipo",
+    "date": "Fecha",
+    "time": "Hora",
+    "all_day": "Todo el día",
+    "description": "Descripción",
+    "save": "Guardar",
+    "create": "Crear",
+    "cancel": "Cancelar",
+    "study_schedule": "Horario de Estudio",
+    "exam": "Examen",
+    "personal": "Personal"
   },
   "content": {
     "not_found": "Página No Encontrada",

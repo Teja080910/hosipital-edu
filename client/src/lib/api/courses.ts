@@ -10,6 +10,7 @@ export const coursesApi = {
     api.post(`/courses/${slug}/enroll`, { stripePaymentId }),
   checkEnrollment: (slug: string) => api.get(`/courses/check-enrollment/${slug}`),
   getProgress: (slug: string) => api.get(`/courses/${slug}/progress`),
+  getLessonQuiz: (slug: string, lessonId: string) => api.get(`/courses/${slug}/lessons/${lessonId}/quiz`),
   createModule: (courseId: string, data: { title: any; description?: any; sortOrder?: number }) =>
     api.post(`/courses/${courseId}/modules`, data),
   updateModule: (moduleId: string, data: { title?: any; description?: any; sortOrder?: number }) =>
@@ -20,4 +21,20 @@ export const coursesApi = {
   updateLesson: (lessonId: string, data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) =>
     api.patch(`/courses/lessons/${lessonId}`, data),
   deleteLesson: (lessonId: string) => api.delete(`/courses/lessons/${lessonId}`),
+  completeLesson: (slug: string, lessonId: string) =>
+    api.post(`/courses/${slug}/lessons/${lessonId}/complete`),
+  incompleteLesson: (slug: string, lessonId: string) =>
+    api.post(`/courses/${slug}/lessons/${lessonId}/incomplete`),
+  getComments: (slug: string) => api.get(`/courses/${slug}/comments`),
+  addComment: (slug: string, data: { body: string; lessonId?: string; parentId?: string }) =>
+    api.post(`/courses/${slug}/comments`, data),
+  deleteComment: (commentId: string) => api.delete(`/courses/comments/${commentId}`),
+  startQuiz: (quizId: string) => api.post("/courses/quiz-attempts", { quizId }),
+  getQuizAttempts: () => api.get("/courses/quiz-attempts"),
+  getQuizAttempt: (id: string) => api.get(`/courses/quiz-attempts/${id}`),
+  submitQuiz: (id: string, answers: { questionIndex: number; selectedOptionIndex: number }[]) =>
+    api.post(`/courses/quiz-attempts/${id}/submit`, { answers }),
+  getPreTest: (slug: string) => api.get(`/courses/${slug}/pre-test`),
+  getPostTest: (slug: string) => api.get(`/courses/${slug}/post-test`),
+  getTestResults: (slug: string) => api.get(`/courses/${slug}/test-results`),
 };

@@ -19,6 +19,12 @@ export class AnalyticsController {
     return this.analyticsService.getUserStats(user.id);
   }
 
+  @Get("progress")
+  @ApiOperation({ summary: "Get current user's progress dashboard data" })
+  async getUserProgress(@CurrentUser() user: any) {
+    return this.analyticsService.getUserProgress(user.id);
+  }
+
   @Get("admin")
   @UseGuards(RolesGuard)
   @Roles("admin")

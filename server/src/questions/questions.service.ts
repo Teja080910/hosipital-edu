@@ -6,6 +6,7 @@ import {
 import { DRIZZLE } from "../database/database.provider";
 import { questions, questionOptions, questionImages } from "../database/schema";
 import { and, eq, isNull, ilike, asc, inArray } from "drizzle-orm";
+import { stripTimestamps } from "../common/utils/strip-timestamps";
 
 @Injectable()
 export class QuestionsService {
@@ -96,25 +97,25 @@ export class QuestionsService {
     const { options, images, ...questionData } = data;
     const [question] = await this.db
       .insert(questions)
-      .values(questionData)
+      .values(stripTimestamps(questionData))
       .returning();
 
     if (options?.length) {
       await this.db
         .insert(questionOptions)
-        .values(options.map((o: any) => ({ ...o, questionId: question.id })));
+        .values(options.map((o: any) => stripTimestamps({ ...o, questionId: question.id })));
     }
     if (images?.length) {
       await this.db
         .insert(questionImages)
-        .values(images.map((i: any) => ({ ...i, questionId: question.id })));
+        .values(images.map((i: any) => stripTimestamps({ ...i, questionId: question.id })));
     }
 
     return this.findById(question.id);
   }
 
   async update(id: string, data: any) {
-    const { options, images, createdBy, examId, specialtyId, topicId, ...questionData } = data;
+    const { options, images, createdBy, createdAt, updatedAt, deletedAt, examId, specialtyId, topicId, subtopicId, ...questionData } = data;
     const cleanData: any = { ...questionData, updatedAt: new Date() };
     if (examId !== undefined) cleanData.examId = examId || null;
     if (specialtyId !== undefined) cleanData.specialtyId = specialtyId || null;
@@ -132,7 +133,7 @@ export class QuestionsService {
         .where(eq(questionOptions.questionId, id));
       await this.db
         .insert(questionOptions)
-        .values(options.map((o: any) => ({ ...o, questionId: id })));
+        .values(options.map((o: any) => stripTimestamps({ ...o, questionId: id })));
     }
 
     if (images) {
@@ -142,7 +143,7 @@ export class QuestionsService {
       if (images.length > 0) {
         await this.db
           .insert(questionImages)
-          .values(images.map((i: any) => ({ ...i, questionId: id })));
+          .values(images.map((i: any) => stripTimestamps({ ...i, questionId: id })));
       }
     }
 

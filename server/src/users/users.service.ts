@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Inject } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { users, userSubscriptions, subscriptionPlans } from "../database/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
@@ -48,7 +49,7 @@ export class UsersService {
   async update(id: string, data: Partial<typeof users.$inferInsert>) {
     const [user] = await this.db
       .update(users)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .returning();
     if (!user) throw new NotFoundException("User not found");

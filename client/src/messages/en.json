@@ -6,6 +6,7 @@
     "exams": "Exams",
     "courses": "Courses",
     "progress": "Progress",
+    "calendar": "Calendar",
     "videos": "Videos",
     "settings": "Settings",
     "admin": "Admin",
@@ -133,7 +134,8 @@
     "load_more": "Load More",
     "easy": "Easy",
     "medium": "Medium",
-    "hard": "Hard"
+    "hard": "Hard",
+    "exam_history": "Exam History"
   },
   "flashcards": {
     "title": "Flashcards",
@@ -225,8 +227,25 @@
     "go_back": "Go back",
     "lessons": "lessons",
     "progress": "Progress",
+    "course_complete": "Course Complete!",
+    "certificate_available": "You've completed all lessons. Get your certificate now.",
+    "get_certificate": "Get Certificate",
+    "view_certificate": "View Certificate",
+    "certificate_generated": "Certificate generated successfully!",
+    "certificate_failed": "Failed to generate certificate",
     "start_exam": "Start Exam",
-    "exam_history": "Exam History"
+    "exam_history": "Exam History",
+    "pre_test": "Pre-Test",
+    "post_test": "Post-Test",
+    "pre_test_desc": "Test your knowledge before starting",
+    "post_test_desc": "Test your knowledge after completing the course",
+    "pre_test_passed": "Pre-Test passed!",
+    "post_test_passed": "Post-Test passed!",
+    "score": "Score",
+    "retake": "Retake",
+    "start": "Start",
+    "test_comparison": "Pre vs Post Test Comparison",
+    "improvement": "Improvement"
   },
   "lessons": {
     "not_found": "Lesson not found",
@@ -235,8 +254,10 @@
     "free_preview": "Free Preview",
     "open_pdf": "Open PDF",
     "quiz_coming": "Quiz content will be available in the lesson viewer.",
+    "loading_quiz": "Loading quiz...",
     "back_to_course": "Back to Course",
     "mark_complete": "Mark as Complete",
+    "completed": "Completed",
     "load_failed": "Failed to load lesson"
   },
   "admin": {
@@ -593,6 +614,29 @@
       "item_2": "Set up AI-powered features and auto-translation",
       "item_3": "Customize landing page and marketing content"
     }
+  },
+  "calendar": {
+    "subtitle": "Manage your study schedule",
+    "add_event": "Add Event",
+    "new_event": "New Event",
+    "edit_event": "Edit Event",
+    "events": "Events",
+    "add": "Add",
+    "select_day": "Select a day to view events",
+    "no_events": "No events on this day",
+    "create_first": "Create your first event",
+    "title": "Title",
+    "type": "Type",
+    "date": "Date",
+    "time": "Time",
+    "all_day": "All day",
+    "description": "Description",
+    "save": "Save",
+    "create": "Create",
+    "cancel": "Cancel",
+    "study_schedule": "Study Schedule",
+    "exam": "Exam",
+    "personal": "Personal"
   },
   "content": {
     "not_found": "Page Not Found",

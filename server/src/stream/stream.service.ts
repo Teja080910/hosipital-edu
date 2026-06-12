@@ -133,9 +133,10 @@ export class StreamService {
   }
 
   async updateModule(id: string, data: { title?: any; description?: any; examId?: string; sortOrder?: number; isActive?: boolean }) {
+    const { createdAt, updatedAt, deletedAt, ...cleanData } = data as any;
     const [mod] = await this.db
       .update(videoModules)
-      .set(data)
+      .set(cleanData)
       .where(eq(videoModules.id, id))
       .returning();
     return mod;
@@ -170,9 +171,10 @@ export class StreamService {
   async updateLesson(id: string, data: {
     title?: any; description?: any; videoUrl?: string; duration?: number; sortOrder?: number; isActive?: boolean;
   }) {
+    const { createdAt, updatedAt, deletedAt, ...cleanData } = data as any;
     const [lesson] = await this.db
       .update(videoLessons)
-      .set(data)
+      .set(cleanData)
       .where(eq(videoLessons.id, id))
       .returning();
     return lesson;

@@ -4,6 +4,7 @@ import {
   ConflictException,
   Inject,
 } from "@nestjs/common";
+import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { articles, articleTagsMapping } from "../database/schema";
 import { eq, and, isNull, desc, asc } from "drizzle-orm";
@@ -45,14 +46,14 @@ export class ArticlesService {
       .where(and(eq(articles.slug, data.slug), isNull(articles.deletedAt)))
       .limit(1);
     if (existing.length) throw new ConflictException("An article with this slug already exists");
-    const [article] = await this.db.insert(articles).values(data).returning();
+    const [article] = await this.db.insert(articles).values(stripTimestamps(data)).returning();
     return article;
   }
 
   async update(id: string, data: any) {
     const [article] = await this.db
       .update(articles)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(eq(articles.id, id))
       .returning();
     if (!article) throw new NotFoundException("Article not found");

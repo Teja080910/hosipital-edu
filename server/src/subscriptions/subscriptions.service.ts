@@ -11,6 +11,7 @@ import { eq, and, gt, sql, isNull } from "drizzle-orm";
 import { STRIPE } from "./stripe.provider";
 import Stripe from "stripe";
 import { MailService } from "../mail/mail.service";
+import { stripTimestamps } from "../common/utils/strip-timestamps";
 
 @Injectable()
 export class SubscriptionsService {
@@ -42,14 +43,14 @@ export class SubscriptionsService {
   }
 
   async createPlan(data: any) {
-    const [plan] = await this.db.insert(subscriptionPlans).values(data).returning();
+    const [plan] = await this.db.insert(subscriptionPlans).values(stripTimestamps(data)).returning();
     return plan;
   }
 
   async updatePlan(id: string, data: any) {
     const [plan] = await this.db
       .update(subscriptionPlans)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(eq(subscriptionPlans.id, id))
       .returning();
     return plan;
@@ -236,7 +237,9 @@ export class SubscriptionsService {
 
     const now = new Date();
     const periodEnd = new Date(now);
-    if (plan.interval === "year") {
+    if (plan.maxDays) {
+      periodEnd.setDate(periodEnd.getDate() + plan.maxDays);
+    } else if (plan.interval === "year") {
       periodEnd.setFullYear(periodEnd.getFullYear() + 1);
     } else if (plan.interval === "quarter") {
       periodEnd.setMonth(periodEnd.getMonth() + 3);
@@ -256,6 +259,7 @@ export class SubscriptionsService {
         currentPeriodEnd: periodEnd,
         remainingExamAttempts: plan.maxExamAttempts,
         remainingFlashcardAttempts: plan.maxFlashcardAttempts,
+        remainingUses: plan.maxUses,
       })
       .returning();
 

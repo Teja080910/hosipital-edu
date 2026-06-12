@@ -2,16 +2,22 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-const weeklyData = [
-  { day: "Mon", minutes: 45 }, { day: "Tue", minutes: 60 }, { day: "Wed", minutes: 30 },
-  { day: "Thu", minutes: 75 }, { day: "Fri", minutes: 50 }, { day: "Sat", minutes: 90 },
-  { day: "Sun", minutes: 20 },
-];
+interface WeeklyChartProps {
+  data?: { date: string; count: number }[];
+}
 
-export default function WeeklyChart() {
+export default function WeeklyChart({ data = [] }: WeeklyChartProps) {
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const chartData = data.map(d => {
+    const day = new Date(d.date).getDay();
+    return { day: dayNames[day], minutes: d.count * 2 };
+  });
+  if (!chartData.length) {
+    return <div className="flex items-center justify-center h-full text-muted-foreground">No data yet</div>;
+  }
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={weeklyData}>
+      <BarChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis dataKey="day" className="text-xs text-muted-foreground" />
         <YAxis className="text-xs text-muted-foreground" />

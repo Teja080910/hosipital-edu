@@ -5,6 +5,7 @@ import { PageTransition } from "@/components/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { CourseQuiz } from "@/components/courses/course-quiz";
 import { coursesApi } from "@/lib/api";
 import { ArrowLeft, CheckCircle, Clock, FileText, Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -18,6 +19,9 @@ export default function LessonPage() {
   const router = useRouter();
   const [lesson, setLesson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [quiz, setQuiz] = useState<any>(null);
 
   useEffect(() => {
     if (!slug || !lessonId) return;
@@ -28,10 +32,36 @@ export default function LessonPage() {
           if (l.id === lessonId) found.push(l);
         });
       });
-      if (found.length > 0) setLesson(found[0]);
+      if (found.length > 0) {
+        setLesson(found[0]);
+        if (found[0].contentType === "quiz") {
+          coursesApi.getLessonQuiz(slug, lessonId).then(({ data: q }) => setQuiz(q)).catch(() => {});
+        }
+      }
       else toast.error(t("not_found"));
     }).catch(() => toast.error(t("load_failed"))).finally(() => setLoading(false));
+    coursesApi.getProgress(slug).then(({ data: p }) => {
+      const done = p.lessons?.find((l: any) => l.lessonId === lessonId);
+      if (done?.isCompleted) setIsCompleted(true);
+    }).catch(() => {});
   }, [slug, lessonId, t]);
+
+  const handleToggleComplete = async () => {
+    setCompleting(true);
+    try {
+      if (isCompleted) {
+        await coursesApi.incompleteLesson(slug, lessonId);
+        setIsCompleted(false);
+      } else {
+        await coursesApi.completeLesson(slug, lessonId);
+        setIsCompleted(true);
+      }
+    } catch {
+      toast.error(t("load_failed"));
+    } finally {
+      setCompleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -102,16 +132,28 @@ export default function LessonPage() {
           )}
 
           {lesson.contentType === "quiz" && (
-            <div className="text-center py-16 text-muted-foreground">
-              <p>{t("quiz_coming")}</p>
-            </div>
+            quiz ? (
+              <CourseQuiz
+                quiz={quiz}
+                onComplete={(passed, score) => {
+                  if (passed) setIsCompleted(true);
+                }}
+              />
+            ) : (
+              <div className="text-center py-16 text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <p>{t("loading_quiz")}</p>
+              </div>
+            )
           )}
         </div>
 
         <div className="flex justify-between pt-4">
           <Button variant="outline" onClick={() => router.back()}>{t("back_to_course")}</Button>
-          <Button>
-            <CheckCircle className="h-4 w-4 mr-2" /> {t("mark_complete")}
+          <Button onClick={handleToggleComplete} disabled={completing} variant={isCompleted ? "secondary" : "default"}>
+            {completing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {!completing && <CheckCircle className="h-4 w-4 mr-2" />}
+            {isCompleted ? t("completed") : t("mark_complete")}
           </Button>
         </div>
       </div>

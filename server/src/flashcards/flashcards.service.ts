@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, HttpException, HttpStatus, Inject } from "@nestjs/common";
+import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import {
   flashcards,
@@ -53,14 +54,14 @@ export class FlashcardsService {
   }
 
   async create(data: any) {
-    const [card] = await this.db.insert(flashcards).values(data).returning();
+    const [card] = await this.db.insert(flashcards).values(stripTimestamps(data)).returning();
     return card;
   }
 
   async update(id: string, data: any) {
     const [card] = await this.db
       .update(flashcards)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(eq(flashcards.id, id))
       .returning();
     if (!card) throw new NotFoundException("Flashcard not found");
