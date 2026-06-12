@@ -3,10 +3,10 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../src/database/schema";
 import { eq, and, isNull } from "drizzle-orm";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/hospital_edu" });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL || "process.env.DATABASE_URL" });
 const db = drizzle(pool, { schema });
 
-const CLOUDFLARE_ACCOUNT_HASH = "ohx6f4u7x4k5k5qk";
+const CLOUDFLARE_ACCOUNT_HASH = process.env.CLOUDFLARE_CUSTOMER_CODE || "";
 const CLOUDFLARE_VIDEO_IDS = [
   "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
   "b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6a7",
@@ -40,7 +40,7 @@ async function main() {
     const lesson = lessons[i];
     const videoId = CLOUDFLARE_VIDEO_IDS[i % CLOUDFLARE_VIDEO_IDS.length];
     const cloudflareUrl = `https://customer-${CLOUDFLARE_ACCOUNT_HASH}.cloudflarestream.com/${videoId}/iframe`;
-    const lessonTitle = lesson.title?.en || JSON.stringify(lesson.title);
+    const lessonTitle = (lesson.title as Record<string, string>)?.en || JSON.stringify(lesson.title);
 
     await db
       .update(schema.courseLessons)

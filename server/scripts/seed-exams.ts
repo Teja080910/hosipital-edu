@@ -5,7 +5,7 @@ import * as path from "path";
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    "postgresql://postgres:postgres@localhost:5432/hospital_edu",
+    "process.env.DATABASE_URL",
 });
 
 const DATA_DIR = path.join(__dirname, "firebase-data");

@@ -6,7 +6,7 @@ import * as schema from "../src/database/schema";
 const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/hospital_edu" });
 const db = drizzle(pool, { schema });
 
-const CLOUDFLARE_HASH = process.env.CLOUDFLARE_CUSTOMER_CODE || "s1tgyboloirfoxo0";
+const CLOUDFLARE_HASH = process.env.CLOUDFLARE_CUSTOMER_CODE || "";
 
 function cloudflareUrl(uid: string) {
   return `https://customer-${CLOUDFLARE_HASH}.cloudflarestream.com/${uid}/iframe`;
@@ -199,7 +199,7 @@ async function main() {
       .update(schema.courseLessons)
       .set({ videoUrl: url })
       .where(eq(schema.courseLessons.id, unset[i].id));
-    const t = unset[i].title?.en || JSON.stringify(unset[i].title);
+    const t = (unset[i].title as any)?.en || JSON.stringify(unset[i].title);
     console.log(`  URL assigned: ${t} -> ${url}`);
     urlUpdated++;
   }

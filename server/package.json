@@ -17,6 +17,8 @@
     "db:seed": "ts-node -r dotenv/config scripts/seed.ts dotenv_config_path=.env",
     "db:seed-exams": "ts-node -r dotenv/config scripts/seed-exams.ts dotenv_config_path=.env",
     "db:seed-courses": "ts-node -r dotenv/config scripts/setup-courses.ts dotenv_config_path=.env",
+    "db:assign-random-videos": "ts-node -r dotenv/config scripts/assign-random-cloudflare-videos.ts dotenv_config_path=.env",
+    "db:sync-lesson-videos": "ts-node -r dotenv/config scripts/sync-lesson-videos.ts dotenv_config_path=.env",
     "db:firebase-migrate": "ts-node -r dotenv/config scripts/firebase-migrate.ts dotenv_config_path=.env",
     "db:migrate-videos": "ts-node -r dotenv/config scripts/migrate-videos.ts dotenv_config_path=.env",
     "db:deduplicate-plans": "ts-node -r dotenv/config scripts/deduplicate-plans.ts dotenv_config_path=.env",

@@ -5,7 +5,7 @@ import * as path from "path";
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    "postgresql://postgres:postgres@localhost:5432/hospital_edu",
+    "process.env.DATABASE_URL",
 });
 
 const CF_API_TOKEN = process.env.CLOUDFLARE_STREAM_TOKEN || "";

@@ -114,6 +114,8 @@ export default function LessonPage() {
             <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
               {lesson.videoUrl.includes("cloudflare.com") || lesson.videoUrl.includes("stream") ? (
                 <iframe src={lesson.videoUrl} className="w-full h-full rounded-lg" allowFullScreen />
+              ) : lesson.videoUrl.includes("drive.google.com") ? (
+                <iframe src={lesson.videoUrl.replace("/view?usp=sharing", "/preview").replace("/view?", "/preview?")} className="w-full h-full rounded-lg" allowFullScreen />
               ) : (
                 <video src={lesson.videoUrl} controls className="w-full h-full rounded-lg" />
               )}

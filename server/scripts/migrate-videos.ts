@@ -9,7 +9,7 @@ import { execSync } from "child_process";
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    "postgresql://postgres:postgres@localhost:5432/hospital_edu",
+    "process.env.DATABASE_URL",
 });
 const db = drizzle(pool, { schema });
 
