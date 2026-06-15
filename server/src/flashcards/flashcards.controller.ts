@@ -33,8 +33,9 @@ export class FlashcardsController {
     @Query("topicId") topicId?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.flashcardsService.findAll({ examId, specialtyId, topicId, page, limit });
+    return this.flashcardsService.findAll({ examId, specialtyId, topicId, page, limit }, user);
   }
 
   @Get("due")

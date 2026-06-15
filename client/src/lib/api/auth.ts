@@ -10,6 +10,7 @@ interface RegisterData {
   email: string;
   password: string;
   referralCode?: string;
+  targetExamId?: string;
 }
 
 export const authApi = {

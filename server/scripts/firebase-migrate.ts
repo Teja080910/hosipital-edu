@@ -99,7 +99,7 @@ async function migrateUsers(docs: any[]) {
 
       const fullName = [f.name, f.lastName].filter(Boolean).join(" ").trim();
 
-      const [user] = await db
+      const [user] = (await db
         .insert(schema.users)
         .values({
           email,
@@ -113,7 +113,7 @@ async function migrateUsers(docs: any[]) {
           updatedAt: new Date(),
           deletedAt: f.enabled === false ? new Date() : null,
         })
-        .returning();
+        .returning()) as any[];
 
       if (!adminId) adminId = user.id;
       totalUsers++;
@@ -124,7 +124,7 @@ async function migrateUsers(docs: any[]) {
 
   // If no admin found, create default
   if (!adminId) {
-    const [admin] = await db
+    const [admin] = (await db
       .insert(schema.users)
       .values({
         email: "admin@mdexam.com",
@@ -132,7 +132,7 @@ async function migrateUsers(docs: any[]) {
         role: "admin",
         emailVerifiedAt: new Date(),
       })
-      .returning();
+      .returning()) as any[];
     adminId = admin.id;
   }
 
@@ -216,7 +216,7 @@ async function migrateQuestions(docs: any[], adminId: string) {
       );
       if (answers.length === 0) continue;
 
-      const [question] = await db
+      const [question] = (await db
         .insert(schema.questions)
         .values({
           text,
@@ -228,7 +228,7 @@ async function migrateQuestions(docs: any[], adminId: string) {
           createdAt: f.creationTime || new Date(),
           updatedAt: new Date(),
         })
-        .returning();
+        .returning()) as any[];
 
       totalQuestions++;
 
@@ -378,14 +378,14 @@ async function migrateVideos(docs: any[]) {
 
       if (!moduleId) {
         // Create a default module
-        const [mod] = await db
+        const [mod] = (await db
           .insert(schema.videoModules)
           .values({
             title: { en: title, es: title },
             description: { en: "", es: "" },
             isActive: true,
           })
-          .returning();
+          .returning()) as any[];
         moduleId = mod.id;
       }
 
@@ -394,7 +394,7 @@ async function migrateVideos(docs: any[]) {
         .from(schema.videoLessons)
         .where(
           and(
-            eq(schema.videoLessons.moduleId, moduleId),
+            eq(schema.videoLessons.moduleId, moduleId!),
             sql`${schema.videoLessons.title}->>'en' = ${title}`,
           ),
         )
@@ -407,7 +407,7 @@ async function migrateVideos(docs: any[]) {
       await db
         .insert(schema.videoLessons)
         .values({
-          moduleId,
+moduleId: moduleId!,
           title: { en: title, es: title },
           description: { en: "", es: "" },
           videoUrl: f.url || "",
@@ -595,7 +595,7 @@ async function main() {
 
   await seedEnums();
 
-  const adminId = await migrateUsers(readDocs("appusers.json"));
+  const adminId = (await migrateUsers(readDocs("appusers.json")))!;
 
   await migrateMemberships(readDocs("memberships.json"), adminId);
   await migrateParameters(readDocs("parameters.json"));

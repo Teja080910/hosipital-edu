@@ -37,6 +37,7 @@ interface TopbarProps {
 export function Topbar({ onMenuClick }: TopbarProps) {
   const tb = useTranslations("topbar");
   const c = useTranslations("common");
+  const sb = useTranslations("sidebar");
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -61,7 +62,7 @@ const currentLocale = typeof window !== "undefined" ? window.location.pathname.s
           <Menu className="h-5 w-5" />
         </Button>
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
-          <span className="text-[10px] font-bold text-white">HE</span>
+          <span className="text-[10px] font-bold text-white">{sb("brand_initials")}</span>
         </div>
       </div>
 

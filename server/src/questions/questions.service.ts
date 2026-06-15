@@ -4,8 +4,8 @@ import {
   Inject,
 } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
-import { questions, questionOptions, questionImages } from "../database/schema";
-import { and, eq, isNull, ilike, asc, inArray } from "drizzle-orm";
+import { questions, questionOptions, questionImages, userSubscriptions, subscriptionPlans } from "../database/schema";
+import { and, eq, isNull, ilike, asc, inArray, or, type SQL } from "drizzle-orm";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 
 @Injectable()
@@ -21,17 +21,22 @@ export class QuestionsService {
     page?: number;
     limit?: number;
     search?: string;
-  }) {
+  }, user?: any) {
     const { examId, specialtyId, topicId, subtopicId, difficulty, page = 1, limit = 20, search } = filters;
     const offset = (page - 1) * limit;
     const conditions = [eq(questions.isActive, true)];
 
-    if (examId) conditions.push(eq(questions.examId, examId));
+    if (examId) conditions.push(or(eq(questions.examId, examId), isNull(questions.examId)) as SQL<unknown>);
     if (specialtyId) conditions.push(eq(questions.specialtyId, specialtyId));
     if (topicId) conditions.push(eq(questions.topicId, topicId));
     if (subtopicId) conditions.push(eq(questions.subtopicId, subtopicId));
     if (difficulty) conditions.push(eq(questions.difficulty, difficulty));
     if (search) conditions.push(ilike(questions.text, `%${search}%`));
+
+    if (user && !examId) {
+      const subExamId = await this.getSubscriptionExamId(user.id);
+      if (subExamId) conditions.push(or(eq(questions.examId, subExamId), isNull(questions.examId)) as SQL<unknown>);
+    }
 
     const items = await this.db
       .select()
@@ -158,5 +163,15 @@ export class QuestionsService {
       .returning();
     if (!question) throw new NotFoundException("Question not found");
     return { message: "Question deleted" };
+  }
+
+  private async getSubscriptionExamId(userId: string): Promise<string | null> {
+    const [sub] = await this.db
+      .select({ examId: subscriptionPlans.examId })
+      .from(userSubscriptions)
+      .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+      .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+      .limit(1);
+    return sub?.examId || null;
   }
 }

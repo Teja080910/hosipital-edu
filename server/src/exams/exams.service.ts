@@ -17,7 +17,7 @@ export class ExamsService {
         isActive: exams.isActive,
         sortOrder: exams.sortOrder,
         createdAt: exams.createdAt,
-        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE questions.exam_id = exams.id AND questions.is_active = true)`,
+        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE (questions.exam_id = exams.id OR questions.exam_id IS NULL) AND questions.is_active = true)`,
       })
       .from(exams)
       .where(eq(exams.isActive, true))

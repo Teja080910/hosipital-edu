@@ -6,8 +6,9 @@ import {
   userFlashcardReviews,
   users,
   userSubscriptions,
+  subscriptionPlans,
 } from "../database/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, isNull, or, type SQL } from "drizzle-orm";
 
 @Injectable()
 export class FlashcardsService {
@@ -19,14 +20,19 @@ export class FlashcardsService {
     topicId?: string;
     page?: number;
     limit?: number;
-  }) {
+  }, user?: any) {
     const { examId, specialtyId, topicId, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
     const conditions = [eq(flashcards.isActive, true)];
 
-    if (examId) conditions.push(eq(flashcards.examId, examId));
+    if (examId) conditions.push(or(eq(flashcards.examId, examId), isNull(flashcards.examId)) as SQL<unknown>);
     if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
     if (topicId) conditions.push(eq(flashcards.topicId, topicId));
+
+    if (user && !examId) {
+      const subExamId = await this.getSubscriptionExamId(user.id);
+      if (subExamId) conditions.push(or(eq(flashcards.examId, subExamId), isNull(flashcards.examId)) as SQL<unknown>);
+    }
 
     return this.db
       .select()
@@ -37,6 +43,13 @@ export class FlashcardsService {
   }
 
   async findDue(userId: string, limit = 20) {
+    const subExamId = await this.getSubscriptionExamId(userId);
+    const conditions = [
+      eq(userFlashcardReviews.userId, userId),
+      eq(flashcards.isActive, true),
+    ];
+    if (subExamId) conditions.push(or(eq(flashcards.examId, subExamId), isNull(flashcards.examId)) as SQL<unknown>);
+
     return this.db
       .select()
       .from(userFlashcardReviews)
@@ -44,12 +57,7 @@ export class FlashcardsService {
         flashcards,
         eq(flashcards.id, userFlashcardReviews.flashcardId),
       )
-      .where(
-        and(
-          eq(userFlashcardReviews.userId, userId),
-          eq(flashcards.isActive, true),
-        ),
-      )
+      .where(and(...conditions))
       .limit(limit);
   }
 
@@ -197,5 +205,15 @@ export class FlashcardsService {
     if (newEF < 130) newEF = 130;
 
     return { easeFactor: Math.round(newEF), interval: newInterval, repetitions: newReps };
+  }
+
+  private async getSubscriptionExamId(userId: string): Promise<string | null> {
+    const [sub] = await this.db
+      .select({ examId: subscriptionPlans.examId })
+      .from(userSubscriptions)
+      .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+      .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+      .limit(1);
+    return sub?.examId || null;
   }
 }

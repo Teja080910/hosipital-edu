@@ -127,7 +127,7 @@ export default function CourseDetailPage() {
 
   const renderQuizCard = (quiz: any, type: "pre_test" | "post_test") => {
     const result = testResults?.[type];
-    const label = type === "pre_test" ? (t("pre_test") || "Pre-Test") : (t("post_test") || "Post-Test");
+    const label = type === "pre_test" ? t("pre_test") : t("post_test");
     const Icon = type === "pre_test" ? ClipboardCheck : BarChart3;
 
     if (showPreTest && type === "pre_test") {
@@ -137,7 +137,7 @@ export default function CourseDetailPage() {
           onComplete={(passed, score) => {
             setShowPreTest(false);
             coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
-            if (passed) toast.success(t("pre_test_passed") || "Pre-Test passed!");
+            if (passed) toast.success(t("pre_test_passed"));
           }}
         />
       );
@@ -150,7 +150,7 @@ export default function CourseDetailPage() {
           onComplete={(passed, score) => {
             setShowPostTest(false);
             coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
-            if (passed) toast.success(t("post_test_passed") || "Post-Test passed!");
+            if (passed) toast.success(t("post_test_passed"));
           }}
         />
       );
@@ -165,13 +165,13 @@ export default function CourseDetailPage() {
               <p className="font-medium">{label}</p>
               {result ? (
                 <p className="text-sm text-muted-foreground">
-                  {t("score") || "Score"}: {result.score}% — {new Date(result.completedAt).toLocaleDateString()}
+                  {t("score")}: {result.score}% — {new Date(result.completedAt).toLocaleDateString()}
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {type === "pre_test"
-                    ? (t("pre_test_desc") || "Test your knowledge before starting")
-                    : (t("post_test_desc") || "Test your knowledge after completing the course")}
+                    ? t("pre_test_desc")
+                    : t("post_test_desc")}
                 </p>
               )}
             </div>
@@ -183,7 +183,7 @@ export default function CourseDetailPage() {
               else setShowPostTest(true);
             }}
           >
-            {result ? (t("retake") || "Retake") : (t("start") || "Start")}
+            {result ? t("retake") : t("start")}
           </Button>
         </CardContent>
       </Card>
@@ -214,7 +214,7 @@ export default function CourseDetailPage() {
         {!isEnrolled && (
           <Button size="lg" onClick={handleEnroll} disabled={enrolling}>
             {enrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {parseFloat(course.price) > 0 ? `Enroll - $${course.price}` : t("enroll_free")}
+            {parseFloat(course.price) > 0 ? `${t("enroll")} - $${course.price}` : t("enroll_free")}
           </Button>
         )}
         {isEnrolled && <Badge className="text-sm px-3 py-1">{t("enrolled_badge")}</Badge>}
@@ -255,23 +255,23 @@ export default function CourseDetailPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary" />
-                {t("test_comparison") || "Pre vs Post Test Comparison"}
+                {t("test_comparison")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-6">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">{t("pre_test") || "Pre-Test"}</p>
+                  <p className="text-sm text-muted-foreground">{t("pre_test")}</p>
                   <p className="text-2xl font-bold text-blue-500">{testResults.pre_test.score}%</p>
                 </div>
                 <div className="text-2xl text-muted-foreground">→</div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">{t("post_test") || "Post-Test"}</p>
+                  <p className="text-sm text-muted-foreground">{t("post_test")}</p>
                   <p className="text-2xl font-bold text-green-500">{testResults.post_test.score}%</p>
                 </div>
                 <div className="flex-1" />
                 <div className="text-center p-3 rounded-lg bg-muted">
-                  <p className="text-sm text-muted-foreground">{t("improvement") || "Improvement"}</p>
+                  <p className="text-sm text-muted-foreground">{t("improvement")}</p>
                   <p className="text-xl font-bold text-primary">
                     +{testResults.post_test.score - testResults.pre_test.score}%
                   </p>
@@ -322,7 +322,7 @@ export default function CourseDetailPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{lessonTitle}</p>
                           </div>
-                          {isCompleted && <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-600 border-green-200">Done</Badge>}
+                          {isCompleted && <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-600 border-green-200">{t("done")}</Badge>}
                           {lesson.duration > 0 && (
                             <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                               <Clock className="h-3 w-3" />

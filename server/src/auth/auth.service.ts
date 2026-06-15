@@ -4,7 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
 import { DRIZZLE } from "../database/database.provider";
-import { users, userQuestionProgress } from "../database/schema";
+import { users, userSubscriptions, subscriptionPlans } from "../database/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { RegisterDto } from "./dto/register.dto";
 import { MailService } from "../mail/mail.service";
@@ -49,6 +49,7 @@ export class AuthService {
         referralCode,
         referredBy,
         accountType: dto.accountType || "full",
+        targetExamId: dto.targetExamId || null,
       })
       .returning();
 
@@ -59,6 +60,23 @@ export class AuthService {
     await this.mailService.sendVerificationEmail(user.email, user.name, token);
 
     const tokens = await this.generateTokens(user);
+
+    const [defaultPlan] = await this.db
+      .select()
+      .from(subscriptionPlans)
+      .where(and(eq(subscriptionPlans.isDefault, true), eq(subscriptionPlans.isActive, true)))
+      .limit(1);
+
+    if (defaultPlan) {
+      await this.db.insert(userSubscriptions).values({
+        userId: user.id,
+        planId: defaultPlan.id,
+        status: "active",
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + (defaultPlan.maxDays || 1) * 86400000),
+      });
+    }
+
     return { user: this.sanitizeUser(user), ...tokens };
   }
 
@@ -194,7 +212,7 @@ export class AuthService {
   }
 
   async generateTokens(user: any) {
-    const payload = { sub: user.id, email: user.email, role: user.role, accountType: user.accountType || "full" };
+    const payload = { sub: user.id, email: user.email, role: user.role, accountType: user.accountType || "full", targetExamId: user.targetExamId || null };
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, {

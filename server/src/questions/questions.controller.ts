@@ -44,8 +44,9 @@ export class QuestionsController {
     @Query("page") page?: number,
     @Query("limit") limit?: number,
     @Query("search") search?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.questionsService.findAll({ examId, specialtyId, topicId, subtopicId, difficulty, page, limit, search });
+    return this.questionsService.findAll({ examId, specialtyId, topicId, subtopicId, difficulty, page, limit, search }, user);
   }
 
   @Get(":id")

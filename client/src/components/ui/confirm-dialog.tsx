@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -26,11 +27,12 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   variant = "destructive",
   onConfirm,
 }: ConfirmDialogProps) {
+  const t = useTranslations("common");
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
@@ -52,10 +54,10 @@ export function ConfirmDialog({
         </DialogHeader>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            {cancelLabel}
+            {cancelLabel || t("cancel")}
           </Button>
           <Button variant={variant} onClick={handleConfirm} disabled={loading}>
-            {loading ? "Loading..." : confirmLabel}
+            {loading ? t("loading") : confirmLabel || t("confirm")}
           </Button>
         </div>
       </DialogContent>

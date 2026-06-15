@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -31,8 +32,15 @@ export class UploadService {
     });
 
     const url = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
-    const publicUrlBase = this.config.get<string>("R2_PUBLIC_URL");
-    const publicUrl = publicUrlBase ? `${publicUrlBase}/${key}` : url;
+    const publicUrl = `/api/images/${key}`;
     return { url, key, publicUrl };
+  }
+
+  async getImageUrl(key: string) {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+    return getSignedUrl(this.s3, command, { expiresIn: 86400 });
   }
 }

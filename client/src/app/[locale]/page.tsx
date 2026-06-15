@@ -57,34 +57,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const features = [
-  { icon: BookOpen, title: "Question Bank", desc: "Thousands of exam-style questions with detailed explanations and clinical pearls" },
-  { icon: Brain, title: "Smart Flashcards", desc: "Spaced repetition flashcards optimized for long-term retention" },
-  { icon: Video, title: "Video Classes", desc: "Expert-led video lectures on high-yield medical topics" },
-  { icon: Library, title: "Structured Courses", desc: "Comprehensive courses designed by board-certified physicians" },
-  { icon: BarChart3, title: "Performance Analytics", desc: "Track your progress with detailed stats and insights" },
-  { icon: Calendar, title: "Study Planner", desc: "AI-powered study plans tailored to your exam date" },
-];
-
-const testimonials = [
-  { name: "Dr. Maria Garcia", role: "Resident Physician", text: "MD Exams transformed my board preparation. The question bank is unmatched in quality and depth." },
-  { name: "Dr. James Wilson", role: "Medical Student", text: "The spaced repetition flashcards helped me memorize complex topics effortlessly. Game-changer." },
-  { name: "Dr. Sarah Chen", role: "Internal Medicine", text: "Best ENARM prep platform I've used. The analytics helped me identify and fix my weak areas." },
-];
-
-const planFeatures: Record<string, string[]> = {
-  monthly: ["Full question bank access", "Basic performance analytics", "Community discussion forum", "Mobile app access"],
-  quarterly: ["Everything in Monthly", "Advanced analytics & insights", "Priority email support", "Study planner integration", "Mock exam simulations"],
-  annual: ["Everything in Quarterly", "1-on-1 tutoring session", "Certificate of completion", "Early access to new features", "Lifetime question bank updates"],
-};
-
-const faqs = [
-  { q: "How does the question bank work?", a: "Our question bank contains thousands of exam-style questions organized by specialty and topic. You can study in Study Mode with instant feedback and explanations, or Exam Mode for timed simulation." },
-  { q: "What is spaced repetition and how does it help?", a: "Spaced repetition is a scientifically proven learning technique that schedules reviews at optimal intervals. Our SM-2 algorithm ensures you review cards right when you're about to forget them, maximizing retention." },
-  { q: "Can I access content on mobile?", a: "Yes! Our platform is fully responsive and works seamlessly on all devices. Mobile app coming soon." },
-  { q: "Is there a money-back guarantee?", a: "Absolutely. We offer a 14-day money-back guarantee on all plans. If you're not satisfied, we'll refund your purchase — no questions asked." },
-];
-
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
   whileInView: { opacity: 1, y: 0 },
@@ -103,6 +75,30 @@ const sb = useTranslations("subscribe");
   const a = useTranslations("auth");
   const n = useTranslations("nav");
   const c = useTranslations("common");
+
+  const features = Array.from({ length: 6 }, (_, i) => ({
+    icon: [BookOpen, Brain, Video, Library, BarChart3, Calendar][i],
+    title: t(`feature_${i}_title`),
+    desc: t(`feature_${i}_desc`),
+  }));
+
+  const testimonials = Array.from({ length: 3 }, (_, i) => ({
+    name: t(`testimonial_${i}_name`),
+    role: t(`testimonial_${i}_role`),
+    text: t(`testimonial_${i}_text`),
+  }));
+
+  const planFeatures: Record<string, string[]> = {
+    monthly: Array.from({ length: 4 }, (_, i) => t(`plan_monthly_${i}`)),
+    quarterly: Array.from({ length: 5 }, (_, i) => t(`plan_quarterly_${i}`)),
+    annual: Array.from({ length: 5 }, (_, i) => t(`plan_annual_${i}`)),
+  };
+
+  const faqs = Array.from({ length: 4 }, (_, i) => ({
+    q: t(`faq_${i}_q`),
+    a: t(`faq_${i}_a`),
+  }));
+
   const { theme, setTheme, resolvedTheme } = useTheme();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -186,8 +182,8 @@ const sb = useTranslations("subscribe");
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-transparent bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="MD Exams" width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-bold tracking-tight">MD Exams</span>
+            <Image src="/logo.png" alt={t("brand")} width={32} height={32} className="rounded-lg" />
+            <span className="text-lg font-bold tracking-tight">{t("brand")}</span>
           </Link>
           <div className="flex items-center gap-1">
             <DropdownMenu>
@@ -198,10 +194,10 @@ const sb = useTranslations("subscribe");
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[130px] rounded-xl border-border/50 shadow-lg">
                 <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
-                  🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">active</span>}
+                  🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
-                  🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">active</span>}
+                  🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -220,7 +216,7 @@ const sb = useTranslations("subscribe");
                 <>
                 <Link href="/dashboard">
                   <Button size="sm" className="text-sm shadow-subtle">
-                    Dashboard
+                    {n("dashboard")}
                     <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                   </Button>
                 </Link>
@@ -261,6 +257,14 @@ const sb = useTranslations("subscribe");
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-32 lg:py-40">
           <div className="text-center max-w-4xl mx-auto">
             <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const }}
+              className="mb-8"
+            >
+              <Image src="/logo.png" alt={t("brand")} width={80} height={80} className="mx-auto rounded-2xl shadow-xl" />
+            </motion.div>
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const }}
@@ -280,9 +284,9 @@ const sb = useTranslations("subscribe");
               >
                 <TypewriterText
                   parts={[
-                    { text: t("hero_heading_1") + " " },
-                    { text: t("hero_heading_2"), className: "bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent" },
-                    { text: " " + t("hero_heading_3") },
+                    { text: t("hero_heading_1"), className: "bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent" },
+                    { text: t("hero_heading_2") + " " + t("hero_heading_3") },
+                    { text: t("hero_heading_2") + " " + t("hero_heading_3") + " " + t("hero_heading_4") },
                   ]}
                   speed={60}
                   deleteSpeed={25}
@@ -326,7 +330,7 @@ const sb = useTranslations("subscribe");
               transition={{ duration: 0.8, delay: 0.5 }}
               className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
             >
-              {["ENARM", "MIR", "USMLE Step 1", "USMLE Step 2 CK", "ENURM"].map((exam) => (
+              {["ENURM", "ENARM", "MIR", "USMLE Step 1", "USMLE Step 2 CK", "CURSOS"].map((exam) => (
                 <div key={exam} className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-primary" />
                   <span>{exam}</span>
@@ -462,7 +466,7 @@ const sb = useTranslations("subscribe");
             {plans.map((plan, i) => {
               const pName = plan.name?.en || plan.name;
               const pPopular = plan.sortOrder === 1;
-              const pPeriod = plan.interval === "year" ? "/year" : plan.interval === "quarter" ? "/quarter" : "/month";
+              const pPeriod = plan.interval === "year" ? t("period_year") : plan.interval === "quarter" ? t("period_quarter") : t("period_month");
               const features = planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"];
               return (
               <motion.div key={plan.id || pName} {...stagger(i)}>
@@ -509,7 +513,7 @@ const sb = useTranslations("subscribe");
           <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
             <div>
               <motion.div {...fadeUp} className="text-center lg:text-left mb-16">
-                <Badge variant="secondary" className="mb-4">FAQ</Badge>
+                <Badge variant="secondary" className="mb-4">{t("faq")}</Badge>
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
                   {t("faq_title")}
                 </h2>
@@ -595,11 +599,11 @@ const sb = useTranslations("subscribe");
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt="MD Exams" width={28} height={28} className="rounded-lg" />
-              <span className="font-semibold">MD Exams</span>
+              <Image src="/logo.png" alt={t("brand")} width={28} height={28} className="rounded-lg" />
+              <span className="font-semibold">{t("brand")}</span>
             </Link>
             <div className="flex gap-6 text-sm text-muted-foreground">
-              <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
+              <Link href="/blog" className="hover:text-foreground transition-colors">{t("blog")}</Link>
               <Link href="/content/terms" className="hover:text-foreground transition-colors">{t("terms")}</Link>
               <Link href="/content/privacy" className="hover:text-foreground transition-colors">{t("privacy")}</Link>
               <Link href="/content/faq" className="hover:text-foreground transition-colors">{t("faq_title")}</Link>

@@ -64,7 +64,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [selectedSpecialty, setSelectedSpecialty] = useState("");
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [selectedTopic, setSelectedTopic] = useState("");
   const [selectedSubtopic, setSelectedSubtopic] = useState("");
   const [showSpecialties, setShowSpecialties] = useState(false);
@@ -174,15 +174,23 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     let filtered = allQuestions;
-    if (selectedSpecialty) filtered = filtered.filter((q) => q.specialtyId === selectedSpecialty);
+    if (selectedSpecialties.length > 0) filtered = filtered.filter((q) => q.specialtyId && selectedSpecialties.includes(q.specialtyId));
     if (selectedTopic) filtered = filtered.filter((q) => q.topicId === selectedTopic);
     if (selectedSubtopic) filtered = filtered.filter((q) => q.subtopicId === selectedSubtopic);
     setFilteredQuestions(filtered);
-  }, [selectedSpecialty, selectedTopic, selectedSubtopic, allQuestions]);
+  }, [selectedSpecialties, selectedTopic, selectedSubtopic, allQuestions]);
+
+  useEffect(() => {
+    const maxQ = filteredQuestions.length;
+    if (maxQ > 0 && questionLimit > maxQ) {
+      setQuestionLimit(maxQ);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredQuestions.length]);
 
   const specialties = exam?.specialties || [];
-  const currentSpecialty = specialties.find((s: any) => s.id === selectedSpecialty);
-  const topics = currentSpecialty?.topics || [];
+  const currentSpecialties = specialties.filter((s: any) => selectedSpecialties.includes(s.id));
+  const topics = currentSpecialties.length > 0 ? currentSpecialties.flatMap((s: any) => s.topics || []) : specialties.flatMap((s: any) => s.topics || []);
   const currentTopic = topics.find((t: any) => t.id === selectedTopic);
   const subtopics = currentTopic?.subtopics || [];
 
@@ -381,7 +389,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6 p-5 sm:p-6">
-                <p className="text-lg font-semibold leading-8 text-foreground sm:text-xl">{currentQuestion.text}</p>
+                <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2">{currentQuestion.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
                 {currentQuestion.images && currentQuestion.images.length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.map((img: any) => (
@@ -396,7 +404,11 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                     const isSelected = answered === option.id;
                     const isCorrectOption = option.isCorrect;
                     let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
-                    if (mode === "exam") {
+                    if (showAnswer) {
+                      if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
+                      else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
+                      else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                    } else if (mode === "exam") {
                       if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
                     } else {
                       const showCorrect = showAnswer || (answered !== null && isSelected);
@@ -405,15 +417,15 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                       else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
                     }
                     return (
-                      <button key={option.id} onClick={() => handleAnswer(option.id)} disabled={answered !== null && mode === "study"} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
+                      <button key={option.id} onClick={() => handleAnswer(option.id)} disabled={answered !== null && (mode === "study" || showAnswer)} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
                         <div className="flex items-start gap-4">
                           <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
-                            mode !== "exam" && showAnswer && isCorrectOption ? "border-green-500 bg-green-500 text-white" :
-                            mode !== "exam" && showAnswer && isSelected && !isCorrectOption ? "border-destructive bg-destructive text-white" :
+                            showAnswer && isCorrectOption ? "border-green-500 bg-green-500 text-white" :
+                            showAnswer && isSelected && !isCorrectOption ? "border-destructive bg-destructive text-white" :
                             isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
                           }`}>
-                            {mode !== "exam" && showAnswer && isCorrectOption ? <CheckCircle2 className="h-4 w-4" /> :
-                              mode !== "exam" && showAnswer && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
+                            {showAnswer && isCorrectOption ? <CheckCircle2 className="h-4 w-4" /> :
+                              showAnswer && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
                               String.fromCharCode(65 + optionIndex)}
                           </div>
                           <span className="pt-1.5 leading-6">{option.text}</span>
@@ -422,8 +434,8 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                     );
                   })}
                 </div>
-                {mode === "study" && showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><p className="text-sm leading-6 text-muted-foreground">{currentQuestion.explanation}</p></div>)}
-                {mode === "study" && showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground">{currentQuestion.reference}</p></div>)}
+                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><div className="text-sm leading-6 text-muted-foreground space-y-2">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div></div>)}
+                {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground">{currentQuestion.reference}</p></div>)}
                 {mode === "study" && answered && !showAnswer && <Button variant="outline" onClick={() => setShowAnswer(true)} className="w-full">{t("show_explanation")}</Button>}
               </CardContent>
             </Card>
@@ -513,16 +525,32 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                 <label className="text-sm font-medium mb-2 block">{t("specialty")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowSpecialties(!showSpecialties); setShowTopics(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
-                    <span className={selectedSpecialty ? "" : "text-muted-foreground"}>{selectedSpecialty ? localized(currentSpecialty?.name) : t("all_specialties")}</span><ChevronDown className="h-4 w-4" />
+                    <span className={selectedSpecialties.length > 0 ? "" : "text-muted-foreground"}>
+                      {selectedSpecialties.length > 0 ? `${selectedSpecialties.length} selected` : t("all_specialties")}
+                    </span><ChevronDown className="h-4 w-4" />
                   </button>
                   {showSpecialties && (
                     <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
                       <ScrollArea className="max-h-48">
                         <CardContent className="p-1">
-                          <button onClick={() => { setSelectedSpecialty(""); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{!selectedSpecialty && <Check className="h-4 w-4 text-primary" />}{t("all_specialties")}</button>
-                          {specialties.map((s: any) => (
-                            <button key={s.id} onClick={() => { setSelectedSpecialty(s.id); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedSpecialty === s.id && <Check className="h-4 w-4 text-primary" />}{localized(s.name)}</button>
-                          ))}
+                          <button onClick={() => { setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedSpecialties.length === 0 && <Check className="h-4 w-4 text-primary" />}{t("all_specialties")}</button>
+                          {specialties.map((s: any) => {
+                            const isSelected = selectedSpecialties.includes(s.id);
+                            return (
+                              <button key={s.id} onClick={() => {
+                                setSelectedSpecialties((prev) =>
+                                  prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id]
+                                );
+                                setSelectedTopic("");
+                                setSelectedSubtopic("");
+                              }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">
+                                <div className={`h-4 w-4 rounded border flex items-center justify-center ${isSelected ? "bg-primary border-primary" : "border-input"}`}>
+                                  {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                                </div>
+                                {localized(s.name)}
+                              </button>
+                            );
+                          })}
                         </CardContent>
                       </ScrollArea>
                     </Card>
@@ -531,7 +559,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
               </div>
             )}
 
-            {selectedSpecialty && topics.length > 0 && (
+            {topics.length > 0 && (
               <div>
                 <label className="text-sm font-medium mb-2 block">{t("topic")}</label>
                 <div className="relative">
@@ -582,11 +610,16 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
               <div className="flex items-center gap-4">
                 <input type="range" min={1} max={Math.max(1, maxQuestions)} step={1} value={Math.min(questionLimit, maxQuestions)} onChange={(e) => setQuestionLimit(Number(e.target.value))} className="flex-1 accent-primary" />
                 <Input
-                  type="number"
-                  min={1}
-                  max={maxQuestions}
-                  value={Math.min(questionLimit, maxQuestions)}
-                  onChange={(e) => setQuestionLimit(Math.min(Math.max(1, Number(e.target.value) || 1), maxQuestions))}
+                  type="text"
+                  inputMode="numeric"
+                  value={questionLimit || ""}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "");
+                    if (v === "") { setQuestionLimit(0); return; }
+                    const n = parseInt(v, 10);
+                    setQuestionLimit(Math.min(n, maxQuestions));
+                  }}
+                  onBlur={() => { if (questionLimit < 1 || isNaN(questionLimit)) setQuestionLimit(Math.max(1, maxQuestions)); }}
                   className="w-20 text-center"
                 />
               </div>
