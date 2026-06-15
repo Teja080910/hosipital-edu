@@ -129,6 +129,12 @@ export default function LessonPage() {
             </div>
           )}
 
+          {lesson.contentType === "image" && lesson.imageUrl && (
+            <div className="bg-muted rounded-lg flex items-center justify-center p-4">
+              <img src={lesson.imageUrl} alt={lessonTitle} className="max-w-full max-h-[600px] rounded-lg object-contain" />
+            </div>
+          )}
+
           {lesson.contentType === "text" && lesson.content && (
             <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: lesson.content }} />
           )}

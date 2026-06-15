@@ -115,7 +115,7 @@ export class CoursesController {
   @ApiOperation({ summary: "Create lesson (admin)" })
   async createLesson(
     @Param("moduleId", ParseUUIDPipe) moduleId: string,
-    @Body() data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
+    @Body() data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; imageUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
   ) {
     return this.coursesService.createLesson(moduleId, data);
   }
@@ -127,7 +127,7 @@ export class CoursesController {
   @ApiOperation({ summary: "Update lesson (admin)" })
   async updateLesson(
     @Param("lessonId", ParseUUIDPipe) lessonId: string,
-    @Body() data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
+    @Body() data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; imageUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
   ) {
     return this.coursesService.updateLesson(lessonId, data);
   }

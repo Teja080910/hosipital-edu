@@ -230,7 +230,7 @@ export class CoursesService {
     return { message: "Module deleted" };
   }
 
-  async createLesson(moduleId: string, data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
+  async createLesson(moduleId: string, data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; imageUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
     const [lesson] = await this.db
       .insert(courseLessons)
       .values({
@@ -239,6 +239,7 @@ export class CoursesService {
         contentType: data.contentType ?? "video",
         videoUrl: data.videoUrl,
         pdfUrl: data.pdfUrl,
+        imageUrl: data.imageUrl,
         content: data.content,
         duration: data.duration ?? 0,
         sortOrder: data.sortOrder ?? 0,
@@ -248,7 +249,7 @@ export class CoursesService {
     return lesson;
   }
 
-  async updateLesson(lessonId: string, data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
+  async updateLesson(lessonId: string, data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; imageUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
     const { createdAt, updatedAt, deletedAt, ...cleanData } = data as any;
     const [lesson] = await this.db
       .update(courseLessons)

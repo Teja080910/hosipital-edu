@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { coursesApi } from "@/lib/api";
-import { ChevronLeft, FileText, Film, FolderOpen, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { coursesApi, uploadApi } from "@/lib/api";
+import { ChevronLeft, FileText, Film, FolderOpen, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -32,8 +32,25 @@ export default function AdminCourseContentPage() {
   const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<any | null>(null);
   const [lessonModuleId, setLessonModuleId] = useState<string | null>(null);
-  const [lessonForm, setLessonForm] = useState({ title: "", contentType: "video", content: "", videoUrl: "", pdfUrl: "", duration: "0" });
+  const [lessonForm, setLessonForm] = useState({ title: "", contentType: "video", content: "", videoUrl: "", pdfUrl: "", imageUrl: "", duration: "0" });
   const [savingLesson, setSavingLesson] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+
+  const uploadFileToR2 = async (file: File, field: "pdfUrl" | "videoUrl") => {
+    setUploadingFile(file.name);
+    try {
+      const key = `courses/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { data } = await uploadApi.presignedUrl(key, file.type);
+      const { url, publicUrl } = data;
+      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      setLessonForm((p) => ({ ...p, [field]: publicUrl }));
+      toast.success(`${file.name} uploaded`);
+    } catch {
+      toast.error("Failed to upload file");
+    } finally {
+      setUploadingFile(null);
+    }
+  };
 
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [deleteType, setDeleteType] = useState<"module" | "lesson">("module");
@@ -122,7 +139,7 @@ export default function AdminCourseContentPage() {
   const openCreateLesson = (moduleId: string) => {
     setLessonModuleId(moduleId);
     setEditingLesson(null);
-    setLessonForm({ title: "", contentType: "video", content: "", videoUrl: "", pdfUrl: "", duration: "0" });
+    setLessonForm({ title: "", contentType: "video", content: "", videoUrl: "", pdfUrl: "", imageUrl: "", duration: "0" });
     setLessonDialogOpen(true);
   };
 
@@ -135,6 +152,7 @@ export default function AdminCourseContentPage() {
       content: lesson.content || "",
       videoUrl: lesson.videoUrl || "",
       pdfUrl: lesson.pdfUrl || "",
+      imageUrl: lesson.imageUrl || "",
       duration: String(lesson.duration || 0),
     });
     setLessonDialogOpen(true);
@@ -150,6 +168,7 @@ export default function AdminCourseContentPage() {
       };
       if (lessonForm.contentType === "video") payload.videoUrl = lessonForm.videoUrl;
       if (lessonForm.contentType === "pdf") payload.pdfUrl = lessonForm.pdfUrl;
+      if (lessonForm.contentType === "image") payload.imageUrl = lessonForm.imageUrl;
       if (lessonForm.contentType === "text") payload.content = lessonForm.content;
 
       if (editingLesson) {
@@ -332,8 +351,54 @@ export default function AdminCourseContentPage() {
             )}
             {lessonForm.contentType === "pdf" && (
               <div>
-                <label className="text-sm font-medium">{t("pdf_url")}</label>
-                <Input value={lessonForm.pdfUrl} onChange={(e) => setLessonForm((p) => ({ ...p, pdfUrl: e.target.value }))} placeholder={t("pdf_url_placeholder")} />
+                <label className="text-sm font-medium">PDF File</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    disabled={uploadingFile !== null}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadFileToR2(file, "pdfUrl");
+                    }}
+                  />
+                  {uploadingFile && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
+                </div>
+                {lessonForm.pdfUrl && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate flex-1">{lessonForm.pdfUrl.split("/").pop()}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setLessonForm((p) => ({ ...p, pdfUrl: "" }))}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+            {lessonForm.contentType === "image" && (
+              <div>
+                <label className="text-sm font-medium">Image File</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingFile !== null}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadFileToR2(file, "imageUrl");
+                    }}
+                  />
+                  {uploadingFile && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
+                </div>
+                {lessonForm.imageUrl && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate flex-1">{lessonForm.imageUrl.split("/").pop()}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setLessonForm((p) => ({ ...p, imageUrl: "" }))}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
             {lessonForm.contentType === "text" && (

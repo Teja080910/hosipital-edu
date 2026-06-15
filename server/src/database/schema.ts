@@ -370,6 +370,7 @@ export const courseLessons = pgTable("course_lessons", {
   contentType: text("content_type").notNull().default("video"),
   videoUrl: text("video_url"),
   pdfUrl: text("pdf_url"),
+  imageUrl: text("image_url"),
   content: text("content"),
   duration: integer("duration").notNull().default(0),
   sortOrder: integer("sort_order").default(0).notNull(),
