@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -25,6 +26,7 @@ interface CourseQuizProps {
 }
 
 export function CourseQuiz({ quiz, onComplete }: CourseQuizProps) {
+  const t = useTranslations("courses");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<{ questionIndex: number; selectedOptionIndex: number }[]>([]);
   const [attemptId, setAttemptId] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function CourseQuiz({ quiz, onComplete }: CourseQuizProps) {
       const { data } = await coursesApi.startQuiz(quiz.id);
       setAttemptId(data.id);
     } catch {
-      toast.error("Failed to start quiz");
+      toast.error(t("failed_start_quiz"));
     } finally {
       setStarting(false);
     }
@@ -71,7 +73,7 @@ export function CourseQuiz({ quiz, onComplete }: CourseQuizProps) {
       setSubmitted(true);
       onComplete?.(data.passed, data.score);
     } catch {
-      toast.error("Failed to submit quiz");
+      toast.error(t("failed_submit_quiz"));
     } finally {
       setSubmitting(false);
     }
@@ -81,15 +83,15 @@ export function CourseQuiz({ quiz, onComplete }: CourseQuizProps) {
     return (
       <Card className="max-w-2xl mx-auto">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">{title || "Quiz"}</CardTitle>
+          <CardTitle className="text-xl">{title || t("quiz_title")}</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            {questions.length} questions &middot; Passing score: {quiz.passingScore}%
+            {t("questions_count", { count: questions.length })} &middot; {t("score")}: {quiz.passingScore}%
           </p>
         </CardHeader>
         <CardFooter className="justify-center pb-6">
           <Button size="lg" onClick={handleStart} disabled={starting}>
             {starting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Start Quiz
+            {t("start_quiz")}
           </Button>
         </CardFooter>
       </Card>
@@ -108,10 +110,10 @@ export function CourseQuiz({ quiz, onComplete }: CourseQuizProps) {
             )}
           </div>
           <CardTitle className="text-xl">
-            {result.passed ? "Quiz Passed!" : "Quiz Failed"}
+            {result.passed ? t("quiz_pass") : t("quiz_fail")}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Score: {result.score}% ({result.correctAnswers}/{result.totalQuestions} correct)
+            {t("score_percent", { score: result.score, correct: result.correctAnswers, total: result.totalQuestions })}
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -145,8 +147,8 @@ export function CourseQuiz({ quiz, onComplete }: CourseQuizProps) {
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
         <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-          <span>Question {currentQuestion + 1} of {questions.length}</span>
-          <span>{answers.length} answered</span>
+          <span>{t("question_of", { current: currentQuestion + 1, total: questions.length })}</span>
+          <span>{answers.length} {t("answered")}</span>
         </div>
         <Progress value={progress} className="h-1" />
         <CardTitle className="text-lg mt-4">{question.question}</CardTitle>
@@ -175,16 +177,16 @@ export function CourseQuiz({ quiz, onComplete }: CourseQuizProps) {
           onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
           disabled={currentQuestion === 0}
         >
-          Previous
+          {t("previous")}
         </Button>
         {currentQuestion < questions.length - 1 ? (
           <Button onClick={() => setCurrentQuestion(currentQuestion + 1)}>
-            Next
+            {t("next")}
           </Button>
         ) : (
           <Button onClick={handleSubmit} disabled={submitting || answers.length < questions.length}>
             {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Submit
+{t("submit")}
           </Button>
         )}
       </CardFooter>

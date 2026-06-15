@@ -65,6 +65,7 @@ export const users = pgTable("users", {
   zipCode: text("zip_code"),
   role: text("role").default("student").notNull(),
   accountType: text("account_type").default("full").notNull(),
+  targetExamId: uuid("target_exam_id").references(() => exams.id, { onDelete: "set null" }),
   avatarUrl: text("avatar_url"),
   emailVerifiedAt: timestamp("email_verified_at"),
   googleId: text("google_id").unique(),

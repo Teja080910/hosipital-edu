@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 
 export function PublicNav() {
   const t = useTranslations("nav");
+  const s = useTranslations("sidebar");
   const { theme, setTheme } = useTheme();
   const { user, isLoading } = useAuth();
 
@@ -15,8 +16,8 @@ export function PublicNav() {
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="MD Exams" width={32} height={32} className="rounded-lg" />
-          <span className="text-lg font-bold tracking-tight">MD Exams</span>
+          <Image src="/logo.png" alt={s("brand")} width={32} height={32} className="rounded-lg" />
+          <span className="text-lg font-bold tracking-tight">{s("brand")}</span>
         </Link>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild><Link href="/blog">{t("blog")}</Link></Button>

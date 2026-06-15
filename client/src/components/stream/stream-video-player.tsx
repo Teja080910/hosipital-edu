@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { streamApi, videosApi } from "@/lib/api";
 
 interface StreamVideoPlayerProps {
@@ -10,6 +11,7 @@ interface StreamVideoPlayerProps {
 }
 
 export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlayerProps) {
+  const t = useTranslations("videos");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const savedRef = useRef<number>(0);
 
@@ -77,7 +79,7 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
         className="absolute inset-0 w-full h-full"
         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
         allowFullScreen
-        title="Video player"
+        title={t("video_player")}
       />
     </div>
   );

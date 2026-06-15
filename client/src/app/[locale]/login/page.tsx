@@ -13,6 +13,7 @@ import { GraduationCap, Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export default function LoginPage() {
   const t = useTranslations("auth");
@@ -66,9 +67,7 @@ export default function LoginPage() {
               transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
               className="flex justify-center mb-5"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/25">
-                <GraduationCap className="h-7 w-7 text-white" />
-              </div>
+              <Image src="/logo.png" alt="MD Exam" width={56} height={56} className="rounded-xl" />
             </motion.div>
             <CardTitle className="text-2xl font-bold tracking-tight">{t("login_title")}</CardTitle>
             <CardDescription className="text-sm mt-1.5">{t("login_subtitle")}</CardDescription>

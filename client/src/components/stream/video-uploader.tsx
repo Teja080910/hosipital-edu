@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -15,6 +16,7 @@ interface VideoUploaderProps {
 }
 
 export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUploaderProps) {
+  const t = useTranslations("videos");
   const [uploading, setUploading] = useState(false);
   const [polling, setPolling] = useState(false);
   const [videoUid, setVideoUid] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
     if (!file) return;
 
     if (file.size > 200 * 1024 * 1024) {
-      toast.error("File too large. Max 200MB.");
+      toast.error(t("file_too_large"));
       return;
     }
 
@@ -40,11 +42,11 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
       });
 
       if (!uploadRes.ok) {
-        throw new Error("Upload failed");
+        throw new Error(t("upload_failed"));
       }
 
       setVideoUid(uid);
-      toast.success("Uploading video...");
+      toast.success(t("uploading_video"));
 
       setPolling(true);
       const poll = setInterval(async () => {
@@ -55,7 +57,7 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
             setPolling(false);
             onUploadComplete({ uid, thumbnail: video.thumbnail, duration: video.duration });
             onOpenChange(false);
-            toast.success("Video ready!");
+            toast.success(t("video_ready"));
           }
         } catch {
           clearInterval(poll);
@@ -68,7 +70,7 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
         setPolling(false);
       }, 60000);
     } catch (err: any) {
-      toast.error(err?.message || "Upload failed");
+      toast.error(err?.message || t("upload_failed"));
     } finally {
       setUploading(false);
     }
@@ -78,14 +80,14 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Upload Video</DialogTitle>
+          <DialogTitle>{t("upload_video")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           {uploading || polling ? (
             <div className="flex flex-col items-center gap-2 py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
-                {polling ? "Processing video..." : "Uploading..."}
+                {polling ? t("processing_video") : t("uploading")}
               </p>
             </div>
           ) : (
@@ -94,7 +96,7 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={uploading || polling}>
-            Cancel
+            {t("cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>

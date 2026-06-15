@@ -44,7 +44,7 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
                 question.difficulty === "medium" ? "secondary" : "destructive"
               }
             >
-              {question.difficulty}
+              {t(question.difficulty)}
             </Badge>
           </div>
         </div>
@@ -58,7 +58,7 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
           <div className="flex flex-wrap gap-4">
             {question.images.map((img) => (
               <a key={img.id} href={img.url} target="_blank" rel="noopener noreferrer">
-                <img src={img.url} alt={img.caption || "Question image"} className="max-w-full rounded-lg border" style={{ maxHeight: 400 }} />
+                <img src={img.url} alt={img.caption || t("question_image")} className="max-w-full rounded-lg border" style={{ maxHeight: 400 }} />
               </a>
             ))}
           </div>
@@ -114,7 +114,7 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
         {showAnswer && question.explanation && (
           <div className="rounded-lg bg-muted p-4">
             <p className="text-sm font-medium mb-1">{t("explanation")}:</p>
-            <p className="text-sm text-muted-foreground">{question.explanation}</p>
+            <div className="text-sm text-muted-foreground space-y-1">{question.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
           </div>
         )}
       </CardContent>

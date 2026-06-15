@@ -21,6 +21,9 @@ function localized(obj: Record<string, string> | string | null | undefined, loca
 
 export default function DashboardPage() {
   const t = useTranslations("nav");
+  const td = useTranslations("dashboard");
+  const tp = useTranslations("progress");
+  const te = useTranslations("exams");
   const { user } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [exams, setExams] = useState<any[]>([]);
@@ -38,10 +41,10 @@ export default function DashboardPage() {
 
   const statCards = stats
     ? [
-        { label: "Questions Answered", value: stats.questions?.totalAnswered ?? "—", icon: BookOpen, color: "text-blue-500" },
-        { label: "Accuracy", value: stats.questions?.totalAnswered ? `${Math.round((stats.questions.totalCorrect / stats.questions.totalAnswered) * 100)}%` : "—", icon: Target, color: "text-green-500" },
-        { label: "Exams Completed", value: stats.attempts?.completed ?? "—", icon: GraduationCap, color: "text-orange-500" },
-        { label: "Flashcards Reviewed", value: stats.flashcards?.totalReviewed ?? "—", icon: Brain, color: "text-purple-500" },
+        { label: tp("questions_answered"), value: stats.questions?.totalAnswered ?? "—", icon: BookOpen, color: "text-blue-500" },
+        { label: tp("accuracy"), value: stats.questions?.totalAnswered ? `${Math.round((stats.questions.totalCorrect / stats.questions.totalAnswered) * 100)}%` : "—", icon: Target, color: "text-green-500" },
+        { label: tp("exams_completed"), value: stats.attempts?.completed ?? "—", icon: GraduationCap, color: "text-orange-500" },
+        { label: tp("flashcards_reviewed"), value: stats.flashcards?.totalReviewed ?? "—", icon: Brain, color: "text-purple-500" },
       ]
     : [];
 
@@ -59,9 +62,9 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              Welcome back, {user?.name?.split(" ")[0] || "Student"}
+              Welcome back, {user?.name?.split(" ")[0] || td("student")}
             </h1>
-            <p className="text-muted-foreground">Continue your medical education</p>
+            <p className="text-muted-foreground">{td("continue_education")}</p>
           </div>
         </div>
 
@@ -82,12 +85,12 @@ export default function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-4">
           <Card className="lg:col-span-3">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Your Exams</CardTitle>
-              <Link href="/dashboard/exams"><Button variant="ghost" size="sm">View all <ChevronRight className="h-4 w-4 ml-1" /></Button></Link>
+              <CardTitle>{td("your_exams")}</CardTitle>
+              <Link href="/dashboard/exams"><Button variant="ghost" size="sm">{td("view_all")} <ChevronRight className="h-4 w-4 ml-1" /></Button></Link>
             </CardHeader>
             <CardContent>
               {exams.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No exams available yet</p>
+                <p className="text-sm text-muted-foreground">{td("no_exams_available")}</p>
               ) : (
                 <div className="space-y-3">
                   {exams.map((exam: any) => (
@@ -96,7 +99,7 @@ export default function DashboardPage() {
                         <CardContent className="flex items-center justify-between p-4">
                           <div>
                             <p className="font-medium">{localized(exam.name)}</p>
-                            <p className="text-sm text-muted-foreground">{exam._questionCount ?? "—"} questions</p>
+                            <p className="text-sm text-muted-foreground">{te("questions_count", { count: exam._questionCount ?? "—" })}</p>
                           </div>
                           <GraduationCap className="h-5 w-5 text-muted-foreground" />
                         </CardContent>
@@ -110,22 +113,22 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>{td("quick_actions")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Link href="/dashboard/questions">
                 <Button className="w-full justify-start" variant="outline">
-                  <Brain className="mr-2 h-4 w-4" /> Study Questions
+                  <Brain className="mr-2 h-4 w-4" /> {td("study_questions")}
                 </Button>
               </Link>
               <Link href="/dashboard/exams">
                 <Button className="w-full justify-start" variant="outline">
-                  <GraduationCap className="mr-2 h-4 w-4" /> Take an Exam
+                  <GraduationCap className="mr-2 h-4 w-4" /> {td("take_an_exam")}
                 </Button>
               </Link>
               <Link href="/dashboard/flashcards">
                 <Button className="w-full justify-start" variant="outline">
-                  <BookOpen className="mr-2 h-4 w-4" /> Review Flashcards
+                  <BookOpen className="mr-2 h-4 w-4" /> {td("review_flashcards")}
                 </Button>
               </Link>
             </CardContent>
@@ -135,8 +138,8 @@ export default function DashboardPage() {
         {recentAttempts.length > 0 && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Recent Attempts</CardTitle>
-              <Link href="/dashboard/progress"><Button variant="ghost" size="sm">View all <ChevronRight className="h-4 w-4 ml-1" /></Button></Link>
+              <CardTitle>{td("recent_attempts")}</CardTitle>
+              <Link href="/dashboard/progress"><Button variant="ghost" size="sm">{td("view_all")} <ChevronRight className="h-4 w-4 ml-1" /></Button></Link>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -149,11 +152,11 @@ export default function DashboardPage() {
                         <Clock className="h-5 w-5 text-muted-foreground" />
                       )}
                       <div>
-                        <p className="text-sm font-medium">{a.examName?.en || a.examName || "Exam"}</p>
-                        <p className="text-xs text-muted-foreground">{a.correctCount}/{a.questionCount} correct · <Badge variant="outline" className="text-xs">{a.mode}</Badge></p>
+                        <p className="text-sm font-medium">{a.examName?.en || a.examName || te("exam")}</p>
+                        <p className="text-xs text-muted-foreground">{a.correctCount}/{a.questionCount} {te("correct")} · <Badge variant="outline" className="text-xs">{a.mode}</Badge></p>
                       </div>
                     </div>
-                    <span className="text-sm font-medium">{a.status === "completed" ? `${Math.round((a.correctCount / a.questionCount) * 100)}%` : "In progress"}</span>
+                    <span className="text-sm font-medium">{a.status === "completed" ? `${Math.round((a.correctCount / a.questionCount) * 100)}%` : te("in_progress")}</span>
                   </div>
                 ))}
               </div>

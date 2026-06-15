@@ -39,7 +39,7 @@ export default function AdminCoursesPage() {
       const { data } = await coursesApi.list(true);
       setCourses(data);
     } catch {
-      toast.error("Failed to load courses");
+      toast.error(t("load_failed_courses"));
     } finally {
       setLoading(false);
     }
@@ -78,16 +78,16 @@ export default function AdminCoursesPage() {
       };
       if (editing) {
         await coursesApi.update(editing.id, payload);
-        toast.success("Course updated");
+        toast.success(t("course_updated"));
       } else {
         payload.slug = form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
         await coursesApi.create(payload);
-        toast.success("Course created");
+        toast.success(t("course_created"));
       }
       setDialogOpen(false);
       fetchCourses();
     } catch {
-      toast.error("Failed to save course");
+      toast.error(t("course_save_failed"));
     } finally {
       setSaving(false);
     }
@@ -97,18 +97,18 @@ export default function AdminCoursesPage() {
     if (!deleteTarget) return;
     try {
       await coursesApi.remove(deleteTarget.id);
-      toast.success("Course deleted");
+      toast.success(t("course_deleted"));
       setDeleteTarget(null);
       fetchCourses();
     } catch {
-      toast.error("Failed to delete");
+      toast.error(t("course_delete_failed"));
     }
   };
 
   const columns = [
     { key: "title", header: t("title_col"), sortable: true, render: (row: any) => row.title?.en || row.title },
     { key: "durationDays", header: t("lessons_col"), render: (row: any) => `${row.durationDays}d` },
-    { key: "price", header: "Price", render: (row: any) => `$${row.price}` },
+    { key: "price", header: t("price"), render: (row: any) => `$${row.price}` },
     { key: "isActive", header: t("status"), render: (row: any) => <Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? c("active") : c("draft")}</Badge> },
     {
       key: "actions",
@@ -157,49 +157,49 @@ export default function AdminCoursesPage() {
               </div>
               <div className="text-left">
                 <DialogTitle className="text-xl font-bold tracking-tight">
-                  {editing ? "Edit Course Details" : "Create New Course"}
+                  {editing ? t("edit_course_details") : t("create_new_course")}
                 </DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Fill in the fields to configure the course</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("configure_course")}</p>
               </div>
             </div>
           </DialogHeader>
 
           <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Title (English)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("title_english")}</label>
               <Input
                 autoFocus
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Enter course title..."
+                placeholder={t("course_title_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Description</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("description")}</label>
               <Textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={3}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[100px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Enter course description..."
+                placeholder={t("course_description_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Short Description</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("short_description")}</label>
               <Input
                 value={form.shortDescription}
                 onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Brief summary..."
+                placeholder={t("short_description_placeholder")}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Price ($)</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("price")}</label>
                 <Input
                   type="number"
                   value={form.price}
@@ -208,7 +208,7 @@ export default function AdminCoursesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Duration (days)</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("duration_days")}</label>
                 <Input
                   type="number"
                   value={form.durationDays}
@@ -232,9 +232,9 @@ export default function AdminCoursesPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Delete Course"
-        description="Are you sure you want to delete this course? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t("delete_course_title")}
+        description={t("delete_course_confirm")}
+        confirmLabel={c("delete")}
         variant="destructive"
         onConfirm={handleDelete}
       />

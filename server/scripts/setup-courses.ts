@@ -107,11 +107,11 @@ async function main() {
   const [adminUser] = await db
     .select()
     .from(schema.users)
-    .where(eq(schema.users.email, "tejasimma033@gmail.com"))
+    .where(eq(schema.users.role, "admin"))
     .limit(1);
 
   if (!adminUser) {
-    console.error("Admin user not found. Ensure tejasimma033@gmail.com exists.");
+    console.error("No admin user found in the database.");
     await pool.end();
     process.exit(1);
   }

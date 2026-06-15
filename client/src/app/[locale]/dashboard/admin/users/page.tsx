@@ -98,10 +98,10 @@ const deleteUser = async () => {
       if (subForm.remainingExamAttempts) payload.remainingExamAttempts = parseInt(subForm.remainingExamAttempts);
       if (subForm.remainingFlashcardAttempts) payload.remainingFlashcardAttempts = parseInt(subForm.remainingFlashcardAttempts);
       await usersApi.updateSubscription(subUser!.id, payload);
-      toast.success("Subscription updated");
+      toast.success(t("subscription_updated"));
       setSubDialogOpen(false);
     } catch {
-      toast.error("Failed to update subscription");
+      toast.error(t("subscription_update_failed"));
     } finally {
       setSavingSub(false);
     }
@@ -151,7 +151,7 @@ const deleteUser = async () => {
       header: t("status"),
       render: (row: any) => (
         <Badge variant={row.deletedAt ? "destructive" : "default"}>
-          {row.deletedAt ? "deleted" : c("active")}
+          {row.deletedAt ? t("deleted") : c("active")}
         </Badge>
       ),
     },
@@ -211,20 +211,20 @@ const deleteUser = async () => {
       <Dialog open={subDialogOpen} onOpenChange={setSubDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Subscription: {subUser?.name || subUser?.email}</DialogTitle>
+            <DialogTitle>{t("subscription_for")} {subUser?.name || subUser?.email}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {userSub && (
               <div className="text-xs text-muted-foreground space-y-1 mb-2">
-                <p>Current plan: <span className="font-medium text-foreground">{userSub.plan?.name?.en || userSub.planId}</span></p>
-                <p>Status: <Badge variant={userSub.status === "active" ? "default" : "secondary"} className="text-xs">{userSub.status}</Badge></p>
-                <p>Period end: {new Date(userSub.currentPeriodEnd).toLocaleDateString()}</p>
+                <p>{t("current_plan")}: <span className="font-medium text-foreground">{userSub.plan?.name?.en || userSub.planId}</span></p>
+                <p>{t("status")}: <Badge variant={userSub.status === "active" ? "default" : "secondary"} className="text-xs">{userSub.status}</Badge></p>
+                <p>{t("period_end")}: {new Date(userSub.currentPeriodEnd).toLocaleDateString()}</p>
               </div>
             )}
             <div className="space-y-2">
-              <label className="text-xs font-medium">Plan</label>
+              <label className="text-xs font-medium">{t("plan")}</label>
               <Select value={subForm.planId} onValueChange={(v) => setSubForm({ ...subForm, planId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("select_plan")} /></SelectTrigger>
                 <SelectContent>
                   {plans.map((p: any) => (
                     <SelectItem key={p.id} value={p.id}>{p.name?.en || p.id}</SelectItem>
@@ -233,32 +233,32 @@ const deleteUser = async () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium">Status</label>
+              <label className="text-xs font-medium">{t("status")}</label>
               <Select value={subForm.status} onValueChange={(v) => setSubForm({ ...subForm, status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="canceled">Canceled</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="active">{t("subscription_active")}</SelectItem>
+                  <SelectItem value="canceled">{t("subscription_canceled")}</SelectItem>
+                  <SelectItem value="expired">{t("subscription_expired")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-medium">Remaining Exam Attempts</label>
+                <label className="text-xs font-medium">{t("remaining_exam_attempts")}</label>
                 <Input type="number" value={subForm.remainingExamAttempts} onChange={(e) => setSubForm({ ...subForm, remainingExamAttempts: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-medium">Remaining Flashcard Attempts</label>
+                <label className="text-xs font-medium">{t("remaining_flashcard_attempts")}</label>
                 <Input type="number" value={subForm.remainingFlashcardAttempts} onChange={(e) => setSubForm({ ...subForm, remainingFlashcardAttempts: e.target.value })} />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSubDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setSubDialogOpen(false)}>{c("cancel")}</Button>
             <Button onClick={saveSubscription} disabled={savingSub}>
               {savingSub && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save
+              {c("save")}
             </Button>
           </DialogFooter>
         </DialogContent>
