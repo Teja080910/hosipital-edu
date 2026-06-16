@@ -35,14 +35,24 @@ export class UploadController {
   @ApiOperation({ summary: "Proxy upload video to Cloudflare Stream" })
   async uploadVideo(@Param("uid") uid: string, @Body("base64") base64: string, @Body("contentType") contentType: string) {
     const token = this.config.get<string>("CLOUDFLARE_STREAM_TOKEN") || "";
+    const accountId = this.config.get<string>("CLOUDFLARE_ACCOUNT_ID") || "";
     const buffer = Buffer.from(base64, "base64");
-    const res = await fetch(`https://upload.cloudflarestream.com/${uid}`, {
-      method: "PUT",
-      body: buffer,
-      headers: { "Content-Type": contentType || "video/mp4", Authorization: `Bearer ${token}` },
+    const ext = contentType?.split("/")[1] || "mp4";
+    const boundary = "----FormBoundary" + Date.now();
+    const header = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="video.${ext}"\r\nContent-Type: ${contentType || "video/mp4"}\r\n\r\n`;
+    const footer = `\r\n--${boundary}--\r\n`;
+    const body = Buffer.concat([Buffer.from(header), buffer, Buffer.from(footer)]);
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream`, {
+      method: "POST",
+      body,
+      headers: { "Content-Type": `multipart/form-data; boundary=${boundary}`, Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) throw new Error("Video upload failed");
-    return { uid };
+    const json = await res.json();
+    if (!json.success) {
+      const msgs = json.errors?.map((e: any) => e.message).join(", ") || "Video upload failed";
+      throw new Error(msgs);
+    }
+    return { uid: json.result.uid };
   }
 }
 
