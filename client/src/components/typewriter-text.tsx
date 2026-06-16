@@ -53,18 +53,23 @@ export function TypewriterText({ parts, speed = 60, deleteSpeed = 30, pauseEnd =
     return segments;
   })();
 
+  const longestText = parts.reduce((a, b) => a.text.length > b.text.length ? a : b, parts[0]);
+
   return (
-    <>
-      {parts.map((part, i) => {
-        const seg = charIndex.find((s) => s.partIndex === i);
-        const visible = seg ? seg.charCount : 0;
-        return (
-          <span key={i} className={part.className}>
-            {part.text.slice(0, visible)}
-          </span>
-        );
-      })}
-      <span className="animate-pulse font-light text-primary/70">|</span>
-    </>
+    <div className="relative">
+      <span className="invisible" aria-hidden="true">{longestText.text}</span>
+      <span className="absolute inset-0">
+        {parts.map((part, i) => {
+          const seg = charIndex.find((s) => s.partIndex === i);
+          const visible = seg ? seg.charCount : 0;
+          return (
+            <span key={i} className={part.className}>
+              {part.text.slice(0, visible)}
+            </span>
+          );
+        })}
+        <span className="animate-pulse font-light text-primary/70">|</span>
+      </span>
+    </div>
   );
 }
