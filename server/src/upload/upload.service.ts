@@ -36,6 +36,16 @@ export class UploadService {
     return { url, key, publicUrl };
   }
 
+  async uploadFile(key: string, contentType: string, body: Buffer) {
+    await this.s3.send(new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }));
+    return { url: `/api/images/${key}`, key };
+  }
+
   async getImageUrl(key: string) {
     const command = new GetObjectCommand({
       Bucket: this.bucket,

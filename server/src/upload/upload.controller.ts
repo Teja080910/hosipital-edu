@@ -1,8 +1,7 @@
-import { Controller, Post, Get, Param, Body, UseGuards, Res } from "@nestjs/common";
+import { Controller, Get, Post, Put, Param, Body, UseGuards, Req } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { UploadService } from "./upload.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
-import { FastifyReply } from "fastify";
 
 @ApiTags("upload")
 @ApiBearerAuth()
@@ -19,6 +18,14 @@ export class UploadController {
   ) {
     return this.uploadService.generatePresignedUrl(key, contentType);
   }
+
+  @Put("file/:key")
+  @ApiOperation({ summary: "Proxy upload file to R2" })
+  async uploadFile(@Param("key") key: string, @Req() req: any) {
+    const contentType = req.headers["content-type"] || "application/octet-stream";
+    const buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body);
+    return this.uploadService.uploadFile(key, contentType, buffer);
+  }
 }
 
 @Controller("images")
@@ -27,8 +34,8 @@ export class ImagesController {
 
   @Get(":key")
   @ApiOperation({ summary: "Proxy image from R2" })
-  async serveImage(@Param("key") key: string, @Res() res: FastifyReply) {
+  async serveImage(@Param("key") key: string) {
     const url = await this.uploadService.getImageUrl(key);
-    return res.redirect(302, url);
+    return { url };
   }
 }

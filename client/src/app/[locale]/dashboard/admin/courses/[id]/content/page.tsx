@@ -36,7 +36,7 @@ export default function AdminCourseContentPage() {
   const [savingLesson, setSavingLesson] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
 
-  const uploadFileToR2 = async (file: File, field: "pdfUrl" | "videoUrl") => {
+  const uploadFileToR2 = async (file: File, field: "pdfUrl" | "videoUrl" | "imageUrl") => {
     setUploadingFile(file.name);
     try {
       const key = `courses/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
