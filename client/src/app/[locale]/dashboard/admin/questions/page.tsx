@@ -172,10 +172,10 @@ export default function AdminQuestionsPage() {
     setUploadingImage(true);
     try {
       const key = `questions/${Date.now()}-${file.name}`;
-      const { data } = await uploadApi.presignedUrl(key, file.type);
-      const res = await fetch(data.url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      if (!res.ok) throw new Error("Upload failed");
-      const publicUrl = data.publicUrl || data.url;
+      const contentType = file.type || "image/png";
+      const buffer = await file.arrayBuffer();
+      const { data } = await uploadApi.uploadFile(key, buffer, contentType);
+      const publicUrl = data.url || `/api/images/${key}`;
       setForm((f) => ({ ...f, images: [...f.images, { url: publicUrl, section, sortOrder: f.images.length }] }));
     } catch {
       toast.error(t("upload_failed"));
