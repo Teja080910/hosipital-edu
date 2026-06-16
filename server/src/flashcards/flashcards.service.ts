@@ -7,8 +7,10 @@ import {
   users,
   userSubscriptions,
   subscriptionPlans,
+  specialties,
+  topics,
 } from "../database/schema";
-import { eq, and, inArray, isNull, or, type SQL } from "drizzle-orm";
+import { eq, and, inArray, isNull, or, count, sql, type SQL } from "drizzle-orm";
 
 @Injectable()
 export class FlashcardsService {
@@ -34,12 +36,42 @@ export class FlashcardsService {
       if (subExamId) conditions.push(or(eq(flashcards.examId, subExamId), isNull(flashcards.examId)) as SQL<unknown>);
     }
 
-    return this.db
-      .select()
+    const where = and(...conditions);
+
+    const [totalResult] = await this.db
+      .select({ total: count() })
       .from(flashcards)
-      .where(and(...conditions))
+      .where(where);
+
+    const rows = await this.db
+      .select({
+        id: flashcards.id,
+        front: flashcards.front,
+        back: flashcards.back,
+        reference: flashcards.reference,
+        examId: flashcards.examId,
+        specialtyId: flashcards.specialtyId,
+        topicId: flashcards.topicId,
+        isActive: flashcards.isActive,
+        createdBy: flashcards.createdBy,
+        createdAt: flashcards.createdAt,
+        updatedAt: flashcards.updatedAt,
+        specialty: specialties.name,
+        topic: topics.name,
+      })
+      .from(flashcards)
+      .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+      .leftJoin(topics, eq(flashcards.topicId, topics.id))
+      .where(where)
       .limit(limit)
       .offset(offset);
+
+    return {
+      data: rows,
+      total: totalResult?.total ?? 0,
+      page,
+      limit,
+    };
   }
 
   async findDue(userId: string, limit = 20) {
@@ -51,7 +83,27 @@ export class FlashcardsService {
     if (subExamId) conditions.push(or(eq(flashcards.examId, subExamId), isNull(flashcards.examId)) as SQL<unknown>);
 
     return this.db
-      .select()
+      .select({
+        id: userFlashcardReviews.id,
+        userId: userFlashcardReviews.userId,
+        flashcardId: userFlashcardReviews.flashcardId,
+        easeFactor: userFlashcardReviews.easeFactor,
+        interval: userFlashcardReviews.interval,
+        repetitions: userFlashcardReviews.repetitions,
+        nextReviewAt: userFlashcardReviews.nextReviewAt,
+        lastReviewedAt: userFlashcardReviews.lastReviewedAt,
+        createdAt: userFlashcardReviews.createdAt,
+        updatedAt: userFlashcardReviews.updatedAt,
+        flashcard: {
+          id: flashcards.id,
+          front: flashcards.front,
+          back: flashcards.back,
+          reference: flashcards.reference,
+          examId: flashcards.examId,
+          specialtyId: flashcards.specialtyId,
+          topicId: flashcards.topicId,
+        },
+      })
       .from(userFlashcardReviews)
       .innerJoin(
         flashcards,
@@ -205,6 +257,25 @@ export class FlashcardsService {
     if (newEF < 130) newEF = 130;
 
     return { easeFactor: Math.round(newEF), interval: newInterval, repetitions: newReps };
+  }
+
+  async getSpecialties(userId: string) {
+    const subExamId = await this.getSubscriptionExamId(userId);
+    const conditions: any[] = [eq(flashcards.isActive, true)];
+    if (subExamId) conditions.push(or(eq(flashcards.examId, subExamId), isNull(flashcards.examId)) as SQL<unknown>);
+
+    const rows = await this.db
+      .selectDistinct({
+        id: specialties.id,
+        name: specialties.name,
+      })
+      .from(flashcards)
+      .innerJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+      .where(and(...conditions));
+
+    rows.sort((a, b) => (a.name?.en ?? "").localeCompare(b.name?.en ?? ""));
+
+    return rows;
   }
 
   private async getSubscriptionExamId(userId: string): Promise<string | null> {
