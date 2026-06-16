@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useState, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -49,7 +50,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const pathname = usePathname();
   const [searchFocused, setSearchFocused] = useState(false);
 
-const currentLocale = typeof window !== "undefined" ? window.location.pathname.split("/")[1] || "en" : "en";
+const currentLocale = useParams().locale as string;
 
   const switchLocale = (locale: string) => {
     window.location.assign(window.location.pathname.replace(/^\/(en|es)/, `/${locale}`));

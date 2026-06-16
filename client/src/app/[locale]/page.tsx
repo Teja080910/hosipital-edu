@@ -1,61 +1,59 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useTranslations } from "next-intl";
-import { useTheme } from "next-themes";
-import { motion } from "framer-motion";
+import { TypewriterText } from "@/components/typewriter-text";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
-import { usePathname, Link } from "@/routing";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
-import { subscriptionsApi } from "@/lib/api";
-import { TypewriterText } from "@/components/typewriter-text";
-import Image from "next/image";
-import {
-  BookOpen,
-  Brain,
-  Video,
-  Library,
-  BarChart3,
-  Calendar,
-  ChevronDown,
-  Star,
-  Check,
-  ArrowRight,
-  Sparkles,
-  Shield,
-  TrendingUp,
-  Moon,
-  Sun,
-  Languages,
-  Target,
-  Clock,
-  Crown,
-  Facebook,
-  Twitter,
-  Instagram,
-  Youtube,
-} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/use-auth";
+import { subscriptionsApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { Link, usePathname } from "@/routing";
+import { motion } from "framer-motion";
+import {
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  Brain,
+  Calendar,
+  Check,
+  ChevronDown,
+  Crown,
+  Facebook,
+  Instagram,
+  Languages,
+  Library,
+  Menu,
+  Moon,
+  Sparkles,
+  Star,
+  Sun,
+  Twitter,
+  Video,
+  Youtube
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useTheme } from "next-themes";
+import Image from "next/image";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -103,7 +101,7 @@ const sb = useTranslations("subscribe");
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const currentLocale = pathname.split("/")[1] || "en";
+  const currentLocale = useParams().locale as string;
   const { user, isLoading, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const handleLogout = useCallback(async () => {
@@ -111,6 +109,15 @@ const sb = useTranslations("subscribe");
     await logout();
   }, [logout]);
   const [subData, setSubData] = useState<{ planSortOrder: number } | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
   const [plans, setPlans] = useState<any[]>([]);
 
   useEffect(() => {
@@ -186,56 +193,104 @@ const sb = useTranslations("subscribe");
             <span className="text-lg font-bold tracking-tight">{t("brand")}</span>
           </Link>
           <div className="flex items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
-                  <Languages className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[130px] rounded-xl border-border/50 shadow-lg">
-                <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
-                  🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
-                  🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {mounted && (resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />)}
-            </Button>
-
-            <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-3">
-              {isLoading ? null : user ? (
-                <>
-                <Link href="/dashboard">
-                  <Button size="sm" className="text-sm shadow-subtle">
-                    {n("dashboard")}
-                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={handleLogout} disabled={loggingOut} className="text-sm text-muted-foreground">
-                  {loggingOut ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /> : a("logout")}
-                </Button>
-                </>
-              ) : (
-                <><Link href="/login">
-                  <Button variant="ghost" size="sm" className="text-sm">{a("login_submit")}</Button>
-                </Link>
-                  <Link href="/register">
-                    <Button size="sm" className="text-sm shadow-subtle">
-                      {t("get_started")}
-                      <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            {!isMobile ? (
+              /* Desktop nav */
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+                      <Languages className="h-4 w-4" />
                     </Button>
-                  </Link></>
-              )}
-            </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[130px] rounded-xl border-border/50 shadow-lg">
+                    <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
+                      🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
+                      🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  {mounted && (resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />)}
+                </Button>
+
+                <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-3">
+                  {isLoading ? null : user ? (
+                    <>
+                    <Link href="/dashboard">
+                      <Button size="sm" className="text-sm shadow-subtle">
+                        {n("dashboard")}
+                        <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                    <Button variant="ghost" size="sm" onClick={handleLogout} disabled={loggingOut} className="text-sm text-muted-foreground">
+                      {loggingOut ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /> : a("logout")}
+                    </Button>
+                    </>
+                  ) : (
+                    <><Link href="/login">
+                      <Button variant="ghost" size="sm" className="text-sm">{a("login_submit")}</Button>
+                    </Link>
+                      <Link href="/register">
+                        <Button size="sm" className="text-sm shadow-subtle">
+                          {t("get_started")}
+                          <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                        </Button>
+                      </Link></>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Mobile hamburger */
+              <DropdownMenu open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/50 shadow-lg">
+                  <DropdownMenuItem onSelect={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} className="rounded-lg">
+                    {mounted && (resolvedTheme === "dark" ? <><Sun className="h-4 w-4 mr-2" /> Light mode</> : <><Moon className="h-4 w-4 mr-2" /> Dark mode</>)}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
+                    🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
+                    🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+                  </DropdownMenuItem>
+                  {isLoading ? null : user ? (
+                    <>
+                      <DropdownMenuItem asChild className="rounded-lg">
+                        <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                          {n("dashboard")}
+                          <ArrowRight className="ml-auto h-3.5 w-3.5" />
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={handleLogout} disabled={loggingOut} className="rounded-lg text-destructive">
+                        {loggingOut ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-destructive border-t-transparent mr-2" /> : null}
+                        {a("logout")}
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem asChild className="rounded-lg">
+                        <Link href="/login" onClick={() => setMobileMenuOpen(false)}>{a("login_submit")}</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="rounded-lg">
+                        <Link href="/register" onClick={() => setMobileMenuOpen(false)}>{t("get_started")}</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </nav>
@@ -601,7 +656,7 @@ const sb = useTranslations("subscribe");
               <Image src="/logo.png" alt={t("brand")} width={28} height={28} className="rounded-lg" />
               <span className="font-semibold">{t("brand")}</span>
             </Link>
-            <div className="flex gap-6 text-sm text-muted-foreground">
+            <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground sm:flex-row sm:gap-6">
               <Link href="/blog" className="hover:text-foreground transition-colors">{t("blog")}</Link>
               <Link href="/content/terms" className="hover:text-foreground transition-colors">{t("terms")}</Link>
               <Link href="/content/privacy" className="hover:text-foreground transition-colors">{t("privacy")}</Link>
