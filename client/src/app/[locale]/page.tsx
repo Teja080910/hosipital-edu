@@ -285,7 +285,6 @@ const sb = useTranslations("subscribe");
                 <TypewriterText
                   parts={[
                     { text: t("hero_heading_1"), className: "bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent" },
-                    { text: " " + t("hero_heading_2") + " " + t("hero_heading_3") },
                     { text: " " + t("hero_heading_2") + " " + t("hero_heading_3") + " " + t("hero_heading_4") },
                   ]}
                   speed={60}
