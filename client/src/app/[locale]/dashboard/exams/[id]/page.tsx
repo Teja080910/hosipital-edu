@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -84,6 +85,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
   const [timeLimit, setTimeLimit] = useState(20);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const [results, setResults] = useState<{
     score: number; totalQuestions: number; correctAnswers: number;
@@ -393,9 +395,9 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                 {currentQuestion.images && currentQuestion.images.length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.map((img: any) => (
-                      <a key={img.id} href={img.url} target="_blank" rel="noopener noreferrer">
-                        <img src={img.url} alt={img.caption || "Question image"} className="max-w-full rounded-xl border shadow-subtle" style={{ maxHeight: 400 }} />
-                      </a>
+                      <button key={img.id} type="button" onClick={() => setLightboxImage(img.url)} className="text-left">
+                        <img src={img.url} alt={img.caption || "Question image"} className="max-w-full rounded-xl border shadow-subtle cursor-pointer hover:opacity-90 transition-opacity" style={{ maxHeight: 400 }} />
+                      </button>
                     ))}
                   </div>
                 )}
@@ -480,6 +482,13 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
         </div>
         <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { setShowSubmitDialog(open); if (!open && mode === "exam") { document.documentElement.requestFullscreen().catch(() => {}); } }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
         <ConfirmDialog open={showTimeWarning} onOpenChange={setShowTimeWarning} title={t("time_up")} description={t("time_up_desc")} confirmLabel={t("submit")} cancelLabel="" variant="default" onConfirm={handleConfirmSubmit} />
+        {lightboxImage && (
+          <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
+            <DialogContent className="max-w-4xl p-2 bg-black/90">
+              <img src={lightboxImage} alt="Question image" className="w-full h-auto max-h-[80vh] object-contain rounded-lg" />
+            </DialogContent>
+          </Dialog>
+        )}
       </PageTransition>
     );
   }

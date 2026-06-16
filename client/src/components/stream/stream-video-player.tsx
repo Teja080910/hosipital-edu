@@ -31,7 +31,7 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
 
       if (cancelled) return;
 
-      let src = `https://customer-${process.env.NEXT_PUBLIC_CLOUDFLARE_CUSTOMER_CODE}.cloudflarestream.com/${uid}/iframe`;
+      let src = `https://iframe.cloudflarestream.com/${uid}`;
       try {
         const { data } = await streamApi.getSignedToken(uid);
         src += `?token=${data.token}`;
