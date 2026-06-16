@@ -12,16 +12,8 @@ import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: true, bodyLimit: 20971520 }),
+    new FastifyAdapter({ logger: true }),
   );
-
-  const fastifyInstance = app.getHttpAdapter().getInstance();
-  fastifyInstance.addContentTypeParser("application/octet-stream", { parseAs: "buffer", bodyLimit: 20971520 }, (req: any, body: Buffer, done: any) => {
-    done(null, body);
-  });
-  fastifyInstance.addContentTypeParser("image/*", { parseAs: "buffer", bodyLimit: 20971520 }, (req: any, body: Buffer, done: any) => {
-    done(null, body);
-  });
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN || "http://localhost:4175",

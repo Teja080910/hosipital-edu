@@ -173,10 +173,17 @@ export default function AdminQuestionsPage() {
     try {
       const key = `questions/${Date.now()}-${file.name}`;
       const contentType = file.type || "image/png";
-      const buffer = await file.arrayBuffer();
-      const { data } = await uploadApi.uploadFile(key, buffer, contentType);
-      const publicUrl = data.url || `/api/images/${key}`;
-      setForm((f) => ({ ...f, images: [...f.images, { url: publicUrl, section, sortOrder: f.images.length }] }));
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+      });
+      const { data } = await uploadApi.uploadFile(key, base64, contentType);
+      setForm((f) => ({ ...f, images: [...f.images, { url: data.url, section, sortOrder: f.images.length }] }));
     } catch {
       toast.error(t("upload_failed"));
     } finally {

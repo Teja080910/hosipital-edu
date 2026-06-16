@@ -24,6 +24,11 @@ export class UploadService {
     this.bucket = this.config.get<string>("R2_BUCKET_NAME") || "hospital-edu";
   }
 
+  private getImageUrlPrefix() {
+    const apiUrl = this.config.get<string>("API_URL") || "http://localhost:4000";
+    return `${apiUrl}/api/images`;
+  }
+
   async generatePresignedUrl(key: string, contentType: string) {
     const command = new PutObjectCommand({
       Bucket: this.bucket,
@@ -32,18 +37,20 @@ export class UploadService {
     });
 
     const url = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
-    const publicUrl = `/api/images/${key}`;
+    const publicUrl = await getSignedUrl(this.s3, new GetObjectCommand({ Bucket: this.bucket, Key: key }), { expiresIn: 86400 });
     return { url, key, publicUrl };
   }
 
   async uploadFile(key: string, contentType: string, body: Buffer) {
-    await this.s3.send(new PutObjectCommand({
+    const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,
       Body: body,
       ContentType: contentType,
-    }));
-    return { url: `/api/images/${key}`, key };
+    });
+    await this.s3.send(command);
+    const publicUrl = await getSignedUrl(this.s3, new GetObjectCommand({ Bucket: this.bucket, Key: key }), { expiresIn: 86400 });
+    return { url: publicUrl, key };
   }
 
   async getImageUrl(key: string) {

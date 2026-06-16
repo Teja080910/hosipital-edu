@@ -275,18 +275,18 @@ const sb = useTranslations("subscribe");
               </Badge>
             </motion.div>
 
-            <div className="h-[7rem] sm:h-[9rem] md:h-[11rem] lg:h-[14rem] flex items-center justify-center">
+            <div className="min-h-[5rem] sm:min-h-[7rem] flex items-center justify-center">
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] as const }}
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-normal mb-6"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-6"
               >
                 <TypewriterText
                   parts={[
                     { text: t("hero_heading_1"), className: "bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent" },
-                    { text: t("hero_heading_2") + " " + t("hero_heading_3") },
-                    { text: t("hero_heading_2") + " " + t("hero_heading_3") + " " + t("hero_heading_4") },
+                    { text: " " + t("hero_heading_2") + " " + t("hero_heading_3") },
+                    { text: " " + t("hero_heading_2") + " " + t("hero_heading_3") + " " + t("hero_heading_4") },
                   ]}
                   speed={60}
                   deleteSpeed={25}
