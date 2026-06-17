@@ -112,7 +112,7 @@ function RegisterPage() {
               transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
               className="flex justify-center mb-5"
             >
-              <Image src="/logo.png" alt="MD Exam" width={56} height={56} className="rounded-xl" />
+              <Image src="/logo.png" alt="MD Exam" width={72} height={72} className="rounded-xl" />
             </motion.div>
             <CardTitle className="text-2xl font-bold tracking-tight">{t("register_title")}</CardTitle>
             <CardDescription className="text-sm mt-1.5">{t("register_subtitle")}</CardDescription>

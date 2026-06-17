@@ -231,6 +231,11 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
 
   const handleAnswer = async (optionId: string) => {
     if (!attemptId || !currentQuestion) return;
+    if (mode === "study" && showAnswer) return;
+    if (mode === "study") {
+      setSelectedOption(optionId);
+      return;
+    }
     const isCorrect = currentQuestion.options.find((o) => o.id === optionId)?.isCorrect ?? false;
     const elapsed = Math.floor((Date.now() - questionEntryTime) / 1000);
     setPerQuestionTime((prev) => ({ ...prev, [currentQuestion.id]: elapsed }));
@@ -239,12 +244,22 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
       [currentQuestion.id]: { optionId, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
     }));
     setSelectedOption(optionId);
-    if (mode === "exam") {
-      try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: optionId, timeSpent: elapsed }); } catch { /* silent */ }
-      if (currentIndex < displayQuestions.length - 1) {
-        setTimeout(() => handleNext(), 200);
-      }
-    } else { setShowAnswer(true); }
+    try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: optionId, timeSpent: elapsed }); } catch { /* silent */ }
+    if (currentIndex < displayQuestions.length - 1) {
+      setTimeout(() => handleNext(), 200);
+    }
+  };
+
+  const handleSubmitStudyAnswer = () => {
+    if (!currentQuestion || !selectedOption) return;
+    const isCorrect = currentQuestion.options.find((o) => o.id === selectedOption)?.isCorrect ?? false;
+    const elapsed = Math.floor((Date.now() - questionEntryTime) / 1000);
+    setPerQuestionTime((prev) => ({ ...prev, [currentQuestion.id]: elapsed }));
+    setAnswers((prev) => ({
+      ...prev,
+      [currentQuestion.id]: { optionId: selectedOption, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
+    }));
+    setShowAnswer(true);
   };
 
   const handleFlag = () => {
@@ -401,25 +416,23 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                     ))}
                   </div>
                 )}
-                <div className="space-y-3">
-                  {currentQuestion.options.map((option, optionIndex) => {
-                    const isSelected = answered === option.id;
-                    const isCorrectOption = option.isCorrect;
-                    let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
-                    if (showAnswer) {
-                      if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
-                      else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
-                      else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
-                    } else if (mode === "exam") {
-                      if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
-                    } else {
-                      const showCorrect = showAnswer || (answered !== null && isSelected);
-                      if (showCorrect && isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
-                      else if (showCorrect && isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
-                      else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
-                    }
-                    return (
-                      <button key={option.id} onClick={() => handleAnswer(option.id)} disabled={answered !== null && (mode === "study" || showAnswer)} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
+                  <div className="space-y-3">
+                    {currentQuestion.options.map((option, optionIndex) => {
+                      const isSelected = answered === option.id;
+                      const isOptionSelected = selectedOption === option.id;
+                      const isCorrectOption = option.isCorrect;
+                      let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
+                      if (showAnswer) {
+                        if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
+                        else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
+                        else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                      } else if (mode === "exam") {
+                        if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                      } else if (isOptionSelected) {
+                        optionClass = "border-primary bg-primary/10 shadow-subtle";
+                      }
+                      return (
+                        <button key={option.id} onClick={() => mode === "study" ? setSelectedOption(option.id) : handleAnswer(option.id)} disabled={showAnswer || (mode === "study" && showAnswer)} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
                         <div className="flex items-start gap-4">
                           <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
                             showAnswer && isCorrectOption ? "border-green-500 bg-green-500 text-white" :
@@ -438,7 +451,10 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                 </div>
                 {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><div className="text-sm leading-6 text-muted-foreground space-y-2">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div></div>)}
                 {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground">{currentQuestion.reference}</p></div>)}
-                {mode === "study" && answered && !showAnswer && <Button variant="outline" onClick={() => setShowAnswer(true)} className="w-full">{t("show_explanation")}</Button>}
+                {mode === "study" && !showAnswer && selectedOption && (
+                  <Button onClick={handleSubmitStudyAnswer} className="w-full" size="lg">{t("submit")}</Button>
+                )}
+                {mode === "study" && showAnswer && <Button variant="outline" onClick={handleNext} className="w-full">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>}
               </CardContent>
             </Card>
 

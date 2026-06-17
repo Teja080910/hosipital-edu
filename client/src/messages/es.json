@@ -615,6 +615,7 @@
   "exams": {
     "start": "Comenzar Examen",
     "history": "Historial de Exámenes",
+    "questions": "Preguntas",
     "questions_count": "{count} preguntas",
     "minutes": "{count} min",
     "no_exams": "No hay exámenes disponibles",

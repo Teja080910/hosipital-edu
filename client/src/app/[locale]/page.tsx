@@ -189,7 +189,7 @@ const sb = useTranslations("subscribe");
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-transparent bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt={t("brand")} width={32} height={32} className="rounded-lg" />
+            <Image src="/logo.png" alt={t("brand")} width={40} height={40} className="rounded-lg" />
             <span className="text-lg font-bold tracking-tight">{t("brand")}</span>
           </Link>
           <div className="flex items-center gap-1">
@@ -317,7 +317,7 @@ const sb = useTranslations("subscribe");
               transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const }}
               className="mb-8"
             >
-              <Image src="/logo.png" alt={t("brand")} width={80} height={80} className="mx-auto rounded-2xl shadow-xl" />
+              <Image src="/logo.png" alt={t("brand")} width={140} height={140} className="mx-auto rounded-3xl shadow-2xl" />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -653,7 +653,7 @@ const sb = useTranslations("subscribe");
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt={t("brand")} width={28} height={28} className="rounded-lg" />
+              <Image src="/logo.png" alt={t("brand")} width={36} height={36} className="rounded-lg" />
               <span className="font-semibold">{t("brand")}</span>
             </Link>
             <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground sm:flex-row sm:gap-6">

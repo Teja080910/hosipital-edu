@@ -28,16 +28,18 @@ export default function SubscribePage() {
   const locale = (params?.locale as string) || "en";
 
   useEffect(() => {
-    Promise.all([
-      subscriptionsApi.plans(),
-      user?.role !== "admin" ? subscriptionsApi.mySubscription() : Promise.resolve({ data: undefined }),
-    ])
-      .then(([plansRes, subRes]) => {
-        setPlans((plansRes.data || []).filter((p: any) => p.id).sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
-        setCurrentSub(subRes?.data || null);
+    subscriptionsApi.plans()
+      .then(({ data }) => {
+        setPlans((data || []).filter((p: any) => p.id).sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
       })
       .catch(() => setPlans([]))
       .finally(() => setLoading(false));
+
+    if (user && user.role !== "admin") {
+      subscriptionsApi.mySubscription()
+        .then(({ data }) => setCurrentSub(data || null))
+        .catch(() => {});
+    }
   }, [user]);
 
   const handleSubscribe = async (planId: string) => {

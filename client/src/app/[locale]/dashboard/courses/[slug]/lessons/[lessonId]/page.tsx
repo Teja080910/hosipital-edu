@@ -110,17 +110,51 @@ export default function LessonPage() {
         <Separator />
 
         <div className="min-h-[400px]">
-          {lesson.contentType === "video" && lesson.videoUrl && (
-            <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-              {lesson.videoUrl.includes("cloudflare.com") || lesson.videoUrl.includes("stream") ? (
-                <iframe src={lesson.videoUrl} className="w-full h-full rounded-lg" allowFullScreen />
-              ) : lesson.videoUrl.includes("drive.google.com") ? (
-                <iframe src={lesson.videoUrl.replace("/view?usp=sharing", "/preview").replace("/view?", "/preview?")} className="w-full h-full rounded-lg" allowFullScreen />
-              ) : (
-                <video src={lesson.videoUrl} controls className="w-full h-full rounded-lg" />
-              )}
-            </div>
-          )}
+          {lesson.contentType === "video" && lesson.videoUrl && (() => {
+            const url = lesson.videoUrl;
+            const gdriveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+            const gdriveId = gdriveMatch ? gdriveMatch[1] : null;
+
+            if (gdriveId) {
+              return (
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                  <iframe
+                    src={`https://drive.google.com/file/d/${gdriveId}/preview`}
+                    className="w-full h-full rounded-lg"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            }
+
+            if (url.includes("youtube.com") || url.includes("youtu.be")) {
+              const ytMatch = url.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/)([^&?/]+)/);
+              const ytId = ytMatch ? ytMatch[1] : null;
+              return (
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                  {ytId ? (
+                    <iframe src={`https://www.youtube.com/embed/${ytId}`} className="w-full h-full rounded-lg" allowFullScreen />
+                  ) : (
+                    <video src={url} controls className="w-full h-full rounded-lg" />
+                  )}
+                </div>
+              );
+            }
+
+            if (url.includes("cloudflarestream.com") && !url.includes("drive.google.com")) {
+              return (
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                  <iframe src={url} className="w-full h-full rounded-lg" allowFullScreen />
+                </div>
+              );
+            }
+
+            return (
+              <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                <video src={url} controls className="w-full h-full rounded-lg" />
+              </div>
+            );
+          })()}
 
           {lesson.contentType === "pdf" && lesson.pdfUrl && (
             <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
