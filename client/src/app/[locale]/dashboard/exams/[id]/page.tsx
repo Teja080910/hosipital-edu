@@ -29,8 +29,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type PageState = "config" | "taking" | "results";
@@ -41,32 +40,19 @@ function localized(obj: Record<string, string> | string | null | undefined, loca
   return obj[locale] || Object.values(obj)[0] || "";
 }
 
-export default function ExamTakingPageWrapper({ params }: { params: { id: string } }) {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
-      <ExamTakingPage params={params} />
-    </Suspense>
-  );
-}
-
-function ExamTakingPage({ params }: { params: { id: string } }) {
+export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const t = useTranslations("exams");
   const tc = useTranslations("common");
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [pageState, setPageState] = useState<PageState>("config");
   const [mode, setMode] = useState<"study" | "exam">("exam");
   const [customTitle, setCustomTitle] = useState("");
-  const [questionLimit, setQuestionLimitState] = useState(10);
-  const questionLimitRef = useRef(questionLimit);
-  const setQuestionLimit = (value: number) => { questionLimitRef.current = value; setQuestionLimitState(value); };
+  const [questionLimit, setQuestionLimit] = useState(10);
   const [exam, setExam] = useState<any>(null);
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
-  const [filteredQuestions, setFilteredQuestionsState] = useState<Question[]>([]);
-  const filteredQuestionsRef = useRef<Question[]>([]);
-  const setFilteredQuestions = (value: Question[]) => { filteredQuestionsRef.current = value; setFilteredQuestionsState(value); };
+  const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -113,11 +99,12 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [id, t]);
 
   useEffect(() => {
-    const modeParam = searchParams.get("mode");
+    const params = new URLSearchParams(window.location.search);
+    const modeParam = params.get("mode");
     if (modeParam === "exam" || modeParam === "study") {
       setMode(modeParam);
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     return () => { useExamStore.setState({ isActive: false }); };
@@ -167,14 +154,6 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
     setFilteredQuestions(filtered);
   }, [selectedSpecialties, selectedTopic, selectedSubtopic, allQuestions]);
 
-  useEffect(() => {
-    const maxQ = filteredQuestions.length;
-    if (maxQ > 0 && questionLimit > maxQ) {
-      setQuestionLimit(maxQ);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredQuestions.length]);
-
   const specialties = exam?.specialties || [];
   const currentSpecialties = specialties.filter((s: any) => selectedSpecialties.includes(s.id));
   const topics = currentSpecialties.length > 0 ? currentSpecialties.flatMap((s: any) => s.topics || []) : specialties.flatMap((s: any) => s.topics || []);
@@ -187,7 +166,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
   const flaggedCount = Object.values(answers).filter((a) => a.flagged).length;
 
   const handleStart = async () => {
-    const totalQuestions = Math.min(questionLimitRef.current, filteredQuestionsRef.current.length);
+    const totalQuestions = Math.min(questionLimit, filteredQuestions.length);
     if (totalQuestions === 0) { toast.error(t("no_questions")); return; }
     try {
       const { data: attempt } = await attemptsApi.create({
@@ -196,7 +175,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
         timeLimit: mode === "exam" ? timeLimit : undefined,
         customTitle: customTitle || undefined,
       });
-      const shuffled = [...filteredQuestionsRef.current].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
+      const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
       setExamQuestions(shuffled);
       setAttemptId(attempt.id);
       setTimeRemaining(mode === "exam" ? timeLimit * 60 : 0);

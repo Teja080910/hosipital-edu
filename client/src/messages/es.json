@@ -332,7 +332,8 @@
     "failed_submit_quiz": "Error al enviar el cuestionario",
     "question_of": "Pregunta {current} de {total}",
     "answered": "respondidas",
-    "score_percent": "Puntaje: {score}% ({correct}/{total} correctas)"
+    "score_percent": "Puntaje: {score}% ({correct}/{total} correctas)",
+    "questions_count": "{count} preguntas"
   },
   "lessons": {
     "not_found": "Lección no encontrada",
@@ -361,6 +362,7 @@
     "view_analytics": "Ver Analíticas",
     "manage_subscriptions": "Gestionar Suscripciones",
     "analytics_title": "Analíticas",
+    "testimonials_title": "Testimonios",
     "analytics_subtitle": "Métricas de rendimiento de la plataforma",
     "questions_answered": "Preguntas Respondidas",
     "exams_taken": "Exámenes Realizados",
