@@ -35,7 +35,7 @@ export default function SubscribePage() {
       .catch(() => setPlans([]))
       .finally(() => setLoading(false));
 
-    if (user && user.role !== "admin") {
+    if (user && user.role !== "admin" && user.role !== "super_admin") {
       subscriptionsApi.mySubscription()
         .then(({ data }) => setCurrentSub(data || null))
         .catch(() => {});

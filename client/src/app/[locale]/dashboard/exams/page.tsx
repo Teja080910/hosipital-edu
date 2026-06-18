@@ -47,10 +47,10 @@ export default function ExamsPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {exams.map((exam) => (
-              <Card key={exam.id}>
+              <Card key={exam.id} className="overflow-hidden">
                 <CardHeader>
-                  <CardTitle>{localized(exam.name)}</CardTitle>
-                  <CardDescription>{localized(exam.description)}</CardDescription>
+                  <CardTitle className="break-words">{localized(exam.name)}</CardTitle>
+                  <CardDescription className="break-words">{localized(exam.description)}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-4 mb-4">
@@ -59,7 +59,7 @@ export default function ExamsPage() {
                       <span>{t("questions_count", { count: exam._questionCount ?? "—" })}</span>
                     </div>
                   </div>
-                  <Button className="w-full" onClick={() => router.push(`/dashboard/exams/${exam.id}`)}>{t("start")}</Button>
+                  <Button className="w-full" onClick={() => router.push(`/dashboard/exams/${exam.id}`)} disabled={!exam._questionCount}>{exam._questionCount ? t("start") : t("no_questions")}</Button>
                 </CardContent>
               </Card>
             ))}

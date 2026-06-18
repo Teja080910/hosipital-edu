@@ -15,7 +15,7 @@ export function subscriptionConfirmedTemplate(
   return emailLayout({
     content: `
       ${emailH1("Subscription confirmed!")}
-      ${emailText(`Hi ${name}, thank you for subscribing to MD Exams. Your payment was successful and your account is now active.`)}
+      ${emailText(`Hi ${name}, thank you for subscribing to MD Exam. Your payment was successful and your account is now active.`)}
       ${emailDivider()}
       <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
         ${emailUserInfo("Plan", plan.name)}

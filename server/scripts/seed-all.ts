@@ -1,10 +1,128 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../src/database/schema";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
+
+// --- User config ---
+const ADMIN_EMAILS = ["tejasimma033@gmail.com", "sailakshmiborra4104@gmail.com"];
+
+// --- Exams & Specialties ---
+interface SpecialtyDef {
+  en: string;
+  es: string;
+}
+interface ExamDef {
+  slug: string;
+  name: { en: string; es: string };
+  description: { en: string; es: string };
+  sortOrder: number;
+  specialties: SpecialtyDef[];
+}
+
+const examsData: ExamDef[] = [
+  {
+    slug: "enurm",
+    name: { en: "ENURM", es: "ENURM" },
+    description: { en: "Examen Nacional Único de Residencias Médicas (Latin America)", es: "Examen Nacional Único de Residencias Médicas (Latinoamérica)" },
+    sortOrder: 0,
+    specialties: [
+      { en: "ENURM Basic Sciences", es: "ENURM Ciencias Básicas" },
+      { en: "ENURM Internal Medicine", es: "ENURM Medicina Interna" },
+      { en: "ENURM Pediatrics", es: "ENURM Pediatría" },
+      { en: "ENURM Surgery", es: "ENURM Cirugía" },
+      { en: "ENURM Gynecology and Obstetrics", es: "ENURM Ginecología y Obstetricia" },
+      { en: "Anatomy", es: "Anatomía" },
+      { en: "Cardiology", es: "Cardiología" },
+      { en: "Surgery", es: "Cirugía" },
+      { en: "Pharmacology", es: "Farmacología" },
+      { en: "Gynecology and Obstetrics", es: "Ginecología y Obstetricia" },
+      { en: "Infectious Diseases", es: "Infectología" },
+      { en: "Maxillofacial Surgery", es: "Maxilofacial" },
+      { en: "Internal Medicine", es: "Medicina Interna" },
+      { en: "Nephro-Urology", es: "Nefro-Urología" },
+      { en: "Pulmonology", es: "Neumología" },
+      { en: "Neurology", es: "Neurología" },
+      { en: "Pediatrics", es: "Pediatría" },
+    ],
+  },
+  {
+    slug: "enarm",
+    name: { en: "ENARM", es: "ENARM" },
+    description: { en: "Examen Nacional de Aspirantes a Residencias Médicas (Mexico)", es: "Examen Nacional de Aspirantes a Residencias Médicas (México)" },
+    sortOrder: 1,
+    specialties: [
+      { en: "ENARM Surgery", es: "ENARM Cirugía" },
+      { en: "ENARM Internal Medicine", es: "ENARM Medicina Interna" },
+      { en: "ENARM Pediatrics", es: "ENARM Pediatría" },
+      { en: "Internal Medicine - ENARM", es: "Medicina Interna - ENARM" },
+      { en: "Anatomy", es: "Anatomía" },
+      { en: "Cardiology", es: "Cardiología" },
+      { en: "Surgery", es: "Cirugía" },
+      { en: "Pharmacology", es: "Farmacología" },
+      { en: "Gynecology and Obstetrics", es: "Ginecología y Obstetricia" },
+      { en: "Infectious Diseases", es: "Infectología" },
+      { en: "Maxillofacial Surgery", es: "Maxilofacial" },
+      { en: "Internal Medicine", es: "Medicina Interna" },
+      { en: "Nephro-Urology", es: "Nefro-Urología" },
+      { en: "Pulmonology", es: "Neumología" },
+      { en: "Neurology", es: "Neurología" },
+      { en: "Pediatrics", es: "Pediatría" },
+    ],
+  },
+  {
+    slug: "mir",
+    name: { en: "MIR", es: "MIR" },
+    description: { en: "Médico Interno Residente (Spain)", es: "Médico Interno Residente (España)" },
+    sortOrder: 2,
+    specialties: [
+      { en: "Anatomy", es: "Anatomía" },
+      { en: "Cardiology", es: "Cardiología" },
+      { en: "Surgery", es: "Cirugía" },
+      { en: "Pharmacology", es: "Farmacología" },
+      { en: "Gynecology and Obstetrics", es: "Ginecología y Obstetricia" },
+      { en: "Infectious Diseases", es: "Infectología" },
+      { en: "Maxillofacial Surgery", es: "Maxilofacial" },
+      { en: "Internal Medicine", es: "Medicina Interna" },
+      { en: "Nephro-Urology", es: "Nefro-Urología" },
+      { en: "Pulmonology", es: "Neumología" },
+      { en: "Neurology", es: "Neurología" },
+      { en: "Pediatrics", es: "Pediatría" },
+    ],
+  },
+  {
+    slug: "usmle-step-1",
+    name: { en: "USMLE Step 1", es: "USMLE Step 1" },
+    description: { en: "United States Medical Licensing Examination Step 1", es: "Examen de Licencia Médica de EE.UU. Step 1" },
+    sortOrder: 3,
+    specialties: [
+      { en: "Anatomy", es: "Anatomía" },
+      { en: "Pharmacology", es: "Farmacología" },
+    ],
+  },
+  {
+    slug: "usmle-step-2",
+    name: { en: "USMLE Step 2 CK", es: "USMLE Step 2 CK" },
+    description: { en: "United States Medical Licensing Examination Step 2 Clinical Knowledge", es: "Examen de Licencia Médica de EE.UU. Step 2 Conocimiento Clínico" },
+    sortOrder: 4,
+    specialties: [
+      { en: "Cardiology", es: "Cardiología" },
+      { en: "Surgery", es: "Cirugía" },
+      { en: "Gynecology and Obstetrics", es: "Ginecología y Obstetricia" },
+      { en: "Infectious Diseases", es: "Infectología" },
+      { en: "Internal Medicine", es: "Medicina Interna" },
+      { en: "Nephro-Urology", es: "Nefro-Urología" },
+      { en: "Pulmonology", es: "Neumología" },
+      { en: "Neurology", es: "Neurología" },
+      { en: "Pediatrics", es: "Pediatría" },
+    ],
+  },
+];
+
+// Flashcards must include ALL specialties for ENURM, ENARM, MIR
+const flashcardExamSlugs = ["enurm", "enarm", "mir"];
 
 const questionsData = [
   {
@@ -237,137 +355,139 @@ const articlesData = [
   },
 ];
 
+const plansData = [
+  { name: { en: "Monthly", es: "Mensual" }, description: { en: "Full question bank access, basic analytics", es: "Acceso completo al banco de preguntas, analíticas básicas" }, price: "29", interval: "month", sortOrder: 0, isVisible: true, maxExamAttempts: 20 },
+  { name: { en: "Quarterly", es: "Trimestral" }, description: { en: "Everything in Monthly plus advanced analytics, priority support, mock exams", es: "Todo lo de Mensual más analíticas avanzadas, soporte prioritario, exámenes simulados" }, price: "69", interval: "quarter", sortOrder: 1, isVisible: true, maxExamAttempts: 50 },
+  { name: { en: "Annual", es: "Anual" }, description: { en: "Everything in Quarterly plus 1-on-1 tutoring, certificate, early access", es: "Todo lo de Trimestral más tutoría personalizada, certificado, acceso anticipado" }, price: "199", interval: "year", sortOrder: 2, isVisible: true, maxExamAttempts: 999999 },
+];
+
+const paramsData = [
+  {
+    key: "terms_of_service",
+    value: {
+      en: "MD Exam Terms of Service\n\n1. Acceptance of Terms\nBy accessing and using MD Exam, you agree to be bound by these Terms of Service.\n\n2. Description of Service\nMD Exam provides an online platform for medical exam preparation including question banks, flashcards, video classes, and courses.\n\n3. User Accounts\nYou are responsible for maintaining the confidentiality of your account credentials.\n\n4. Subscription & Billing\nPaid subscriptions auto-renew unless canceled. Refunds are handled per our refund policy.\n\n5. Intellectual Property\nAll content on MD Exam is protected by copyright and other intellectual property laws.\n\n6. Limitation of Liability\nMD Exam is not responsible for any exam outcomes or medical decisions made using our platform.\n\n7. Contact\nFor questions, contact support@mdexams.com",
+      es: "Términos del Servicio de MD Exam\n\n1. Aceptación de Términos\nAl acceder y usar MD Exam, aceptas estar sujeto a estos Términos del Servicio.\n\n2. Descripción del Servicio\nMD Exam proporciona una plataforma en línea para preparación de exámenes médicos incluyendo bancos de preguntas, tarjetas de estudio, videoclases y cursos.\n\n3. Cuentas de Usuario\nEres responsable de mantener la confidencialidad de tus credenciales de cuenta.\n\n4. Suscripción y Facturación\nLas suscripciones pagadas se renuevan automáticamente a menos que se cancelen.\n\n5. Propiedad Intelectual\nTodo el contenido en MD Exam está protegido por derechos de autor.\n\n6. Limitación de Responsabilidad\nMD Exam no es responsable por resultados de exámenes o decisiones médicas.\n\n7. Contacto\nPara preguntas, contacta a support@mdexams.com",
+    },
+    description: "Terms of Service page content",
+  },
+  {
+    key: "privacy_policy",
+    value: {
+      en: "MD Exam Privacy Policy\n\n1. Information We Collect\nWe collect personal information you provide (name, email) and usage data (questions answered, exam results).\n\n2. How We Use Your Information\nWe use your data to provide and improve our services, send updates, and personalize your experience.\n\n3. Data Security\nWe implement industry-standard security measures to protect your personal information.\n\n4. Third-Party Services\nWe use Stripe for payment processing. Your payment data is handled by Stripe, not stored by us.\n\n5. Cookies\nWe use essential cookies for authentication and analytics cookies to improve our platform.\n\n6. Your Rights\nYou may request access, correction, or deletion of your personal data at any time.\n\n7. Contact\nFor privacy inquiries: privacy@mdexams.com",
+      es: "Política de Privacidad de MD Exam\n\n1. Información que Recopilamos\nRecopilamos información personal que proporcionas (nombre, correo) y datos de uso.\n\n2. Cómo Usamos tu Información\nUsamos tus datos para proporcionar y mejorar nuestros servicios.\n\n3. Seguridad de Datos\nImplementamos medidas de seguridad estándar de la industria.\n\n4. Servicios de Terceros\nUsamos Stripe para procesamiento de pagos.\n\n5. Cookies\nUsamos cookies esenciales para autenticación y cookies analíticas.\n\n6. Tus Derechos\nPuedes solicitar acceso, corrección o eliminación de tus datos.\n\n7. Contacto\nConsultas de privacidad: privacy@mdexams.com",
+    },
+    description: "Privacy Policy page content",
+  },
+  {
+    key: "faq_content",
+    value: {
+      en: "Frequently Asked Questions\n\nQ: How does the question bank work?\nA: Our question bank contains thousands of exam-style questions organized by specialty and topic. You can study in Study Mode with instant feedback or Exam Mode for timed simulation.\n\nQ: What is spaced repetition?\nA: Spaced repetition schedules reviews at optimal intervals. Our SM-2 algorithm ensures you review cards right when you're about to forget them.\n\nQ: Can I access content on mobile?\nA: Yes! Our platform is fully responsive. Mobile app coming soon.\n\nQ: Is there a money-back guarantee?\nA: Yes, we offer a 14-day money-back guarantee on all plans.\n\nQ: How do I upgrade or downgrade my plan?\nA: Visit the Subscribe page in your dashboard and select a new plan. Proration applies.\n\nQ: How do I cancel my subscription?\nA: Go to the Subscribe page and click Cancel Subscription. Access continues until the end of the billing period.",
+      es: "Preguntas Frecuentes\n\nP: ¿Cómo funciona el banco de preguntas?\nR: Nuestro banco contiene miles de preguntas tipo examen organizadas por especialidad y tema.\n\nP: ¿Qué es la repetición espaciada?\nR: La repetición espaciada programa revisiones en intervalos óptimos.\n\nP: ¿Puedo acceder al contenido en mi móvil?\nR: ¡Sí! Nuestra plataforma es totalmente responsive. La app móvil estará disponible pronto.\n\nP: ¿Hay garantía de devolución?\nR: Sí, ofrecemos una garantía de 14 días en todos los planes.\n\nP: ¿Cómo actualizo mi plan?\nR: Ve a la página de Suscripción y selecciona un nuevo plan.\n\nP: ¿Cómo cancelo mi suscripción?\nR: Ve a Suscripción y haz clic en Cancelar Suscripción.",
+    },
+    description: "FAQ page content",
+  },
+];
+
+// --- Helper: create a slug from exam slug + specialty name ---
+function specialtySlug(examSlug: string, en: string): string {
+  return `${examSlug}-${en.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
 async function main() {
   console.log("Connected to database\n");
 
-  const [adminUser] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.email, "tejasimma033@gmail.com"))
-    .limit(1);
+  // Find admin user
+  let adminUser: any = null;
+  for (const email of ADMIN_EMAILS) {
+    const rows = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.email, email))
+      .limit(1);
+    if (rows.length > 0) {
+      adminUser = rows[0];
+      break;
+    }
+  }
 
   if (!adminUser) {
-    console.error("Admin user not found. Ensure tejasimma033@gmail.com exists in the users table.");
+    console.error(`No admin user found among: ${ADMIN_EMAILS.join(", ")}. Please create one first.`);
     await pool.end();
     process.exit(1);
   }
-
   const userId = adminUser.id;
   console.log(`Using admin user: ${adminUser.email}\n`);
 
-  // -- EXAMS & SPECIALTIES --
-  console.log("=== Seeding Exams & Specialties ===");
-  const examsData = [
-    {
-      slug: "enarm",
-      name: { en: "ENARM", es: "ENARM" },
-      description: { en: "Examen Nacional de Aspirantes a Residencias Médicas (Mexico)", es: "Examen Nacional de Aspirantes a Residencias Médicas (México)" },
-      sortOrder: 0,
-      specialties: [
-        { name: { en: "Internal Medicine", es: "Medicina Interna" }, slug: "internal-medicine" },
-        { name: { en: "General Surgery", es: "Cirugía General" }, slug: "general-surgery" },
-        { name: { en: "Pediatrics", es: "Pediatría" }, slug: "pediatrics" },
-        { name: { en: "Obstetrics & Gynecology", es: "Ginecología y Obstetricia" }, slug: "obstetrics-gynecology" },
-        { name: { en: "Family Medicine", es: "Medicina Familiar" }, slug: "family-medicine" },
-        { name: { en: "Emergency Medicine", es: "Medicina de Urgencias" }, slug: "emergency-medicine" },
-        { name: { en: "Anesthesiology", es: "Anestesiología" }, slug: "anesthesiology" },
-        { name: { en: "Traumatology & Orthopedics", es: "Traumatología y Ortopedia" }, slug: "traumatology-orthopedics" },
-      ],
-    },
-    {
-      slug: "enurm",
-      name: { en: "ENURM", es: "ENURM" },
-      description: { en: "Examen Nacional Único de Residencias Médicas (Latin America)", es: "Examen Nacional Único de Residencias Médicas (Latinoamérica)" },
-      sortOrder: 1,
-      specialties: [
-        { name: { en: "Internal Medicine", es: "Medicina Interna" }, slug: "internal-medicine" },
-        { name: { en: "General Surgery", es: "Cirugía General" }, slug: "general-surgery" },
-        { name: { en: "Pediatrics", es: "Pediatría" }, slug: "pediatrics" },
-        { name: { en: "Pharmacology", es: "Farmacología" }, slug: "pharmacology" },
-        { name: { en: "Basic Sciences", es: "Ciencias Básicas" }, slug: "basic-sciences" },
-      ],
-    },
-    {
-      slug: "mir",
-      name: { en: "MIR", es: "MIR" },
-      description: { en: "Médico Interno Residente (Spain)", es: "Médico Interno Residente (España)" },
-      sortOrder: 2,
-      specialties: [
-        { name: { en: "Internal Medicine", es: "Medicina Interna" }, slug: "internal-medicine" },
-        { name: { en: "General Surgery", es: "Cirugía General" }, slug: "general-surgery" },
-        { name: { en: "Pediatrics", es: "Pediatría" }, slug: "pediatrics" },
-        { name: { en: "Pharmacology", es: "Farmacología" }, slug: "pharmacology" },
-        { name: { en: "Basic Sciences", es: "Ciencias Básicas" }, slug: "basic-sciences" },
-        { name: { en: "Cardiology", es: "Cardiología" }, slug: "cardiology" },
-        { name: { en: "Pulmonology", es: "Neumología" }, slug: "pulmonology" },
-        { name: { en: "Nephrology", es: "Nefrología" }, slug: "nephrology" },
-        { name: { en: "Neurology", es: "Neurología" }, slug: "neurology" },
-        { name: { en: "Endocrinology", es: "Endocrinología" }, slug: "endocrinology" },
-      ],
-    },
-    {
-      slug: "usmle-step-1",
-      name: { en: "USMLE Step 1", es: "USMLE Step 1" },
-      description: { en: "United States Medical Licensing Examination Step 1", es: "Examen de Licencia Médica de EE.UU. Step 1" },
-      sortOrder: 3,
-      specialties: [
-        { name: { en: "Basic Sciences", es: "Ciencias Básicas" }, slug: "basic-sciences" },
-        { name: { en: "Pharmacology", es: "Farmacología" }, slug: "pharmacology" },
-        { name: { en: "Pathology", es: "Patología" }, slug: "pathology" },
-        { name: { en: "Microbiology", es: "Microbiología" }, slug: "microbiology" },
-        { name: { en: "Biochemistry", es: "Bioquímica" }, slug: "biochemistry" },
-        { name: { en: "Physiology", es: "Fisiología" }, slug: "physiology" },
-        { name: { en: "Anatomy", es: "Anatomía" }, slug: "anatomy" },
-      ],
-    },
-    {
-      slug: "usmle-step-2-ck",
-      name: { en: "USMLE Step 2 CK", es: "USMLE Step 2 CK" },
-      description: { en: "United States Medical Licensing Examination Step 2 Clinical Knowledge", es: "Examen de Licencia Médica de EE.UU. Step 2 Conocimiento Clínico" },
-      sortOrder: 4,
-      specialties: [
-        { name: { en: "Internal Medicine", es: "Medicina Interna" }, slug: "internal-medicine" },
-        { name: { en: "General Surgery", es: "Cirugía General" }, slug: "general-surgery" },
-        { name: { en: "Pediatrics", es: "Pediatría" }, slug: "pediatrics" },
-        { name: { en: "Obstetrics & Gynecology", es: "Ginecología y Obstetricia" }, slug: "obstetrics-gynecology" },
-        { name: { en: "Psychiatry", es: "Psiquiatría" }, slug: "psychiatry" },
-        { name: { en: "Neurology", es: "Neurología" }, slug: "neurology" },
-      ],
-    },
-  ];
-  let eCreated = 0;
+  // ========================================================================
+  // 1. EXAMS & SPECIALTIES
+  // ========================================================================
+  console.log("=== 1. Exams & Specialties ===");
+  let examCount = 0;
+  let specialtyCount = 0;
+
   for (const exam of examsData) {
-    const existing = await db
+    let [existing] = await db
       .select()
       .from(schema.exams)
       .where(eq(schema.exams.slug, exam.slug))
       .limit(1);
-    if (existing.length) {
+
+    if (!existing) {
+      [existing] = await db.insert(schema.exams).values({
+        slug: exam.slug,
+        name: exam.name,
+        description: exam.description,
+        sortOrder: exam.sortOrder,
+        isActive: true,
+      }).returning();
+      console.log(`  Created exam: ${exam.name.en}`);
+      examCount++;
+    } else {
       console.log(`  Skipped (exists): ${exam.name.en}`);
-      continue;
     }
-    const [created] = await db.insert(schema.exams).values({
-      slug: exam.slug,
-      name: exam.name,
-      description: exam.description,
-      sortOrder: exam.sortOrder,
-      isActive: true,
-    }).returning();
-    for (const spec of exam.specialties) {
-      await db.insert(schema.specialties).values({
-        examId: created.id,
-        name: spec.name,
-        slug: spec.slug,
-        sortOrder: 0,
-      });
+
+    // Upsert specialties
+    for (let i = 0; i < exam.specialties.length; i++) {
+      const s = exam.specialties[i];
+      const slug = specialtySlug(exam.slug, s.en);
+      const [existingSpec] = await db
+        .select()
+        .from(schema.specialties)
+        .where(eq(schema.specialties.slug, slug))
+        .limit(1);
+
+      if (!existingSpec) {
+        await db.insert(schema.specialties).values({
+          examId: existing.id,
+          name: { en: s.en, es: s.es },
+          slug,
+          sortOrder: i,
+        });
+        specialtyCount++;
+      }
     }
-    console.log(`  Created: ${exam.name.en} with ${exam.specialties.length} specialties`);
-    eCreated++;
   }
-  console.log(`Exams: ${eCreated}\n`);
-  console.log("=== Seeding Questions ===");
+  console.log(`Exams: ${examCount} created, ${examsData.length} total`);
+  console.log(`Specialties: ${specialtyCount} created\n`);
+
+  // ========================================================================
+  // 2. QUESTIONS
+  // ========================================================================
+  console.log("=== 2. Questions ===");
   let qCreated = 0;
   for (const q of questionsData) {
+    // Check if question already exists by text
+    const [existingQ] = await db
+      .select()
+      .from(schema.questions)
+      .where(eq(schema.questions.text, q.text))
+      .limit(1);
+
+    if (existingQ) {
+      process.stdout.write(".");
+      continue;
+    }
+
     const [question] = await db.insert(schema.questions).values({
       text: q.text,
       explanation: q.explanation,
@@ -382,30 +502,107 @@ async function main() {
     qCreated++;
     process.stdout.write(".");
   }
-  console.log(`\nQuestions: ${qCreated}\n`);
+  console.log(`\nQuestions: ${qCreated} created\n`);
 
-  // -- COURSES --
-  console.log("=== Seeding Courses ===");
+  // ========================================================================
+  // 3. FLASHCARDS (for ENURM, ENARM, MIR — all specialties)
+  // ========================================================================
+  console.log("=== 3. Flashcards ===");
+  let fcCreated = 0;
+
+  interface FlashcardDef {
+    front: string;
+    back: string;
+    reference?: string;
+  }
+
+  const flashcardTemplates: FlashcardDef[] = [
+    { front: "What is the first-line treatment for hypertension in diabetic patients?", back: "ACE inhibitors or ARBs. They provide renoprotective effects in addition to blood pressure control.", reference: "JNC 8 Guidelines" },
+    { front: "What is the most common cause of community-acquired pneumonia?", back: "Streptococcus pneumoniae. It accounts for approximately 30-40% of all CAP cases.", reference: "IDSA Guidelines" },
+    { front: "What is the Gold standard for diagnosing pulmonary embolism?", back: "CT pulmonary angiography (CTPA). Has high sensitivity and specificity for detecting PE.", reference: "Radiology" },
+    { front: "What is the most common arrhythmia in clinical practice?", back: "Atrial fibrillation. Affects 1-2% of the general population, increasing with age.", reference: "ACC/AHA Guidelines" },
+    { front: "What is the treatment for anaphylaxis?", back: "Epinephrine IM (1:1000, 0.3-0.5 mg) in the anterolateral thigh. First-line treatment.", reference: "ACAAI Guidelines" },
+    { front: "What is the most common cause of acute pancreatitis?", back: "Gallstones (40%) followed by alcohol (30%). Other causes include hypertriglyceridemia, medications, and trauma.", reference: "ACG Guidelines" },
+    { front: "What is the difference between a stroke and a TIA?", back: "Stroke symptoms last >24 hours or cause permanent damage. TIA symptoms resolve within 24 hours (usually <1 hour) without permanent damage.", reference: "ASA Guidelines" },
+    { front: "What is the most common cause of Cushing syndrome?", back: "Iatrogenic (exogenous glucocorticoid use). The most common endogenous cause is pituitary adenoma (Cushing disease).", reference: "Endocrinology" },
+    { front: "What is the first-line treatment for major depressive disorder?", back: "SSRIs (e.g., fluoxetine, sertraline, citalopram). They have a favorable side effect profile compared to TCAs and MAOIs.", reference: "APA Guidelines" },
+    { front: "What is the most common cause of iron deficiency anemia in adults?", back: "Chronic blood loss (GI bleeding in men/postmenopausal women, menorrhagia in premenopausal women).", reference: "Hematology" },
+    { front: "What are the diagnostic criteria for systemic lupus erythematosus (SLE)?", back: "Mnemonic: SOAP BRAIN MD. Serositis, Oral ulcers, Arthritis, Photosensitivity, Blood disorders, Renal involvement, ANA positive, Immunologic disorders, Neurologic disorders, Malar rash, Discoid rash.", reference: "ACR Criteria" },
+    { front: "What is the most common malignant bone tumor in children?", back: "Osteosarcoma. Most commonly occurs in the metaphysis of long bones, especially distal femur.", reference: "Orthopedics" },
+    { front: "What is the mechanism of action of proton pump inhibitors?", back: "Irreversibly inhibit the H+/K+ ATPase pump in gastric parietal cells, reducing gastric acid secretion.", reference: "Pharmacology" },
+    { front: "What is the most common cause of hyperthyroidism?", back: "Graves disease (autoimmune). Accounts for 50-80% of hyperthyroidism cases. More common in women.", reference: "Endocrinology" },
+    { front: "What is the treatment for acute gout flare?", back: "NSAIDs (indomethacin), colchicine, or corticosteroids. Initiate within 24 hours of symptom onset.", reference: "ACR Guidelines" },
+  ];
+
+  const flashcardExams = await db
+    .select()
+    .from(schema.exams)
+    .where(inArray(schema.exams.slug, flashcardExamSlugs));
+
+  for (const exam of flashcardExams) {
+    const examSpecialties = await db
+      .select()
+      .from(schema.specialties)
+      .where(eq(schema.specialties.examId, exam.id));
+
+    if (examSpecialties.length === 0) {
+      console.log(`  No specialties found for ${exam.slug}, skipping flashcards`);
+      continue;
+    }
+
+    let count = 0;
+    // Distribute flashcards across all specialties
+    for (let i = 0; i < flashcardTemplates.length; i++) {
+      const fc = flashcardTemplates[i];
+      const specialty = examSpecialties[i % examSpecialties.length];
+
+      // Check if similar flashcard exists
+      const [existingFC] = await db
+        .select()
+        .from(schema.flashcards)
+        .where(sql`${schema.flashcards.front} = ${fc.front} AND ${schema.flashcards.examId} = ${exam.id}`)
+        .limit(1);
+
+      if (existingFC) continue;
+
+      await db.insert(schema.flashcards).values({
+        examId: exam.id,
+        specialtyId: specialty.id,
+        front: fc.front,
+        back: fc.back,
+        reference: fc.reference,
+        isActive: true,
+        createdBy: userId,
+      });
+      count++;
+    }
+    console.log(`  ${exam.slug}: ${count} flashcards created`);
+    fcCreated += count;
+  }
+  console.log(`Flashcards total: ${fcCreated} created\n`);
+
+  // ========================================================================
+  // 4. COURSES
+  // ========================================================================
+  console.log("=== 4. Courses ===");
   let cCreated = 0;
   for (const course of coursesData) {
-    const existing = await db
+    const [existing] = await db
       .select()
       .from(schema.courses)
       .where(eq(schema.courses.slug, course.slug))
       .limit(1);
 
-    if (existing.length) {
-      console.log(`  Skipped (exists): ${course.title.en}`);
-      const existingCourse = existing[0];
+    if (existing) {
       const modCount = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(schema.courseModules)
-        .where(eq(schema.courseModules.courseId, existingCourse.id));
+        .where(eq(schema.courseModules.courseId, existing.id));
+
       if ((modCount[0]?.count || 0) === 0) {
-        console.log(`  Inserting modules/lessons for existing course: ${course.title.en}`);
         for (const mod of course.modules) {
           const [module] = await db.insert(schema.courseModules).values({
-            courseId: existingCourse.id,
+            courseId: existing.id,
             title: mod.title,
             description: mod.description,
             sortOrder: mod.sortOrder,
@@ -417,6 +614,9 @@ async function main() {
             });
           }
         }
+        console.log(`  Added modules to existing: ${course.title.en}`);
+      } else {
+        console.log(`  Skipped (exists): ${course.title.en}`);
       }
       continue;
     }
@@ -440,7 +640,6 @@ async function main() {
         description: mod.description,
         sortOrder: mod.sortOrder,
       }).returning();
-
       for (const lesson of mod.lessons) {
         await db.insert(schema.courseLessons).values({
           moduleId: module.id,
@@ -448,23 +647,24 @@ async function main() {
         });
       }
     }
-
     console.log(`  Created: ${course.title.en}`);
     cCreated++;
   }
-  console.log(`Courses: ${cCreated}\n`);
+  console.log(`Courses: ${cCreated} created\n`);
 
-  // -- ARTICLES --
-  console.log("=== Seeding Articles ===");
+  // ========================================================================
+  // 5. ARTICLES
+  // ========================================================================
+  console.log("=== 5. Articles ===");
   let aCreated = 0;
   for (const article of articlesData) {
-    const existing = await db
+    const [existing] = await db
       .select()
       .from(schema.articles)
       .where(eq(schema.articles.slug, article.slug))
       .limit(1);
 
-    if (existing.length) {
+    if (existing) {
       console.log(`  Skipped (exists): ${article.title.en}`);
       continue;
     }
@@ -478,83 +678,72 @@ async function main() {
       publishedAt: article.isPublished ? new Date() : null,
       authorId: userId,
     });
-
     console.log(`  Created: ${article.title.en}`);
     aCreated++;
   }
-  console.log(`Articles: ${aCreated}\n`);
+  console.log(`Articles: ${aCreated} created\n`);
 
-  // -- SUBSCRIPTION PLANS --
-  console.log("=== Seeding Subscription Plans ===");
-  const plansData = [
-    { name: { en: "Monthly", es: "Mensual" }, description: { en: "Full question bank access, basic analytics", es: "Acceso completo al banco de preguntas, analíticas básicas" }, price: "29", interval: "month", sortOrder: 0, isVisible: true, maxExamAttempts: 20 },
-    { name: { en: "Quarterly", es: "Trimestral" }, description: { en: "Everything in Monthly plus advanced analytics, priority support, mock exams", es: "Todo lo de Mensual más analíticas avanzadas, soporte prioritario, exámenes simulados" }, price: "69", interval: "quarter", sortOrder: 1, isVisible: true, maxExamAttempts: 50 },
-    { name: { en: "Annual", es: "Anual" }, description: { en: "Everything in Quarterly plus 1-on-1 tutoring, certificate, early access", es: "Todo lo de Trimestral más tutoría personalizada, certificado, acceso anticipado" }, price: "199", interval: "year", sortOrder: 2, isVisible: true, maxExamAttempts: 999999 },
-  ];
+  // ========================================================================
+  // 6. SUBSCRIPTION PLANS
+  // ========================================================================
+  console.log("=== 6. Subscription Plans ===");
   let pCreated = 0;
   for (const plan of plansData) {
-    const existing = await db
+    const [existing] = await db
       .select()
       .from(schema.subscriptionPlans)
       .where(sql`${schema.subscriptionPlans.name}->>'en' = ${plan.name.en}`)
       .limit(1);
-    if (existing.length) {
+
+    if (existing) {
       console.log(`  Skipped (exists): ${plan.name.en}`);
       continue;
     }
+
     await db.insert(schema.subscriptionPlans).values(plan);
     console.log(`  Created: ${plan.name.en}`);
     pCreated++;
   }
-  console.log(`Plans: ${pCreated}\n`);
+  console.log(`Plans: ${pCreated} created\n`);
 
-  // -- SYSTEM PARAMETERS (Content Pages) --
-  console.log("=== Seeding System Parameters ===");
-  const paramsData = [
-    {
-      key: "terms_of_service",
-      value: {
-        en: "MD Exam Terms of Service\n\n1. Acceptance of Terms\nBy accessing and using MD Exam, you agree to be bound by these Terms of Service.\n\n2. Description of Service\nMD Exam provides an online platform for medical exam preparation including question banks, flashcards, video classes, and courses.\n\n3. User Accounts\nYou are responsible for maintaining the confidentiality of your account credentials.\n\n4. Subscription & Billing\nPaid subscriptions auto-renew unless canceled. Refunds are handled per our refund policy.\n\n5. Intellectual Property\nAll content on MD Exam is protected by copyright and other intellectual property laws.\n\n6. Limitation of Liability\nMD Exam is not responsible for any exam outcomes or medical decisions made using our platform.\n\n7. Contact\nFor questions, contact support@mdexams.com",
-        es: "Términos del Servicio de MD Exam\n\n1. Aceptación de Términos\nAl acceder y usar MD Exam, aceptas estar sujeto a estos Términos del Servicio.\n\n2. Descripción del Servicio\nMD Exam proporciona una plataforma en línea para preparación de exámenes médicos incluyendo bancos de preguntas, tarjetas de estudio, videoclases y cursos.\n\n3. Cuentas de Usuario\nEres responsable de mantener la confidencialidad de tus credenciales de cuenta.\n\n4. Suscripción y Facturación\nLas suscripciones pagadas se renuevan automáticamente a menos que se cancelen.\n\n5. Propiedad Intelectual\nTodo el contenido en MD Exam está protegido por derechos de autor.\n\n6. Limitación de Responsabilidad\nMD Exam no es responsable por resultados de exámenes o decisiones médicas.\n\n7. Contacto\nPara preguntas, contacta a support@mdexams.com"
-      },
-      description: "Terms of Service page content",
-    },
-    {
-      key: "privacy_policy",
-      value: {
-        en: "MD Exam Privacy Policy\n\n1. Information We Collect\nWe collect personal information you provide (name, email) and usage data (questions answered, exam results).\n\n2. How We Use Your Information\nWe use your data to provide and improve our services, send updates, and personalize your experience.\n\n3. Data Security\nWe implement industry-standard security measures to protect your personal information.\n\n4. Third-Party Services\nWe use Stripe for payment processing. Your payment data is handled by Stripe, not stored by us.\n\n5. Cookies\nWe use essential cookies for authentication and analytics cookies to improve our platform.\n\n6. Your Rights\nYou may request access, correction, or deletion of your personal data at any time.\n\n7. Contact\nFor privacy inquiries: privacy@mdexams.com",
-        es: "Política de Privacidad de MD Exam\n\n1. Información que Recopilamos\nRecopilamos información personal que proporcionas (nombre, correo) y datos de uso.\n\n2. Cómo Usamos tu Información\nUsamos tus datos para proporcionar y mejorar nuestros servicios.\n\n3. Seguridad de Datos\nImplementamos medidas de seguridad estándar de la industria.\n\n4. Servicios de Terceros\nUsamos Stripe para procesamiento de pagos.\n\n5. Cookies\nUsamos cookies esenciales para autenticación y cookies analíticas.\n\n6. Tus Derechos\nPuedes solicitar acceso, corrección o eliminación de tus datos.\n\n7. Contacto\nConsultas de privacidad: privacy@mdexams.com"
-      },
-      description: "Privacy Policy page content",
-    },
-    {
-      key: "faq_content",
-      value: {
-        en: "Frequently Asked Questions\n\nQ: How does the question bank work?\nA: Our question bank contains thousands of exam-style questions organized by specialty and topic. You can study in Study Mode with instant feedback or Exam Mode for timed simulation.\n\nQ: What is spaced repetition?\nA: Spaced repetition schedules reviews at optimal intervals. Our SM-2 algorithm ensures you review cards right when you're about to forget them.\n\nQ: Can I access content on mobile?\nA: Yes! Our platform is fully responsive. Mobile app coming soon.\n\nQ: Is there a money-back guarantee?\nA: Yes, we offer a 14-day money-back guarantee on all plans.\n\nQ: How do I upgrade or downgrade my plan?\nA: Visit the Subscribe page in your dashboard and select a new plan. Proration applies.\n\nQ: How do I cancel my subscription?\nA: Go to the Subscribe page and click Cancel Subscription. Access continues until the end of the billing period.",
-        es: "Preguntas Frecuentes\n\nP: ¿Cómo funciona el banco de preguntas?\nR: Nuestro banco contiene miles de preguntas tipo examen organizadas por especialidad y tema.\n\nP: ¿Qué es la repetición espaciada?\nR: La repetición espaciada programa revisiones en intervalos óptimos.\n\nP: ¿Puedo acceder al contenido en mi móvil?\nR: ¡Sí! Nuestra plataforma es totalmente responsive. La app móvil estará disponible pronto.\n\nP: ¿Hay garantía de devolución?\nR: Sí, ofrecemos una garantía de 14 días en todos los planes.\n\nP: ¿Cómo actualizo mi plan?\nR: Ve a la página de Suscripción y selecciona un nuevo plan.\n\nP: ¿Cómo cancelo mi suscripción?\nR: Ve a Suscripción y haz clic en Cancelar Suscripción."
-      },
-      description: "FAQ page content",
-    },
-  ];
+  // ========================================================================
+  // 7. SYSTEM PARAMETERS
+  // ========================================================================
+  console.log("=== 7. System Parameters ===");
   let paramsCreated = 0;
   for (const param of paramsData) {
-    const existing = await db
+    const [existing] = await db
       .select()
       .from(schema.systemParameters)
       .where(eq(schema.systemParameters.key, param.key))
       .limit(1);
-    if (existing.length) {
+
+    if (existing) {
       console.log(`  Skipped (exists): ${param.key}`);
       continue;
     }
+
     await db.insert(schema.systemParameters).values(param);
     console.log(`  Created: ${param.key}`);
     paramsCreated++;
   }
-  console.log(`System Parameters: ${paramsCreated}\n`);
+  console.log(`System Parameters: ${paramsCreated} created\n`);
 
+  // ========================================================================
+  // SUMMARY
+  // ========================================================================
   console.log("=== Seed Complete ===");
+  console.log(`  Exams: ${examCount} new, ${examsData.length} total`);
+  console.log(`  Specialties: ${specialtyCount} new`);
+  console.log(`  Questions: ${qCreated} new`);
+  console.log(`  Flashcards: ${fcCreated} new`);
+  console.log(`  Courses: ${cCreated} new`);
+  console.log(`  Articles: ${aCreated} new`);
+  console.log(`  Plans: ${pCreated} new`);
+  console.log(`  System Parameters: ${paramsCreated} new`);
+
   await pool.end();
+  console.log("\nDone.");
 }
 
 main().catch((err) => {

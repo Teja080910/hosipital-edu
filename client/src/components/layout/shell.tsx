@@ -5,12 +5,15 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
 import { cn } from "@/lib/utils";
+import { useExamStore } from "@/store/exam-store";
 
 export function Shell({ children, fullscreen }: { children: ReactNode; fullscreen?: boolean }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isExamActive = useExamStore((s) => s.isActive);
+  const hideNav = fullscreen || isExamActive;
 
-  if (fullscreen) {
+  if (hideNav) {
     return <div className="min-h-screen bg-background"><main>{children}</main></div>;
   }
 

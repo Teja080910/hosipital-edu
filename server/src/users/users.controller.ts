@@ -36,7 +36,7 @@ export class UsersController {
   @Get(":id")
   @ApiOperation({ summary: "Get user by id" })
   async findOne(@Param("id") id: string, @CurrentUser() user: any) {
-    if (user.role !== "admin" && user.id !== id) {
+    if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
       return { message: "Access denied" };
     }
     return this.usersService.findById(id);
@@ -45,7 +45,7 @@ export class UsersController {
   @Get(":id/referral")
   @ApiOperation({ summary: "Get user's referral info" })
   async getReferral(@Param("id") id: string, @CurrentUser() user: any) {
-    if (user.role !== "admin" && user.id !== id) {
+    if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
       return { message: "Access denied" };
     }
     return this.usersService.getReferralInfo(id);
@@ -77,7 +77,7 @@ export class UsersController {
     @Body() data: any,
     @CurrentUser() user: any,
   ) {
-    if (user.role !== "admin" && user.id !== id) {
+    if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
       return { message: "Access denied" };
     }
     return this.usersService.update(id, data);

@@ -31,6 +31,7 @@ interface SpecialtyOption {
 
 export default function FlashcardsPage() {
   const t = useTranslations("flashcards");
+  const c = useTranslations("common");
   const [cards, setCards] = useState<FlashcardData[]>([]);
   const [total, setTotal] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -104,7 +105,7 @@ export default function FlashcardsPage() {
   if (error) {
     return (
       <PageTransition>
-        <EmptyState icon={Library} title="Error" description={error} />
+        <EmptyState icon={Library} title={c("error")} description={error} />
       </PageTransition>
     );
   }

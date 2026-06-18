@@ -62,7 +62,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              Welcome back, {user?.name?.split(" ")[0] || td("student")}
+              {td("welcome_back", { name: user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "" })}
             </h1>
             <p className="text-muted-foreground">{td("continue_education")}</p>
           </div>

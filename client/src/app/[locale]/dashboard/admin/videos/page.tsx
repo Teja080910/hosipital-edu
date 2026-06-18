@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { streamApi } from "@/lib/api";
+import { streamApi, examsApi } from "@/lib/api";
 import { FolderOpen, Loader2, Pencil, Play, Plus, Trash2, Video } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
@@ -34,6 +34,8 @@ export default function AdminVideosPage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [lessonModuleId, setLessonModuleId] = useState<string | null>(null);
   const [previewUid, setPreviewUid] = useState<string | null>(null);
+  const [exams, setExams] = useState<any[]>([]);
+  const [selectedExamId, setSelectedExamId] = useState<string>("");
 
   const fetchModules = useCallback(async () => {
     try {
@@ -47,27 +49,33 @@ export default function AdminVideosPage() {
     }
   }, []);
 
-  useEffect(() => { fetchModules(); }, []);
+  useEffect(() => {
+    fetchModules();
+    examsApi.list().then(({ data }) => setExams(data)).catch(() => {});
+  }, []);
 
   const openCreateModule = () => {
     setEditingModule(null);
     setModuleForm({ title: "", description: "" });
+    setSelectedExamId("");
     setModuleDialogOpen(true);
   };
 
   const openEditModule = (mod: any) => {
     setEditingModule(mod);
     setModuleForm({ title: mod.title?.en ?? mod.title ?? "", description: mod.description?.en ?? mod.description ?? "" });
+    setSelectedExamId(mod.examId || "");
     setModuleDialogOpen(true);
   };
 
   const saveModule = async () => {
     setSavingModule(true);
     try {
-      const payload = {
+      const payload: any = {
         title: { en: moduleForm.title },
         description: { en: moduleForm.description },
       };
+      if (selectedExamId) payload.examId = selectedExamId;
       if (editingModule) {
         await streamApi.updateModule(editingModule.id, payload);
         toast.success("Module updated");
@@ -291,6 +299,19 @@ export default function AdminVideosPage() {
               <div>
                 <label className="text-sm font-medium">Description</label>
                 <Textarea value={moduleForm.description} onChange={(e) => setModuleForm((p) => ({ ...p, description: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Exam (optional)</label>
+                <select
+                  value={selectedExamId}
+                  onChange={(e) => setSelectedExamId(e.target.value)}
+                  className="w-full border rounded-lg p-2 text-sm bg-background"
+                >
+                  <option value="">All exams (no restriction)</option>
+                  {exams.map((ex: any) => (
+                    <option key={ex.id} value={ex.id}>{ex.name?.en || ex.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <DialogFooter>

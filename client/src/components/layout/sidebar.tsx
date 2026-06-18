@@ -32,6 +32,7 @@ import {
   Crown,
   Sparkles,
   SlidersHorizontal,
+  Star,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { subscriptionsApi } from "@/lib/api";
@@ -39,7 +40,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 const allNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "dashboard" },
-  { href: "/dashboard/questions", icon: FileQuestion, label: "questions", accountTypes: ["full"] },
+  // { href: "/dashboard/questions", icon: FileQuestion, label: "questions", accountTypes: ["full"] },
   { href: "/dashboard/flashcards", icon: Library, label: "flashcards", accountTypes: ["full"] },
   { href: "/dashboard/exams", icon: GraduationCap, label: "exams", accountTypes: ["full"] },
   { href: "/dashboard/courses", icon: BookOpen, label: "courses" },
@@ -59,6 +60,7 @@ const adminItems = [
   { href: "/dashboard/admin/parameters", icon: SlidersHorizontal, label: "parameters_title" },
   { href: "/dashboard/admin/translations", icon: Languages, label: "translations_title" },
   { href: "/dashboard/admin/analytics", icon: BarChart, label: "analytics_title" },
+  { href: "/dashboard/admin/testimonials", icon: Star, label: "testimonials_title" },
 ];
 
 interface SidebarProps {
@@ -76,6 +78,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const { user } = useAuth();
   const pathname = usePathname();
   const [adminOpen, setAdminOpen] = useState(true);
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const navItems = allNavItems.filter(item => {
     if (!item.accountTypes) return true;
     return item.accountTypes.includes(user?.accountType || "full");
@@ -83,7 +86,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
+    if (user && !isAdmin) {
       subscriptionsApi.mySubscription().then(({ data }) => {
         if (data) {
           subscriptionsApi.plans().then(({ data: plans }) => {
@@ -120,7 +123,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
         isCollapsed ? "justify-center px-0" : "px-5"
       )}>
         <Link href="/" className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-          <Image src="/logo.png" alt={sb("brand")} width={40} height={40} className="rounded-lg" />
+          <Image src="/logo.png" alt={sb("brand")} width={40} height={40} className="rounded-lg bg-white p-1" />
           {!isCollapsed && (
             <span className="text-lg font-bold bg-gradient-to-r from-foreground via-blue-500 to-foreground dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent">
               {sb("brand")}
@@ -159,7 +162,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
 
         <Separator className="my-4 bg-border/50" />
 
-        {user?.role === "admin" && !isCollapsed && (
+        {isAdmin && !isCollapsed && (
           <button
             onClick={() => setAdminOpen(!adminOpen)}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
@@ -170,7 +173,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
           </button>
         )}
 
-        {user?.role === "admin" && isCollapsed && (
+        {isAdmin && isCollapsed && (
           <Link href="/dashboard/admin">
             <span className="flex items-center justify-center rounded-xl px-3 py-2.5 text-muted-foreground hover:text-foreground hover:bg-accent/50">
               <Shield className="h-4.5 w-4.5" />
@@ -178,7 +181,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
           </Link>
         )}
 
-        {user?.role === "admin" && adminOpen && (
+        {isAdmin && adminOpen && (
           <nav className="flex flex-col gap-1 mt-1">
             {adminItems.map((item) => {
               const active = isActive(item.href);

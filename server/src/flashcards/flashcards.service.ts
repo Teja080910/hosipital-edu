@@ -27,14 +27,22 @@ export class FlashcardsService {
     const offset = (page - 1) * limit;
     const conditions = [eq(flashcards.isActive, true)];
 
-    if (examId) conditions.push(or(eq(flashcards.examId, examId), isNull(flashcards.examId)) as SQL<unknown>);
+    let subExamId: string | null = null;
+    if (user) {
+      subExamId = await this.getSubscriptionExamId(user.id);
+    }
+
+    if (subExamId) {
+      conditions.push(eq(flashcards.examId, subExamId));
+      if (examId && examId !== subExamId) {
+        return { items: [], total: 0 };
+      }
+    } else if (examId) {
+      conditions.push(or(eq(flashcards.examId, examId), isNull(flashcards.examId)) as SQL<unknown>);
+    }
+
     if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
     if (topicId) conditions.push(eq(flashcards.topicId, topicId));
-
-    if (user && !examId) {
-      const subExamId = await this.getSubscriptionExamId(user.id);
-      if (subExamId) conditions.push(or(eq(flashcards.examId, subExamId), isNull(flashcards.examId)) as SQL<unknown>);
-    }
 
     const where = and(...conditions);
 
@@ -80,7 +88,7 @@ export class FlashcardsService {
       eq(userFlashcardReviews.userId, userId),
       eq(flashcards.isActive, true),
     ];
-    if (subExamId) conditions.push(or(eq(flashcards.examId, subExamId), isNull(flashcards.examId)) as SQL<unknown>);
+    if (subExamId) conditions.push(eq(flashcards.examId, subExamId));
 
     return this.db
       .select({
@@ -167,6 +175,23 @@ export class FlashcardsService {
 
       if (!sub) {
         throw new HttpException("No active subscription found.", HttpStatus.FORBIDDEN);
+      }
+
+      const [plan] = await this.db
+        .select({ examId: subscriptionPlans.examId })
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, sub.planId))
+        .limit(1);
+
+      if (plan?.examId) {
+        const [card] = await this.db
+          .select({ examId: flashcards.examId })
+          .from(flashcards)
+          .where(eq(flashcards.id, flashcardId))
+          .limit(1);
+        if (!card || card.examId !== plan.examId) {
+          throw new HttpException("Flashcard not found for your subscription.", HttpStatus.FORBIDDEN);
+        }
       }
 
       if (sub.remainingFlashcardAttempts != null && sub.remainingFlashcardAttempts < 1) {
@@ -262,7 +287,7 @@ export class FlashcardsService {
   async getSpecialties(userId: string) {
     const subExamId = await this.getSubscriptionExamId(userId);
     const conditions: any[] = [eq(flashcards.isActive, true)];
-    if (subExamId) conditions.push(or(eq(flashcards.examId, subExamId), isNull(flashcards.examId)) as SQL<unknown>);
+    if (subExamId) conditions.push(eq(flashcards.examId, subExamId));
 
     const rows = await this.db
       .selectDistinct({
