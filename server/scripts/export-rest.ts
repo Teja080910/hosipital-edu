@@ -5,7 +5,7 @@ import * as path from "path";
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const PROJECT_ID = "md-exam-app";
-const GCLOUD_BIN = `/home/teja/love u sis/google-cloud-sdk/bin/gcloud`;
+const GCLOUD_BIN = process.env.GCLOUD_BIN || "gcloud";
 const API_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 const PAGE_SIZE = 500;
 const OUTPUT_DIR = path.resolve(__dirname, "..", "exports");

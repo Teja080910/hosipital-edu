@@ -18,6 +18,11 @@ These scripts pull data from Firebase Firestore and insert it into PostgreSQL. T
 
 **`npm run export:rest`** — Connects to Firestore via REST API (using gcloud auth), exports all 17 collections, and writes clean JSON files to `server/exports/`. Handles pagination (500 docs per page) and token refresh. Output: ~891MB of JSON with ~15,400 documents.
 
+Requires [gcloud CLI](https://cloud.google.com/sdk) authenticated with a Firebase project. If `gcloud` is not on your PATH, set the binary path:
+```bash
+export GCLOUD_BIN=/path/to/google-cloud-sdk/bin/gcloud
+```
+
 **`npm run db:firebase-migrate`** — Reads the JSON files from `server/exports/`, transforms Firestore data model to the PostgreSQL schema, and inserts into all tables (users, questions, flashcards, subscriptions, video modules/lessons, payments, articles, translations, etc.). Idempotent — safe to re-run; skips existing records by matching on email/title/text keys.
 
 ## Post-Migration Utilities
