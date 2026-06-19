@@ -20,7 +20,7 @@ These scripts pull data from Firebase Firestore and insert it into PostgreSQL. T
 
 Requires [gcloud CLI](https://cloud.google.com/sdk) authenticated with a Firebase project. If `gcloud` is not on your PATH, set the binary path:
 ```bash
-export GCLOUD_BIN=/path/to/google-cloud-sdk/bin/gcloud
+export GCLOUD_BIN=/var/www/.../hosipital-edu/server/exports/
 ```
 
 **`npm run db:firebase-migrate`** — Reads the JSON files from `server/exports/`, transforms Firestore data model to the PostgreSQL schema, and inserts into all tables (users, questions, flashcards, subscriptions, video modules/lessons, payments, articles, translations, etc.). Idempotent — safe to re-run; skips existing records by matching on email/title/text keys.

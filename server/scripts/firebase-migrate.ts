@@ -14,6 +14,15 @@ const db = drizzle(pool, { schema });
 
 const DATA_DIR = path.join(__dirname, "../exports");
 
+// Safe timestamp converter — handles string, number, Firestore object, null
+function toDate(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  if (typeof val === "string" || typeof val === "number") return new Date(val);
+  if (typeof val._seconds === "number") return new Date(val._seconds * 1000 + (val._nanoseconds || 0) / 1e6);
+  return null;
+}
+
 // Progress tracking
 let totalUsers = 0;
 let totalPlans = 0;
@@ -151,7 +160,7 @@ async function migrateUsers(docs: any[]) {
           zipCode: f.zipCode || null,
           role: f.isAdministrator ? "admin" : "student",
           emailVerifiedAt: new Date(),
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
           updatedAt: new Date(),
           deletedAt: f.enabled === false ? new Date() : null,
         })
@@ -222,7 +231,7 @@ async function migrateMemberships(docs: any[], adminId: string) {
           isVisible: f.isVisible ?? true,
           sortOrder: f.order ?? 0,
           isActive: true,
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
           updatedAt: new Date(),
         });
 
@@ -274,7 +283,7 @@ async function migrateQuestions(docs: any[], adminId: string, examSlugToId: Reco
             difficulty: "medium",
             isActive: f.isEnabled !== false,
             createdBy: adminId,
-            createdAt: f.creationTime || new Date(),
+            createdAt: toDate(f.creationTime) || new Date(),
             updatedAt: new Date(),
           })
           .returning()) as any[];
@@ -383,7 +392,7 @@ async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Rec
             reference: f.reference || null,
             isActive: f.isEnabled !== false,
             createdBy: adminId,
-            createdAt: f.creationTime || new Date(),
+            createdAt: toDate(f.creationTime) || new Date(),
             updatedAt: new Date(),
           });
         totalFlashcards++;
@@ -417,7 +426,7 @@ async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Rec
         linked++;
       }
     } catch (err: any) {
-      console.error(`  Error migrating flashcard: ${err.message}`);
+      console.error(`  Error migrating flashcard [${doc._id || "?"}]: ${err.message}`);
     }
   }
   console.log(`  Flashcards: ${totalFlashcards}, linked to exam: ${linked}, skipped: ${skipped}`);
@@ -452,7 +461,7 @@ async function migrateVideoCategories(docs: any[]) {
           maxWatching: f.maxWatching ?? null,
           isActive: true,
           sortOrder: 0,
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
         });
 
       totalModules++;
@@ -523,7 +532,7 @@ moduleId: moduleId!,
           isActive: f.isEnabled !== false,
           duration: 0,
           sortOrder: 0,
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
         });
 
       totalLessons++;
@@ -578,7 +587,7 @@ async function migratePayments(docs: any[], adminId: string) {
           currency: "USD",
           status: "succeeded",
           description: `Membership purchase: ${toMembership.title || ""}`,
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
         });
 
       totalPayments++;
