@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException, Inject } from "@nestjs/common";
-import { DRIZZLE } from "../database/database.provider";
-import { exams, specialties, topics, subtopics, questions } from "../database/schema";
-import { eq, asc, inArray, sql } from "drizzle-orm";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
+import { DRIZZLE } from "../database/database.provider";
+import { exams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions } from "../database/schema";
 
 @Injectable()
 export class ExamsService {
@@ -11,7 +11,22 @@ export class ExamsService {
     private i18n: I18nService,
   ) {}
 
-  async findAll() {
+  async findAll(user?: any) {
+    let subExamId: string | null = null;
+    if (user) {
+      const [sub] = await this.db
+        .select({ examId: subscriptionPlans.examId })
+        .from(userSubscriptions)
+        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+        .limit(1);
+      subExamId = sub?.examId || null;
+    }
+
+    const questionFilter = subExamId
+      ? sql`questions.exam_id = ${subExamId}`
+      : sql`(questions.exam_id = exams.id OR questions.exam_id IS NULL)`;
+
     const rows = await this.db
       .select({
         id: exams.id,
@@ -21,7 +36,7 @@ export class ExamsService {
         isActive: exams.isActive,
         sortOrder: exams.sortOrder,
         createdAt: exams.createdAt,
-        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE (questions.exam_id = exams.id OR questions.exam_id IS NULL) AND questions.is_active = true)`,
+        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE ${questionFilter} AND questions.is_active = true)`,
       })
       .from(exams)
       .where(eq(exams.isActive, true))

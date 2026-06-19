@@ -334,6 +334,11 @@ export const courses = pgTable("courses", {
   description: jsonb("description").notNull(),
   shortDescription: jsonb("short_description"),
   coverImage: text("cover_image"),
+  introduction: jsonb("introduction"),
+  objectives: jsonb("objectives"),
+  targetAudience: jsonb("target_audience"),
+  prerequisites: jsonb("prerequisites"),
+  whatYouWillLearn: jsonb("what_you_will_learn"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0"),
   stripePriceId: text("stripe_price_id"),
   durationDays: integer("duration_days").notNull().default(0),
@@ -347,6 +352,9 @@ export const courses = pgTable("courses", {
     () => certificateTemplates.id,
     { onDelete: "set null" },
   ),
+  preExamInstructions: jsonb("pre_exam_instructions"),
+  postExamInstructions: jsonb("post_exam_instructions"),
+  certificateInstructions: jsonb("certificate_instructions"),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdBy: uuid("created_by")
@@ -693,4 +701,16 @@ export const auditLogs = pgTable("audit_logs", {
   entityId: text("entity_id").notNull(),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const testimonials = pgTable("testimonials", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: jsonb("name").notNull(),
+  role: jsonb("role").notNull(),
+  text: jsonb("text").notNull(),
+  rating: integer("rating").default(5).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

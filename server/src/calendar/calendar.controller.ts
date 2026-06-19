@@ -29,7 +29,7 @@ export class CalendarController {
     @Query("endDate") endDate?: string,
   ) {
     return this.calendarService.findAll({
-      userId: user.role === "admin" ? undefined : user.id,
+      userId: user.role === "admin" || user.role === "super_admin" ? undefined : user.id,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
     });

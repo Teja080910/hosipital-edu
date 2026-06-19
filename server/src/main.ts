@@ -33,7 +33,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LanguageInterceptor(), new LoggingInterceptor());
 
   const config = new DocumentBuilder()
-    .setTitle("MD Exams API")
+    .setTitle("MD Exam API")
     .setDescription("Medical exam preparation platform API")
     .setVersion("1.0")
     .addBearerAuth()

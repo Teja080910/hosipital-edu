@@ -51,8 +51,8 @@ export class QuestionsController {
 
   @Get(":id")
   @ApiOperation({ summary: "Get question with options" })
-  async findOne(@Param("id") id: string) {
-    return this.questionsService.findById(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user?: any) {
+    return this.questionsService.findById(id, user);
   }
 
   @Post()

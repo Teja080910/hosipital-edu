@@ -12,7 +12,7 @@ import { coursesApi, certificatesApi } from "@/lib/api";
 import { CourseQuiz } from "@/components/courses/course-quiz";
 import { ChevronRight, Clock, DollarSign, FileQuestion, FileText, Loader2, Play, Award, ClipboardCheck, BarChart3 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function CourseDetailPage() {
@@ -34,6 +34,8 @@ export default function CourseDetailPage() {
   const [testResults, setTestResults] = useState<{ pre_test?: any; post_test?: any } | null>(null);
   const [showPreTest, setShowPreTest] = useState(false);
   const [showPostTest, setShowPostTest] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
     coursesApi.get(slug).then(({ data }) => {
@@ -56,14 +58,23 @@ export default function CourseDetailPage() {
     coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
   }, [isEnrolled, slug]);
 
+  const autoGenerateCert = useRef(false);
   useEffect(() => {
-    if (progress && progress.percentage === 100 && course?.hasCertificate) {
+    if (progress && progress.percentage === 100 && course?.hasCertificate && !autoGenerateCert.current) {
+      autoGenerateCert.current = true;
       certificatesApi.list().then(({ data: certs }) => {
         const existing = certs.find((c: any) => c.courseId === course.id);
-        if (existing) setCertificateId(existing.id);
+        if (existing) {
+          setCertificateId(existing.id);
+        } else {
+          certificatesApi.generate(course.id).then(({ data }) => {
+            setCertificateId(data.id);
+            toast.success(t("certificate_generated"));
+          }).catch(() => {});
+        }
       }).catch(() => {});
     }
-  }, [progress, course]);
+  }, [progress, course, t]);
 
   const handleGenerateCertificate = async () => {
     if (!course) return;
@@ -210,6 +221,65 @@ export default function CourseDetailPage() {
             </Badge>
           )}
         </div>
+
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          {showDetails ? <ChevronRight className="h-4 w-4 rotate-90 transition-transform" /> : <ChevronRight className="h-4 w-4 transition-transform" />}
+          {t("course_details")}
+        </button>
+
+        {showDetails && (
+          <Card>
+            <CardContent className="space-y-4 p-4">
+              {course.introduction?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("introduction")}</h3>
+                  <p className="text-sm mt-1">{course.introduction.en}</p>
+                </div>
+              )}
+              {course.objectives?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("objectives")}</h3>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{course.objectives.en}</p>
+                </div>
+              )}
+              {course.targetAudience?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("target_audience")}</h3>
+                  <p className="text-sm mt-1">{course.targetAudience.en}</p>
+                </div>
+              )}
+              {course.prerequisites?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("prerequisites")}</h3>
+                  <p className="text-sm mt-1">{course.prerequisites.en}</p>
+                </div>
+              )}
+              {course.whatYouWillLearn?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("what_you_will_learn")}</h3>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{course.whatYouWillLearn.en}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {course.preExamInstructions?.en && isEnrolled && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-4">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">{t("pre_exam_instructions")}</p>
+            <p className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-wrap">{course.preExamInstructions.en}</p>
+          </div>
+        )}
+
+        {course.postExamInstructions?.en && progressPct === 100 && (
+          <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800 p-4">
+            <p className="text-sm font-semibold text-green-800 dark:text-green-200 mb-1">{t("post_exam_instructions")}</p>
+            <p className="text-sm text-green-700 dark:text-green-300 whitespace-pre-wrap">{course.postExamInstructions.en}</p>
+          </div>
+        )}
 
         {!isEnrolled && (
           <Button size="lg" onClick={handleEnroll} disabled={enrolling}>

@@ -4,16 +4,17 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 interface WeeklyChartProps {
   data?: { date: string; count: number }[];
+  dayNames?: string[];
+  noDataText?: string;
 }
 
-export default function WeeklyChart({ data = [] }: WeeklyChartProps) {
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export default function WeeklyChart({ data = [], dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], noDataText = "No data yet" }: WeeklyChartProps) {
   const chartData = data.map(d => {
     const day = new Date(d.date).getDay();
     return { day: dayNames[day], minutes: d.count * 2 };
   });
   if (!chartData.length) {
-    return <div className="flex items-center justify-center h-full text-muted-foreground">No data yet</div>;
+    return <div className="flex items-center justify-center h-full text-muted-foreground">{noDataText}</div>;
   }
   return (
     <ResponsiveContainer width="100%" height="100%">

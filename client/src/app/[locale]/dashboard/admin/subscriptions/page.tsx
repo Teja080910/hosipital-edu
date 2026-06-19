@@ -45,6 +45,8 @@ export default function AdminSubscriptionsPage() {
     currency: "USD",
     isVisible: true,
     examId: "",
+    isCourseOnly: false,
+    maxDays: 0,
   });
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function AdminSubscriptionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "0", interval: "monthly", currency: "USD", isVisible: true, examId: "" });
+    setForm({ name: "", description: "", price: "0", interval: "monthly", currency: "USD", isVisible: true, examId: "", isCourseOnly: false, maxDays: 0 });
     setDialogOpen(true);
   };
 
@@ -80,6 +82,8 @@ export default function AdminSubscriptionsPage() {
       currency: p.currency || "USD",
       isVisible: p.isVisible ?? true,
       examId: p.examId || "",
+      isCourseOnly: p.isCourseOnly ?? false,
+      maxDays: p.maxDays || 0,
     });
     setDialogOpen(true);
   };
@@ -88,7 +92,7 @@ export default function AdminSubscriptionsPage() {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: { en: form.name },
         description: { en: form.description },
         price: form.price,
@@ -96,6 +100,8 @@ export default function AdminSubscriptionsPage() {
         currency: form.currency,
         isVisible: form.isVisible,
         examId: form.examId || null,
+        isCourseOnly: form.isCourseOnly,
+        maxDays: form.maxDays || null,
       };
       if (editing) {
         await subscriptionsApi.updatePlan(editing.id, payload);
@@ -275,6 +281,30 @@ export default function AdminSubscriptionsPage() {
                 <label className="text-sm font-medium">{t("visible_label")}</label>
                 <p className="text-xs text-muted-foreground">{t("visible_desc")}</p>
               </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border/60">
+              <input
+                type="checkbox"
+                checked={form.isCourseOnly}
+                onChange={(e) => setForm({ ...form, isCourseOnly: e.target.checked })}
+                className="h-4 w-4 rounded border-border"
+              />
+              <div>
+                <label className="text-sm font-medium">{t("is_course_only")}</label>
+                <p className="text-xs text-muted-foreground">{t("is_course_only_desc")}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("max_days")}</label>
+              <Input
+                type="number"
+                value={form.maxDays}
+                onChange={(e) => setForm({ ...form, maxDays: Number(e.target.value) })}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
+              />
+              <p className="text-xs text-muted-foreground">{t("max_days_desc")}</p>
             </div>
           </div>
 

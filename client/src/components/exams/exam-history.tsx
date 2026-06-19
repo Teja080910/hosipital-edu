@@ -48,8 +48,8 @@ export function ExamHistory() {
         return (
           <Card key={attempt.id}>
             <CardContent className="flex items-center justify-between py-4">
-              <div>
-                <p className="font-medium">{examTitle}</p>
+              <div className="overflow-hidden">
+                <p className="font-medium break-words">{examTitle}</p>
                 <p className="text-sm text-muted-foreground">
                   {attempt.mode} {t("mode")} &middot; {attempt.answeredCount ?? 0}/{attempt.questionCount} {t("answered")}
                 </p>

@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { attemptsApi, examsApi, questionsApi } from "@/lib/api";
 import { useRouter } from "@/routing";
 import type { Question } from "@/types";
+import { useExamStore } from "@/store/exam-store";
 import {
   AlertTriangle,
   ArrowLeft, ArrowRight,
@@ -28,8 +29,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type PageState = "config" | "taking" | "results";
@@ -40,20 +40,11 @@ function localized(obj: Record<string, string> | string | null | undefined, loca
   return obj[locale] || Object.values(obj)[0] || "";
 }
 
-export default function ExamTakingPageWrapper({ params }: { params: { id: string } }) {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
-      <ExamTakingPage params={params} />
-    </Suspense>
-  );
-}
-
-function ExamTakingPage({ params }: { params: { id: string } }) {
+export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const t = useTranslations("exams");
   const tc = useTranslations("common");
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [pageState, setPageState] = useState<PageState>("config");
   const [mode, setMode] = useState<"study" | "exam">("exam");
@@ -93,6 +84,14 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
     topicBreakdown: { topic: string; correct: number; total: number }[];
   } | null>(null);
 
+  const [tabWarnings, setTabWarnings] = useState(0);
+  const tabWarningsRef = useRef(0);
+  const confirmSubmitRef = useRef<() => Promise<void>>();
+  const isSubmittingRef = useRef(false);
+  const specialtiesRef = useRef<HTMLDivElement>(null);
+  const topicsRef = useRef<HTMLDivElement>(null);
+  const subtopicsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     Promise.all([
       examsApi.get(id),
@@ -108,43 +107,34 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [id, t]);
 
   useEffect(() => {
-    const modeParam = searchParams.get("mode");
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (pageState !== "config") return;
+      if (specialtiesRef.current && !specialtiesRef.current.contains(target)) {
+        setShowSpecialties(false);
+      }
+      if (topicsRef.current && !topicsRef.current.contains(target)) {
+        setShowTopics(false);
+      }
+      if (subtopicsRef.current && !subtopicsRef.current.contains(target)) {
+        setShowSubtopics(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [pageState]);
+
+  useEffect(() => {
+    return () => { useExamStore.setState({ isActive: false }); };
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const modeParam = params.get("mode");
     if (modeParam === "exam" || modeParam === "study") {
       setMode(modeParam);
     }
-  }, [searchParams]);
-
-  const autoStarted = useRef(false);
-  useEffect(() => {
-    if (loading || autoStarted.current || !searchParams.get("mode")) return;
-    autoStarted.current = true;
-    const totalQuestions = Math.min(questionLimit, filteredQuestions.length);
-    if (totalQuestions === 0) return;
-    (async () => {
-      try {
-        const { data: attempt } = await attemptsApi.create({ examId: id, mode, questionCount: totalQuestions, timeLimit: mode === "exam" ? timeLimit : undefined, customTitle: customTitle || undefined });
-        const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
-        setExamQuestions(shuffled);
-        setAttemptId(attempt.id);
-        setTimeRemaining(mode === "exam" ? timeLimit * 60 : 0);
-        setTotalTimeSpent(0); setAnswers({}); setCurrentIndex(0);
-        setSelectedOption(null); setShowAnswer(false);
-        setQuestionEntryTime(Date.now()); setPerQuestionTime({});
-        setPageState("taking");
-      } catch (err: any) {
-        const msg = err?.response?.data?.message || err?.message || t("start_failed");
-        toast.error(Array.isArray(msg) ? msg[0] : msg);
-      }
-    })();
-  }, [loading, searchParams]);
-
-  const [tabWarnings, setTabWarnings] = useState(0);
-  const tabWarningsRef = useRef(0);
-  const confirmSubmitRef = useRef<() => Promise<void>>();
-
-  useEffect(() => {
-    confirmSubmitRef.current = handleConfirmSubmit;
-  });
+  }, []);
 
   useEffect(() => {
     if (pageState !== "taking" || mode !== "exam") return;
@@ -164,15 +154,24 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [pageState, mode, t]);
 
   useEffect(() => {
-    if (pageState !== "taking" || mode !== "exam") return;
+    confirmSubmitRef.current = handleConfirmSubmit;
+  });
+
+  useEffect(() => {
+    if (pageState !== "taking" && pageState !== "results") return;
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && pageState === "taking" && mode === "exam") {
-        setShowSubmitDialog(true);
+      if (isSubmittingRef.current) return;
+      if (!document.fullscreenElement) {
+        if (pageState === "taking" && mode === "exam") {
+          setShowSubmitDialog(true);
+        } else if (pageState === "results") {
+          router.push("/dashboard/exams");
+        }
       }
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, [pageState, mode]);
+  }, [pageState, mode, router]);
 
   useEffect(() => {
     let filtered = allQuestions;
@@ -181,14 +180,6 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
     if (selectedSubtopic) filtered = filtered.filter((q) => q.subtopicId === selectedSubtopic);
     setFilteredQuestions(filtered);
   }, [selectedSpecialties, selectedTopic, selectedSubtopic, allQuestions]);
-
-  useEffect(() => {
-    const maxQ = filteredQuestions.length;
-    if (maxQ > 0 && questionLimit > maxQ) {
-      setQuestionLimit(maxQ);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredQuestions.length]);
 
   const specialties = exam?.specialties || [];
   const currentSpecialties = specialties.filter((s: any) => selectedSpecialties.includes(s.id));
@@ -219,8 +210,9 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
       setSelectedOption(null); setShowAnswer(false);
       setQuestionEntryTime(Date.now()); setPerQuestionTime({});
       setPageState("taking");
+      useExamStore.setState({ isActive: true });
       if (mode === "exam") {
-        router.replace(`/dashboard/exams/${id}?mode=exam`, { scroll: false });
+        window.history.replaceState({}, "", `${window.location.pathname}?mode=exam`);
         document.documentElement.requestFullscreen().catch(() => {});
       }
     } catch (err: any) {
@@ -229,22 +221,25 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleAnswer = async (optionId: string) => {
-    if (!attemptId || !currentQuestion) return;
-    const isCorrect = currentQuestion.options.find((o) => o.id === optionId)?.isCorrect ?? false;
+  const handleSubmitAnswer = async () => {
+    if (!attemptId || !currentQuestion || !selectedOption) return;
+    const isCorrect = currentQuestion.options.find((o) => o.id === selectedOption)?.isCorrect ?? false;
     const elapsed = Math.floor((Date.now() - questionEntryTime) / 1000);
     setPerQuestionTime((prev) => ({ ...prev, [currentQuestion.id]: elapsed }));
     setAnswers((prev) => ({
       ...prev,
-      [currentQuestion.id]: { optionId, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
+      [currentQuestion.id]: { optionId: selectedOption, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
     }));
-    setSelectedOption(optionId);
     if (mode === "exam") {
-      try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: optionId, timeSpent: elapsed }); } catch { /* silent */ }
-      if (currentIndex < displayQuestions.length - 1) {
-        setTimeout(() => handleNext(), 200);
-      }
-    } else { setShowAnswer(true); }
+      try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { /* silent */ }
+    } else {
+      setShowAnswer(true);
+      setTimeout(() => {
+        if (currentIndex < displayQuestions.length - 1) {
+          navigateTo(currentIndex + 1);
+        }
+      }, 1500);
+    }
   };
 
   const handleFlag = () => {
@@ -252,8 +247,17 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
     setAnswers((prev) => ({ ...prev, [currentQuestion.id]: { ...prev[currentQuestion.id], optionId: prev[currentQuestion.id]?.optionId ?? null, isCorrect: prev[currentQuestion.id]?.isCorrect ?? null, flagged: !(prev[currentQuestion.id]?.flagged ?? false) } }));
   };
 
-  const handleNext = () => { setCurrentIndex((i) => Math.min(i + 1, displayQuestions.length - 1)); setSelectedOption(null); setShowAnswer(false); setQuestionEntryTime(Date.now()); };
-  const handlePrevious = () => { setCurrentIndex((i) => Math.max(i - 1, 0)); setSelectedOption(null); setShowAnswer(false); setQuestionEntryTime(Date.now()); };
+  const navigateTo = (index: number) => {
+    const targetIndex = Math.max(0, Math.min(index, displayQuestions.length - 1));
+    const q = displayQuestions[targetIndex];
+    const existing = q ? answers[q.id]?.optionId : null;
+    setCurrentIndex(targetIndex);
+    setSelectedOption(existing);
+    setShowAnswer(false);
+    setQuestionEntryTime(Date.now());
+  };
+  const handleNext = () => navigateTo(currentIndex + 1);
+  const handlePrevious = () => navigateTo(currentIndex - 1);
   const handleTick = useCallback(() => { setTimeRemaining((t) => Math.max(t - 1, 0)); setTotalTimeSpent((t) => t + 1); }, []);
   const handleTimeUp = () => setShowTimeWarning(true);
   const handleRequestSubmit = () => setShowSubmitDialog(true);
@@ -273,16 +277,18 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
 
   const handleConfirmSubmit = async () => {
     if (!attemptId || submitting) return;
+    isSubmittingRef.current = true;
     setSubmitting(true); setShowSubmitDialog(false); setShowTimeWarning(false);
-    try {
-      await attemptsApi.complete(attemptId);
-      const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
-      const total = displayQuestions.length;
-      setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
-      setPageState("results");
-      window.history.replaceState(null, "", `/dashboard/exams/${id}`);
-      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    } catch { toast.error(t("submit_failed")); } finally { setSubmitting(false); }
+    const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
+    const total = displayQuestions.length;
+    setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
+    setPageState("results");
+    useExamStore.setState({ isActive: false });
+    window.history.replaceState({}, "", `/dashboard/exams/${id}`);
+    if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
+    try { await attemptsApi.complete(attemptId); } catch { /* silent */ }
+    setSubmitting(false);
+    isSubmittingRef.current = false;
   };
 
   const handleFinishStudy = async () => {
@@ -292,6 +298,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
     const total = displayQuestions.length;
     setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
     setPageState("results");
+    useExamStore.setState({ isActive: false });
   };
 
   if (loading) return <PageTransition><div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></PageTransition>;
@@ -303,8 +310,8 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
             onReview={() => { setPageState("taking"); setShowAnswer(true); }}
-            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); router.replace(`/dashboard/exams/${id}`, { scroll: false }); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); }}
-            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); router.push("/dashboard"); }} />
+            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.setState({ isActive: false }); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); }}
+            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
             <Card>
               <CardHeader><CardTitle className="text-lg">{t("topic_breakdown")}</CardTitle></CardHeader>
@@ -369,7 +376,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
           )}
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <Card className="overflow-hidden border-border/70 shadow-card hover:translate-y-0">
+            <Card className="overflow-hidden border-border/70 shadow-card hover:translate-y-0 overflow-hidden">
               <CardHeader className="border-b bg-muted/30">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
@@ -391,54 +398,55 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6 p-5 sm:p-6">
-                <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2">{currentQuestion.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
+                <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words">{currentQuestion.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
                 {currentQuestion.images && currentQuestion.images.length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.map((img: any) => (
                       <button key={img.id} type="button" onClick={() => setLightboxImage(img.url)} className="text-left">
-                        <img src={img.url} alt={img.caption || "Question image"} className="max-w-full rounded-xl border shadow-subtle cursor-pointer hover:opacity-90 transition-opacity" style={{ maxHeight: 400 }} />
+                        <img src={img.url} alt={img.caption || t("question_image")} className="max-w-full rounded-xl border shadow-subtle cursor-pointer hover:opacity-90 transition-opacity" style={{ maxHeight: 400 }} />
                       </button>
                     ))}
                   </div>
                 )}
-                <div className="space-y-3">
-                  {currentQuestion.options.map((option, optionIndex) => {
-                    const isSelected = answered === option.id;
-                    const isCorrectOption = option.isCorrect;
-                    let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
-                    if (showAnswer) {
-                      if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
-                      else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
-                      else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
-                    } else if (mode === "exam") {
-                      if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
-                    } else {
-                      const showCorrect = showAnswer || (answered !== null && isSelected);
-                      if (showCorrect && isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
-                      else if (showCorrect && isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
-                      else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
-                    }
-                    return (
-                      <button key={option.id} onClick={() => handleAnswer(option.id)} disabled={answered !== null && (mode === "study" || showAnswer)} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
+                  <div className="space-y-3">
+                    {currentQuestion.options.map((option, optionIndex) => {
+                      const isSelected = answered === option.id;
+                      const isOptionSelected = selectedOption === option.id;
+                      const isCorrectOption = option.isCorrect;
+                      let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
+                      if (showAnswer) {
+                        if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
+                        else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
+                        else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                      } else if (mode === "exam") {
+                        if (isSelected || isOptionSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                      } else if (isOptionSelected) {
+                        optionClass = "border-primary bg-primary/10 shadow-subtle";
+                      }
+                      return (
+                        <button key={option.id} onClick={() => setSelectedOption(option.id)} disabled={showAnswer || answers[currentQuestion.id]?.optionId != null} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
                         <div className="flex items-start gap-4">
                           <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
                             showAnswer && isCorrectOption ? "border-green-500 bg-green-500 text-white" :
                             showAnswer && isSelected && !isCorrectOption ? "border-destructive bg-destructive text-white" :
-                            isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
+                            isSelected || isOptionSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
                           }`}>
                             {showAnswer && isCorrectOption ? <CheckCircle2 className="h-4 w-4" /> :
                               showAnswer && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
                               String.fromCharCode(65 + optionIndex)}
                           </div>
-                          <span className="pt-1.5 leading-6">{option.text}</span>
+                           <span className="pt-1.5 leading-6 break-words">{option.text}</span>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><div className="text-sm leading-6 text-muted-foreground space-y-2">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div></div>)}
-                {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground">{currentQuestion.reference}</p></div>)}
-                {mode === "study" && answered && !showAnswer && <Button variant="outline" onClick={() => setShowAnswer(true)} className="w-full">{t("show_explanation")}</Button>}
+                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><div className="text-sm leading-6 text-muted-foreground space-y-2 break-words">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div></div>)}
+                {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{currentQuestion.reference}</p></div>)}
+                {!showAnswer && selectedOption && !answers[currentQuestion.id]?.optionId && (
+                  <Button onClick={handleSubmitAnswer} className="w-full" size="lg">{t("submit")}</Button>
+                )}
+                {mode === "study" && showAnswer && <Button variant="outline" onClick={handleNext} className="w-full">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>}
               </CardContent>
             </Card>
 
@@ -459,7 +467,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
                       if (a?.flagged) stateClass = "border-destructive bg-destructive text-destructive-foreground";
                       else if (a?.optionId) stateClass = "border-primary bg-primary text-primary-foreground";
                       return (
-                        <button key={i} onClick={() => { setCurrentIndex(i); setSelectedOption(null); setShowAnswer(false); }}
+                        <button key={i} onClick={() => navigateTo(i)}
                           className={`h-10 rounded-xl border text-sm font-semibold transition-all ${stateClass} ${isCurrent ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}>{i + 1}</button>
                       );
                     })}
@@ -480,12 +488,12 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
             </aside>
           </div>
         </div>
-        <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { setShowSubmitDialog(open); if (!open && mode === "exam") { document.documentElement.requestFullscreen().catch(() => {}); } }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
+        <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { setShowSubmitDialog(open); }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
         <ConfirmDialog open={showTimeWarning} onOpenChange={setShowTimeWarning} title={t("time_up")} description={t("time_up_desc")} confirmLabel={t("submit")} cancelLabel="" variant="default" onConfirm={handleConfirmSubmit} />
         {lightboxImage && (
           <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
             <DialogContent className="max-w-4xl p-2 bg-black/90">
-              <img src={lightboxImage} alt="Question image" className="w-full h-auto max-h-[80vh] object-contain rounded-lg" />
+              <img src={lightboxImage} alt={t("question_image")} className="w-full h-auto max-h-[80vh] object-contain rounded-lg" />
             </DialogContent>
           </Dialog>
         )}
@@ -530,12 +538,12 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
             </div>
 
             {specialties.length > 0 && (
-              <div>
+              <div ref={specialtiesRef}>
                 <label className="text-sm font-medium mb-2 block">{t("specialty")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowSpecialties(!showSpecialties); setShowTopics(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
                     <span className={selectedSpecialties.length > 0 ? "" : "text-muted-foreground"}>
-                      {selectedSpecialties.length > 0 ? `${selectedSpecialties.length} selected` : t("all_specialties")}
+                      {selectedSpecialties.length > 0 ? `${selectedSpecialties.length} ${t("selected")}` : t("all_specialties")}
                     </span><ChevronDown className="h-4 w-4" />
                   </button>
                   {showSpecialties && (
@@ -569,7 +577,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
             )}
 
             {topics.length > 0 && (
-              <div>
+              <div ref={topicsRef}>
                 <label className="text-sm font-medium mb-2 block">{t("topic")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowTopics(!showTopics); setShowSpecialties(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
@@ -592,7 +600,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
             )}
 
             {selectedTopic && subtopics.length > 0 && (
-              <div>
+              <div ref={subtopicsRef}>
                 <label className="text-sm font-medium mb-2 block">{t("subtopic")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowSubtopics(!showSubtopics); setShowSpecialties(false); setShowTopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
@@ -634,7 +642,7 @@ function ExamTakingPage({ params }: { params: { id: string } }) {
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>1</span>
-                <span className="font-medium text-sm">{Math.min(questionLimit, maxQuestions)} questions</span>
+                <span className="font-medium text-sm">{t("questions_count", { count: Math.min(questionLimit, maxQuestions) })}</span>
                 <span>{maxQuestions}</span>
               </div>
             </div>

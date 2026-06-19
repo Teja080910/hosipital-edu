@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { subscriptionsApi } from "@/lib/api";
+import { testimonialsApi } from "@/lib/api/testimonials";
 import { cn } from "@/lib/utils";
 import { Link, usePathname } from "@/routing";
 import { motion } from "framer-motion";
@@ -80,11 +81,27 @@ const sb = useTranslations("subscribe");
     desc: t(`feature_${i}_desc`),
   }));
 
-  const testimonials = Array.from({ length: 3 }, (_, i) => ({
-    name: t(`testimonial_${i}_name`),
-    role: t(`testimonial_${i}_role`),
-    text: t(`testimonial_${i}_text`),
-  }));
+  const [testimonialsData, setTestimonialsData] = useState<any[]>([]);
+
+  useEffect(() => {
+    testimonialsApi.getAll().then(({ data }) => {
+      if (Array.isArray(data)) setTestimonialsData(data);
+    }).catch(() => {});
+  }, []);
+
+  const testimonials = testimonialsData.length > 0
+    ? testimonialsData.map((item) => ({
+        name: item.name?.[currentLocale] || item.name?.en || "",
+        role: item.role?.[currentLocale] || item.role?.en || "",
+        text: item.text?.[currentLocale] || item.text?.en || "",
+        rating: item.rating ?? 5,
+      }))
+    : Array.from({ length: 3 }, (_, i) => ({
+        name: t(`testimonial_${i}_name`),
+        role: t(`testimonial_${i}_role`),
+        text: t(`testimonial_${i}_text`),
+        rating: 5,
+      }));
 
   const planFeatures: Record<string, string[]> = {
     monthly: Array.from({ length: 4 }, (_, i) => t(`plan_monthly_${i}`)),
@@ -129,7 +146,7 @@ const sb = useTranslations("subscribe");
   }, []);
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
+    if (user && user.role !== "admin" && user.role !== "super_admin") {
       subscriptionsApi.mySubscription().then(({ data }) => {
         if (data?.plan?.sortOrder !== undefined && data?.plan?.sortOrder !== null) {
           setSubData({ planSortOrder: data.plan.sortOrder });
@@ -189,8 +206,7 @@ const sb = useTranslations("subscribe");
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-transparent bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt={t("brand")} width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-bold tracking-tight">{t("brand")}</span>
+            <Image src="/logo.png" alt={t("brand")} width={40} height={40} className="rounded-lg bg-white p-1" />
           </Link>
           <div className="flex items-center gap-1">
             {!isMobile ? (
@@ -317,7 +333,7 @@ const sb = useTranslations("subscribe");
               transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const }}
               className="mb-8"
             >
-              <Image src="/logo.png" alt={t("brand")} width={80} height={80} className="mx-auto rounded-2xl shadow-xl" />
+              <Image src="/logo.png" alt={t("brand")} width={140} height={140} className="mx-auto rounded-3xl shadow-2xl bg-white p-3" />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -414,7 +430,7 @@ const sb = useTranslations("subscribe");
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <Image
               src="/hero-3.jpg"
-              alt="MD Exams Study Interface"
+              alt="MD Exam Study Interface"
               width={800}
               height={534}
               className="w-full h-auto rounded-xl border border-border/50 shadow-lg group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-500 relative"
@@ -479,7 +495,7 @@ const sb = useTranslations("subscribe");
                   <CardContent className="pt-8">
                     <div className="flex gap-1 mb-5">
                       {[...Array(5)].map((_, j) => (
-                        <Star key={j} className="h-4 w-4 fill-primary text-primary" />
+                        <Star key={j} className={`h-4 w-4 ${j < (item.rating ?? 5) ? "fill-primary text-primary" : "text-muted-foreground"}`} />
                       ))}
                     </div>
                     <p className="text-muted-foreground leading-relaxed mb-6 italic">
@@ -487,7 +503,7 @@ const sb = useTranslations("subscribe");
                     </p>
                     <div className="flex items-center gap-3 pt-2 border-t border-border/50">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
-                        {item.name.split(" ").map(n => n[0]).join("")}
+                        {item.name.split(" ").map((n: string) => n[0]).join("")}
                       </div>
                       <div>
                         <p className="font-semibold text-sm">{item.name}</p>
@@ -607,7 +623,7 @@ const sb = useTranslations("subscribe");
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <Image
                   src="/hero-2.jpg"
-                  alt="MD Exams Mobile View"
+                  alt="MD Exam Mobile View"
                   width={900}
                   height={1280}
                   className="w-[450px] max-w-[450px] h-[550px] rounded-xl border border-border/50 shadow-lg group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-500 relative mx-auto"
@@ -653,7 +669,7 @@ const sb = useTranslations("subscribe");
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt={t("brand")} width={28} height={28} className="rounded-lg" />
+              <Image src="/logo.png" alt={t("brand")} width={36} height={36} className="rounded-lg bg-white p-1" />
               <span className="font-semibold">{t("brand")}</span>
             </Link>
             <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground sm:flex-row sm:gap-6">

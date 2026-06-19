@@ -1,20 +1,20 @@
 import {
-  Controller,
-  Get,
-  Patch,
-  Delete,
-  Param,
   Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
-import { UsersService } from "./users.service";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { Roles } from "../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
-import { Roles } from "../common/decorators/roles.decorator";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { I18nService } from "../common/i18n/i18n.service";
+import { UsersService } from "./users.service";
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -40,10 +40,19 @@ export class UsersController {
   @Get(":id")
   @ApiOperation({ summary: "Get user by id" })
   async findOne(@Param("id") id: string, @CurrentUser() user: any) {
-    if (user.role !== "admin" && user.id !== id) {
+    if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
       return { message: this.i18n.t("users.accessDenied") };
     }
     return this.usersService.findById(id);
+  }
+
+  @Get(":id/referral")
+  @ApiOperation({ summary: "Get user's referral info" })
+  async getReferral(@Param("id") id: string, @CurrentUser() user: any) {
+    if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
+      return { message: "Access denied" };
+    }
+    return this.usersService.getReferralInfo(id);
   }
 
   @Get(":id/subscription")
@@ -72,7 +81,7 @@ export class UsersController {
     @Body() data: any,
     @CurrentUser() user: any,
   ) {
-    if (user.role !== "admin" && user.id !== id) {
+    if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
       return { message: this.i18n.t("users.accessDenied") };
     }
     return this.usersService.update(id, data);

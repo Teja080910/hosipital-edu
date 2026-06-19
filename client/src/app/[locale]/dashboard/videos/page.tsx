@@ -74,7 +74,7 @@ export default function VideosPage() {
                   }`}
                 >
                   <p className="font-medium text-sm">{localized(mod.title)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{mod.lessons?.length || 0} lessons</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t("lessons_count", { count: mod.lessons?.length || 0 })}</p>
                 </button>
                 {selectedModule?.id === mod.id && mod.lessons?.map((lesson: any) => (
                   <button
@@ -101,7 +101,7 @@ export default function VideosPage() {
                   <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
                     <div className="text-center">
                       <Play className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Video placeholder</p>
+                      <p className="text-sm text-muted-foreground">{t("video_placeholder")}</p>
                     </div>
                   </div>
                 )}
@@ -117,7 +117,7 @@ export default function VideosPage() {
               </div>
             ) : (
               <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <p className="text-muted-foreground">Select a lesson</p>
+                <p className="text-muted-foreground">{t("select_lesson")}</p>
               </div>
             )}
           </div>

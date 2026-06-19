@@ -13,6 +13,7 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("exams")
 @Controller("exams")
@@ -21,8 +22,8 @@ export class ExamsController {
 
   @Get()
   @ApiOperation({ summary: "List all active exams" })
-  async findAll() {
-    return this.examsService.findAll();
+  async findAll(@CurrentUser() user?: any) {
+    return this.examsService.findAll(user);
   }
 
   @Get(":id")

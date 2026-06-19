@@ -15,3 +15,4 @@ export { uploadApi } from "./upload";
 export { usersApi } from "./users";
 export { videosApi } from "./videos";
 export { streamApi } from "./stream";
+export { testimonialsApi } from "./testimonials";

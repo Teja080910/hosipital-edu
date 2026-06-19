@@ -78,7 +78,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p className="text-lg font-medium">{question.text}</p>
+                <p className="text-lg font-medium break-words">{question.text}</p>
                 <div className="space-y-3">
                   {question.options.map((option: any) => {
                     const isSelected = currentAnswer.selectedOptionId === option.id;
@@ -92,7 +92,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                           <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isCorrectOption ? "border-green-500 bg-green-500" : isSelected ? "border-destructive bg-destructive" : "border-muted-foreground"}`}>
                             {isCorrectOption && <CheckCircle2 className="h-3 w-3 text-white" />}{isSelected && !isCorrectOption && <XCircle className="h-3 w-3 text-white" />}
                           </div>
-                          <span className={isSelected && !isCorrectOption ? "line-through text-muted-foreground" : ""}>{option.text}</span>
+                           <span className={`${isSelected && !isCorrectOption ? "line-through text-muted-foreground" : ""} break-words`}>{option.text}</span>
                           {isSelected && <span className="text-xs text-muted-foreground ml-auto">{t("your_answer")}</span>}
                         </div>
                       </div>

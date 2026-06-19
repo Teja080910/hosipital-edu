@@ -51,7 +51,7 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h3 className="text-lg font-medium">{question.text}</h3>
+          <h3 className="text-lg font-medium break-words">{question.text}</h3>
         </div>
 
         {question.images && question.images.length > 0 && (
@@ -92,7 +92,7 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
                     {(showAnswer && option.isCorrect) && <div className="h-2 w-2 rounded-full bg-white" />}
                     {showWrong && <div className="h-2 w-2 rounded-full bg-white" />}
                   </div>
-                  <span className={showWrong ? "line-through text-muted-foreground" : ""}>{option.text}</span>
+                   <span className={`${showWrong ? "line-through text-muted-foreground" : ""} break-words`}>{option.text}</span>
                   {showWrong && <span className="text-xs text-muted-foreground ml-auto">{t("incorrect")}</span>}
                   {showAnswer && option.isCorrect && !isSelected && <span className="text-xs text-green-600 ml-auto">{t("correct_answer")}</span>}
                 </div>
