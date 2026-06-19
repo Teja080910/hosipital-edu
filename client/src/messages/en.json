@@ -715,7 +715,8 @@
     "all_subtopics": "All Subtopics",
     "custom_title": "Custom Title",
     "custom_title_placeholder": "Enter a name for this exam session",
-    "reference": "Reference:"
+    "reference": "Reference:",
+    "selected": "selected"
   },
   "subscribe": {
     "title": "Choose Your Plan",

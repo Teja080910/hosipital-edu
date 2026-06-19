@@ -714,7 +714,8 @@
     "all_subtopics": "Todos los Subtemas",
     "custom_title": "Título Personalizado",
     "custom_title_placeholder": "Ingresa un nombre para esta sesión",
-    "reference": "Referencia:"
+    "reference": "Referencia:",
+    "selected": "seleccionado"
   },
   "subscribe": {
     "title": "Elige Tu Plan",

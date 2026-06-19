@@ -84,6 +84,14 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     topicBreakdown: { topic: string; correct: number; total: number }[];
   } | null>(null);
 
+  const [tabWarnings, setTabWarnings] = useState(0);
+  const tabWarningsRef = useRef(0);
+  const confirmSubmitRef = useRef<() => Promise<void>>();
+  const isSubmittingRef = useRef(false);
+  const specialtiesRef = useRef<HTMLDivElement>(null);
+  const topicsRef = useRef<HTMLDivElement>(null);
+  const subtopicsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     Promise.all([
       examsApi.get(id),
@@ -99,25 +107,34 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [id, t]);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (pageState !== "config") return;
+      if (specialtiesRef.current && !specialtiesRef.current.contains(target)) {
+        setShowSpecialties(false);
+      }
+      if (topicsRef.current && !topicsRef.current.contains(target)) {
+        setShowTopics(false);
+      }
+      if (subtopicsRef.current && !subtopicsRef.current.contains(target)) {
+        setShowSubtopics(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [pageState]);
+
+  useEffect(() => {
+    return () => { useExamStore.setState({ isActive: false }); };
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const modeParam = params.get("mode");
     if (modeParam === "exam" || modeParam === "study") {
       setMode(modeParam);
     }
   }, []);
-
-  useEffect(() => {
-    return () => { useExamStore.setState({ isActive: false }); };
-  }, []);
-
-  const [tabWarnings, setTabWarnings] = useState(0);
-  const tabWarningsRef = useRef(0);
-  const confirmSubmitRef = useRef<() => Promise<void>>();
-  const isSubmittingRef = useRef(false);
-
-  useEffect(() => {
-    confirmSubmitRef.current = handleConfirmSubmit;
-  });
 
   useEffect(() => {
     if (pageState !== "taking" || mode !== "exam") return;
@@ -135,6 +152,10 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [pageState, mode, t]);
+
+  useEffect(() => {
+    confirmSubmitRef.current = handleConfirmSubmit;
+  });
 
   useEffect(() => {
     if (pageState !== "taking" && pageState !== "results") return;
@@ -517,7 +538,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             </div>
 
             {specialties.length > 0 && (
-              <div>
+              <div ref={specialtiesRef}>
                 <label className="text-sm font-medium mb-2 block">{t("specialty")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowSpecialties(!showSpecialties); setShowTopics(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
@@ -556,7 +577,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             )}
 
             {topics.length > 0 && (
-              <div>
+              <div ref={topicsRef}>
                 <label className="text-sm font-medium mb-2 block">{t("topic")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowTopics(!showTopics); setShowSpecialties(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
@@ -579,7 +600,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             )}
 
             {selectedTopic && subtopics.length > 0 && (
-              <div>
+              <div ref={subtopicsRef}>
                 <label className="text-sm font-medium mb-2 block">{t("subtopic")}</label>
                 <div className="relative">
                   <button onClick={() => { setShowSubtopics(!showSubtopics); setShowSpecialties(false); setShowTopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
