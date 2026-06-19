@@ -580,7 +580,22 @@
     "published_desc": "Hacer visible este artículo para los usuarios",
     "delete_article_title": "Eliminar Artículo",
     "delete_article_confirm": "¿Estás seguro de que quieres eliminar este artículo?",
-    "upload_failed": "Error al subir la imagen"
+    "upload_failed": "Error al subir la imagen",
+    "videos_page_title": "Gestor de Videos",
+    "modules_label": "Módulos",
+    "lessons_label": "Lecciones",
+    "select_module": "Selecciona un módulo",
+    "no_lessons_in_module_hint": "No hay lecciones en este módulo",
+    "title_label": "Título",
+    "description_label": "Descripción",
+    "video_uid_label": "UID del Video",
+    "video_uid_placeholder": "Cloudflare Stream UID",
+    "duration_seconds_label": "Duración (segundos)",
+    "video_preview": "Vista Previa del Video",
+    "update_btn": "Actualizar",
+    "create_btn": "Crear",
+    "upload_btn": "Subir",
+    "preview_btn": "Previsualizar"
   },
   "progress": {
     "title": "Progreso",

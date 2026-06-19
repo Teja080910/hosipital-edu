@@ -12,7 +12,7 @@ const pool = new Pool({
 });
 const db = drizzle(pool, { schema });
 
-const DATA_DIR = path.join(__dirname, "firebase-data");
+const DATA_DIR = path.join(__dirname, "../exports");
 
 // Progress tracking
 let totalUsers = 0;
@@ -26,44 +26,8 @@ let totalLessons = 0;
 let totalPayments = 0;
 let totalTranslations = 0;
 
-// ─── Firestore field parsers ────────────────────────────────────────────────
-
-function parseFields(
-  fields: Record<string, any>,
-): Record<string, any> {
-  const r: Record<string, any> = {};
-  for (const [k, v] of Object.entries(fields)) {
-    if (v.stringValue !== undefined) r[k] = v.stringValue;
-    else if (v.integerValue !== undefined) r[k] = Number(v.integerValue);
-    else if (v.doubleValue !== undefined) r[k] = v.doubleValue;
-    else if (v.booleanValue !== undefined) r[k] = v.booleanValue;
-    else if (v.timestampValue !== undefined)
-      r[k] = new Date(v.timestampValue);
-    else if (v.mapValue) r[k] = parseMap(v.mapValue);
-    else if (v.arrayValue) r[k] = parseArr(v.arrayValue);
-  }
-  return r;
-}
-
-function parseMap(map: any): Record<string, any> {
-  return map.fields ? parseFields(map.fields) : {};
-}
-
-function parseArr(arr: any): any[] {
-  if (!arr.values) return [];
-  return arr.values.map((v: any) => {
-    if (v.stringValue !== undefined) return v.stringValue;
-    if (v.integerValue !== undefined) return Number(v.integerValue);
-    if (v.doubleValue !== undefined) return v.doubleValue;
-    if (v.booleanValue !== undefined) return v.booleanValue;
-    if (v.mapValue) return parseMap(v.mapValue);
-    if (v.arrayValue) return parseArr(v.arrayValue);
-    return null;
-  });
-}
-
-function getDocId(name: string): string {
-  return name.split("/").pop() || "";
+function getDocId(doc: any): string {
+  return doc._id || "";
 }
 
 function readDocs(file: string): any[] {
@@ -83,7 +47,7 @@ async function migrateUsers(docs: any[]) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const email = (f.username || "").toLowerCase().trim();
       if (!email) continue;
 
@@ -145,7 +109,7 @@ async function migrateMemberships(docs: any[], adminId: string) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const title = f.title || "Untitled Plan";
 
       const existing = await db
@@ -197,7 +161,7 @@ async function migrateQuestions(docs: any[], adminId: string) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const text = (f.title || "").trim();
       if (!text) continue;
 
@@ -280,7 +244,7 @@ async function migrateFlashcards(docs: any[], adminId: string) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const front = (f.title || "").trim();
       if (!front) continue;
 
@@ -319,7 +283,7 @@ async function migrateVideoCategories(docs: any[]) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const title = (f.title || "").trim();
       if (!title) continue;
 
@@ -359,7 +323,7 @@ async function migrateVideos(docs: any[]) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const title = (f.title || "").trim();
       if (!title) continue;
 
@@ -430,8 +394,8 @@ async function migratePayments(docs: any[], adminId: string) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
-      const paymentNumber = f.paymentNumber || getDocId(doc.name);
+      const f = doc;
+      const paymentNumber = f.paymentNumber || getDocId(doc);
 
       const existing = await db
         .select()
@@ -485,7 +449,7 @@ async function migrateParameters(docs: any[]) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const key = f.key2 || "";
       if (!key) continue;
 

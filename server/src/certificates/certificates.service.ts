@@ -8,10 +8,14 @@ import {
 } from "../database/schema";
 import { eq, and } from "drizzle-orm";
 import * as crypto from "crypto";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class CertificatesService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findByUser(userId: string) {
     return this.db
@@ -26,7 +30,7 @@ export class CertificatesService {
       .from(certificates)
       .where(eq(certificates.id, id))
       .limit(1);
-    if (!cert) throw new NotFoundException("Certificate not found");
+    if (!cert) throw new NotFoundException(this.i18n.t("certificates.notFound"));
     return cert;
   }
 
@@ -36,7 +40,7 @@ export class CertificatesService {
       .from(certificates)
       .where(eq(certificates.verificationHash, hash))
       .limit(1);
-    if (!cert) throw new NotFoundException("Certificate not found or invalid");
+    if (!cert) throw new NotFoundException(this.i18n.t("certificates.notFound"));
     return cert;
   }
 
@@ -46,14 +50,14 @@ export class CertificatesService {
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
-    if (!user) throw new NotFoundException("User not found");
+    if (!user) throw new NotFoundException(this.i18n.t("certificates.userNotFound"));
 
     const [course] = await this.db
       .select()
       .from(courses)
       .where(eq(courses.id, courseId))
       .limit(1);
-    if (!course) throw new NotFoundException("Course not found");
+    if (!course) throw new NotFoundException(this.i18n.t("certificates.courseNotFound"));
 
     const [template] = await this.db
       .select()
@@ -61,7 +65,7 @@ export class CertificatesService {
       .where(eq(certificateTemplates.isDefault, true))
       .limit(1);
 
-    if (!template) throw new NotFoundException("No default certificate template found");
+    if (!template) throw new NotFoundException(this.i18n.t("certificates.noDefaultTemplate"));
 
     const certificateNumber = `CERT-${Date.now()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
     const verificationHash = crypto

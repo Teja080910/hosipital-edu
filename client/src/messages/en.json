@@ -581,7 +581,22 @@
     "published_desc": "Make this article visible to users",
     "delete_article_title": "Delete Article",
     "delete_article_confirm": "Are you sure you want to delete this article?",
-    "upload_failed": "Failed to upload image"
+    "upload_failed": "Failed to upload image",
+    "videos_page_title": "Video Manager",
+    "modules_label": "Modules",
+    "lessons_label": "Lessons",
+    "select_module": "Select a module",
+    "no_lessons_in_module_hint": "No lessons in this module",
+    "title_label": "Title",
+    "description_label": "Description",
+    "video_uid_label": "Video UID",
+    "video_uid_placeholder": "Cloudflare Stream UID",
+    "duration_seconds_label": "Duration (seconds)",
+    "video_preview": "Video Preview",
+    "update_btn": "Update",
+    "create_btn": "Create",
+    "upload_btn": "Upload",
+    "preview_btn": "Preview"
   },
   "progress": {
     "title": "Progress",

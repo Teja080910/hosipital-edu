@@ -3,12 +3,14 @@ import { Reflector } from "@nestjs/core";
 import { DRIZZLE } from "../../database/database.provider";
 import { eq, and, isNull } from "drizzle-orm";
 import { userSubscriptions, subscriptionPlans } from "../../database/schema";
+import { I18nService } from "../i18n/i18n.service";
 
 @Injectable()
 export class SubscriptionExamGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -19,7 +21,7 @@ export class SubscriptionExamGuard implements CanActivate {
     if (!requiredExamId) return true;
 
     const { user } = context.switchToHttp().getRequest();
-    if (!user) throw new ForbiddenException("Not authenticated");
+    if (!user) throw new ForbiddenException(this.i18n.t("guard.notAuthenticated"));
 
     const [sub] = await this.db
       .select({ examId: subscriptionPlans.examId })
@@ -30,6 +32,6 @@ export class SubscriptionExamGuard implements CanActivate {
 
     if (!sub || !sub.examId) return true;
     if (sub.examId === requiredExamId) return true;
-    throw new ForbiddenException("Your subscription does not include access to this exam.");
+    throw new ForbiddenException(this.i18n.t("guard.subscriptionExamDenied"));
   }
 }

@@ -3,10 +3,14 @@ import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { calendarEvents } from "../database/schema";
 import { eq, and, gte, lte, type SQL } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class CalendarService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findAll(filters: { userId?: string; startDate?: Date; endDate?: Date }) {
     const conditions: SQL[] = [];
@@ -40,6 +44,6 @@ export class CalendarService {
 
   async delete(id: string) {
     await this.db.delete(calendarEvents).where(eq(calendarEvents.id, id));
-    return { message: "Event deleted" };
+    return { message: this.i18n.t("common.eventDeleted") };
   }
 }

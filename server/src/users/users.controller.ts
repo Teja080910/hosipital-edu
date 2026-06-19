@@ -14,13 +14,17 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @ApiTags("users")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller("users")
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private i18n: I18nService,
+  ) {}
 
   @Get()
   @UseGuards(RolesGuard)
@@ -37,18 +41,9 @@ export class UsersController {
   @ApiOperation({ summary: "Get user by id" })
   async findOne(@Param("id") id: string, @CurrentUser() user: any) {
     if (user.role !== "admin" && user.id !== id) {
-      return { message: "Access denied" };
+      return { message: this.i18n.t("users.accessDenied") };
     }
     return this.usersService.findById(id);
-  }
-
-  @Get(":id/referral")
-  @ApiOperation({ summary: "Get user's referral info" })
-  async getReferral(@Param("id") id: string, @CurrentUser() user: any) {
-    if (user.role !== "admin" && user.id !== id) {
-      return { message: "Access denied" };
-    }
-    return this.usersService.getReferralInfo(id);
   }
 
   @Get(":id/subscription")
@@ -78,7 +73,7 @@ export class UsersController {
     @CurrentUser() user: any,
   ) {
     if (user.role !== "admin" && user.id !== id) {
-      return { message: "Access denied" };
+      return { message: this.i18n.t("users.accessDenied") };
     }
     return this.usersService.update(id, data);
   }

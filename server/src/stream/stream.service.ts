@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { DRIZZLE } from "../database/database.provider";
 import { videoModules, videoLessons } from "../database/schema";
 import { eq, asc } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class StreamService {
@@ -13,6 +14,7 @@ export class StreamService {
   constructor(
     @Inject(DRIZZLE) private db: any,
     private config: ConfigService,
+    private i18n: I18nService,
   ) {
     this.apiToken = this.config.get<string>("CLOUDFLARE_STREAM_TOKEN") || "";
     this.accountId = this.config.get<string>("CLOUDFLARE_ACCOUNT_ID") || "";
@@ -34,7 +36,7 @@ export class StreamService {
     });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException(json.errors?.[0]?.message || "Failed to generate upload URL", HttpStatus.BAD_GATEWAY);
+      throw new HttpException(json.errors?.[0]?.message || this.i18n.t("stream.failedGenerateUploadUrl"), HttpStatus.BAD_GATEWAY);
     }
     return json.result;
   }
@@ -47,7 +49,7 @@ export class StreamService {
     });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException("Failed to list videos", HttpStatus.BAD_GATEWAY);
+      throw new HttpException(this.i18n.t("stream.failedListVideos"), HttpStatus.BAD_GATEWAY);
     }
     return json.result;
   }
@@ -56,7 +58,7 @@ export class StreamService {
     const res = await fetch(`${this.baseUrl}/${uid}`, { headers: this.headers });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException("Video not found", HttpStatus.NOT_FOUND);
+      throw new HttpException(this.i18n.t("stream.videoNotFound"), HttpStatus.NOT_FOUND);
     }
     return json.result;
   }
@@ -68,7 +70,7 @@ export class StreamService {
     });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException("Failed to delete video", HttpStatus.BAD_GATEWAY);
+      throw new HttpException(this.i18n.t("stream.failedDeleteVideo"), HttpStatus.BAD_GATEWAY);
     }
     return json;
   }
@@ -81,7 +83,7 @@ export class StreamService {
     });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException("Failed to generate token", HttpStatus.BAD_GATEWAY);
+      throw new HttpException(this.i18n.t("stream.failedGenerateToken"), HttpStatus.BAD_GATEWAY);
     }
     return json.result;
   }

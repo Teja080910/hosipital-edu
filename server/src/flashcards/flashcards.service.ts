@@ -11,10 +11,14 @@ import {
   topics,
 } from "../database/schema";
 import { eq, and, inArray, isNull, or, count, sql, type SQL } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class FlashcardsService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findAll(filters: {
     examId?: string;
@@ -124,7 +128,7 @@ export class FlashcardsService {
       .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(eq(flashcards.id, id))
       .returning();
-    if (!card) throw new NotFoundException("Flashcard not found");
+    if (!card) throw new NotFoundException(this.i18n.t("flashcards.notFound"));
     return card;
   }
 
@@ -134,8 +138,8 @@ export class FlashcardsService {
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(flashcards.id, id))
       .returning();
-    if (!card) throw new NotFoundException("Flashcard not found");
-    return { message: "Flashcard deleted" };
+    if (!card) throw new NotFoundException(this.i18n.t("flashcards.notFound"));
+    return { message: this.i18n.t("flashcards.deleted") };
   }
 
   async submitReview(data: {
@@ -166,11 +170,11 @@ export class FlashcardsService {
         .limit(1);
 
       if (!sub) {
-        throw new HttpException("No active subscription found.", HttpStatus.FORBIDDEN);
+        throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
       }
 
       if (sub.remainingFlashcardAttempts != null && sub.remainingFlashcardAttempts < 1) {
-        throw new HttpException("No remaining flashcard attempts. Please upgrade your plan.", HttpStatus.FORBIDDEN);
+        throw new HttpException(this.i18n.t("flashcards.noRemainingAttempts"), HttpStatus.FORBIDDEN);
       }
 
       await this.db

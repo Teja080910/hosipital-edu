@@ -14,10 +14,14 @@ import {
   exams,
 } from "../database/schema";
 import { eq, and, asc, inArray, sql, desc, type SQL } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class CoursesService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findAll(onlyActive = true) {
     const conditions: SQL[] = [];
@@ -52,7 +56,7 @@ export class CoursesService {
       .from(courses)
       .where(eq(courses.slug, slug))
       .limit(1);
-    if (!course || !course.isActive) throw new NotFoundException("Course not found");
+    if (!course || !course.isActive) throw new NotFoundException(this.i18n.t("courses.notFound"));
 
     const mods = await this.db
       .select()
@@ -91,7 +95,7 @@ export class CoursesService {
       .from(courses)
       .where(and(eq(courses.slug, slug), eq(courses.isActive, true)))
       .limit(1);
-    if (!course) throw new NotFoundException("Course not found");
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
     return course.id;
   }
 
@@ -108,7 +112,7 @@ export class CoursesService {
       .set({ ...cleanData, updatedAt: new Date() })
       .where(eq(courses.id, id))
       .returning();
-    if (!course) throw new NotFoundException("Course not found");
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
     return course;
   }
 
@@ -118,8 +122,8 @@ export class CoursesService {
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(courses.id, id))
       .returning();
-    if (!course) throw new NotFoundException("Course not found");
-    return { message: "Course deleted" };
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
+    return { message: this.i18n.t("courses.deleted") };
   }
 
   async enroll(userId: string, courseId: string, stripePaymentId?: string) {
@@ -128,7 +132,7 @@ export class CoursesService {
       .from(courses)
       .where(eq(courses.id, courseId))
       .limit(1);
-    if (!course) throw new NotFoundException("Course not found");
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
 
     const [existing] = await this.db
       .select()
@@ -142,7 +146,7 @@ export class CoursesService {
       )
       .limit(1);
 
-    if (existing) throw new BadRequestException("Already enrolled in this course");
+    if (existing) throw new BadRequestException(this.i18n.t("courses.alreadyEnrolled"));
 
     if (parseFloat(course.price) === 0 || stripePaymentId) {
       const [enrollment] = await this.db
@@ -184,7 +188,7 @@ export class CoursesService {
       return enrollment;
     }
 
-    throw new BadRequestException("Payment required for this course");
+    throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
   }
 
   async getEnrollment(userId: string, courseId: string) {
@@ -217,7 +221,7 @@ export class CoursesService {
       .set(cleanData)
       .where(eq(courseModules.id, moduleId))
       .returning();
-    if (!mod) throw new NotFoundException("Module not found");
+    if (!mod) throw new NotFoundException(this.i18n.t("courses.moduleNotFound"));
     return mod;
   }
 
@@ -226,8 +230,8 @@ export class CoursesService {
       .delete(courseModules)
       .where(eq(courseModules.id, moduleId))
       .returning({ id: courseModules.id });
-    if (!mod) throw new NotFoundException("Module not found");
-    return { message: "Module deleted" };
+    if (!mod) throw new NotFoundException(this.i18n.t("courses.moduleNotFound"));
+    return { message: this.i18n.t("courses.moduleDeleted") };
   }
 
   async createLesson(moduleId: string, data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; imageUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
@@ -256,7 +260,7 @@ export class CoursesService {
       .set(cleanData)
       .where(eq(courseLessons.id, lessonId))
       .returning();
-    if (!lesson) throw new NotFoundException("Lesson not found");
+    if (!lesson) throw new NotFoundException(this.i18n.t("courses.lessonNotFound"));
     return lesson;
   }
 
@@ -265,8 +269,8 @@ export class CoursesService {
       .delete(courseLessons)
       .where(eq(courseLessons.id, lessonId))
       .returning({ id: courseLessons.id });
-    if (!lesson) throw new NotFoundException("Lesson not found");
-    return { message: "Lesson deleted" };
+    if (!lesson) throw new NotFoundException(this.i18n.t("courses.lessonNotFound"));
+    return { message: this.i18n.t("courses.lessonDeleted") };
   }
 
   async completeLesson(userId: string, courseId: string, lessonId: string) {
@@ -295,7 +299,7 @@ export class CoursesService {
       .from(courseLessons)
       .where(eq(courseLessons.id, lessonId))
       .limit(1);
-    if (!lesson) throw new NotFoundException("Lesson not found");
+    if (!lesson) throw new NotFoundException(this.i18n.t("courses.lessonNotFound"));
 
     const [progress] = await this.db
       .insert(userCourseProgress)
@@ -332,7 +336,7 @@ export class CoursesService {
       return updated;
     }
 
-    throw new NotFoundException("Progress record not found");
+    throw new NotFoundException(this.i18n.t("courses.progressNotFound"));
   }
 
   async getComments(courseId: string) {
@@ -368,15 +372,15 @@ export class CoursesService {
       .from(courseComments)
       .where(eq(courseComments.id, commentId))
       .limit(1);
-    if (!comment) throw new NotFoundException("Comment not found");
-    if (comment.userId !== userId) throw new ForbiddenException("Not your comment");
+    if (!comment) throw new NotFoundException(this.i18n.t("courses.commentNotFound"));
+    if (comment.userId !== userId) throw new ForbiddenException(this.i18n.t("courses.notYourComment"));
 
     const [deleted] = await this.db
       .update(courseComments)
       .set({ deletedAt: new Date() })
       .where(eq(courseComments.id, commentId))
       .returning();
-    return { message: "Comment deleted" };
+    return { message: this.i18n.t("courses.commentDeleted") };
   }
 
   async getLessonQuiz(lessonId: string) {

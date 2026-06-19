@@ -21,9 +21,11 @@ import { MailModule } from "./mail/mail.module";
 import { UploadModule } from "./upload/upload.module";
 import { StreamModule } from "./stream/stream.module";
 import { ParametersModule } from "./parameters/parameters.module";
+import { I18nModule } from "./common/i18n/i18n.module";
 
 @Module({
   imports: [
+    I18nModule,
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ name: "default", ttl: 60000, limit: 100 }]),
     ScheduleModule.forRoot(),

@@ -11,6 +11,7 @@ import {
   paymentFailedTemplate,
   SubscriptionPlanDetails,
 } from "./templates";
+import { t } from "./templates/mail-messages";
 
 @Injectable()
 export class MailService {
@@ -50,62 +51,66 @@ export class MailService {
     }
   }
 
-  async sendVerificationEmail(to: string, name: string, token: string) {
+  async sendVerificationEmail(to: string, name: string, token: string, locale: string = "en") {
     const url = `${this.appUrl}/verify-email?token=${token}`;
     return this.sendEmail(
       to,
-      "Verify your email address",
-      verifyEmailTemplate(name, url, this.appUrl),
+      t(locale, "verifyEmail.subject"),
+      verifyEmailTemplate(name, url, this.appUrl, locale),
     );
   }
 
-  async sendWelcome(to: string, name: string) {
+  async sendWelcome(to: string, name: string, locale: string = "en") {
     const url = `${this.appUrl}/dashboard`;
     return this.sendEmail(
       to,
-      "Welcome to MD Exams!",
-      welcomeTemplate(name, url, this.appUrl),
+      t(locale, "welcome.subject"),
+      welcomeTemplate(name, url, this.appUrl, locale),
     );
   }
 
-  async sendPasswordReset(to: string, name: string, token: string) {
+  async sendPasswordReset(to: string, name: string, token: string, locale: string = "en") {
     const url = `${this.appUrl}/reset-password?token=${token}`;
     return this.sendEmail(
       to,
-      "Reset your password",
-      passwordResetTemplate(name, url, this.appUrl),
+      t(locale, "passwordReset.subject"),
+      passwordResetTemplate(name, url, this.appUrl, locale),
     );
   }
 
-  async sendPasswordChanged(to: string, name: string) {
+  async sendPasswordChanged(to: string, name: string, locale: string = "en") {
     return this.sendEmail(
       to,
-      "Your password has been changed",
-      passwordChangedTemplate(name, this.appUrl),
+      t(locale, "passwordChanged.subject"),
+      passwordChangedTemplate(name, this.appUrl, locale),
     );
   }
 
-  async sendSubscriptionConfirmed(to: string, name: string, plan: SubscriptionPlanDetails) {
+  async sendSubscriptionConfirmed(to: string, name: string, plan: SubscriptionPlanDetails, locale: string = "en") {
     return this.sendEmail(
       to,
-      "Subscription confirmed",
-      subscriptionConfirmedTemplate(name, plan, this.appUrl),
+      t(locale, "subscriptionConfirmed.subject"),
+      subscriptionConfirmedTemplate(name, plan, this.appUrl, locale),
     );
   }
 
-  async sendSubscriptionCancelled(to: string, name: string) {
+  async sendSubscriptionCancelled(to: string, name: string, locale: string = "en") {
     return this.sendEmail(
       to,
-      "Subscription cancelled",
-      subscriptionCancelledTemplate(name, this.appUrl),
+      t(locale, "subscriptionCancelled.subject"),
+      subscriptionCancelledTemplate(name, this.appUrl, locale),
     );
   }
 
-  async sendPaymentFailed(to: string, name: string) {
+  async sendPaymentFailed(to: string, name: string, locale: string = "en") {
     return this.sendEmail(
       to,
-      "Payment failed",
-      paymentFailedTemplate(name, this.appUrl),
+      t(locale, "paymentFailed.subject"),
+      paymentFailedTemplate(name, this.appUrl, locale),
     );
+  }
+
+  private resolveLocalized(locale: string, key: string): string {
+    return t(locale, key);
   }
 }

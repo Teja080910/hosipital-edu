@@ -46,7 +46,7 @@ export default function AdminCourseContentPage() {
       setLessonForm((p) => ({ ...p, [field]: publicUrl }));
       toast.success(`${file.name} uploaded`);
     } catch {
-      toast.error("Failed to upload file");
+      toast.error(t("upload_failed"));
     } finally {
       setUploadingFile(null);
     }
