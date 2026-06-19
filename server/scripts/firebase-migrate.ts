@@ -30,6 +30,84 @@ function getDocId(doc: any): string {
   return doc._id || "";
 }
 
+// ─── Exam / Category helpers ─────────────────────────────────────────────────
+
+const EXAMS = [
+  { slug: "enarm", name: { en: "ENARM", es: "ENARM" }, description: { en: "Examen Nacional de Aspirantes a Residencias Médicas - Mexico", es: "Examen Nacional de Aspirantes a Residencias Médicas - México" }, sortOrder: 0 },
+  { slug: "enurm", name: { en: "ENURM", es: "ENURM" }, description: { en: "Examen Nacional de Ubicación y Recursos Médicos - Mexico", es: "Examen Nacional de Ubicación y Recursos Médicos - México" }, sortOrder: 1 },
+  { slug: "mir", name: { en: "MIR", es: "MIR" }, description: { en: "Médico Interno Residente - Spain", es: "Médico Interno Residente - España" }, sortOrder: 2 },
+  { slug: "usmle-step-1", name: { en: "USMLE Step 1", es: "USMLE Step 1" }, description: { en: "United States Medical Licensing Examination - Step 1", es: "United States Medical Licensing Examination - Step 1" }, sortOrder: 3 },
+];
+
+const EXAM_TYPE_TO_SLUG: Record<string, string> = {
+  ENARM: "enarm", ENURM: "enurm", MIR: "mir", USMLE: "usmle-step-1",
+};
+
+function toSlug(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "unknown";
+}
+
+function getCatIdFromDoc(doc: any): string | null {
+  const parts = (doc._id || "").split("_I_");
+  if (parts.length === 2 && parts[0].startsWith("C_")) return parts[0].slice(2);
+  return null;
+}
+
+function detectExamSlug(catTitle: string): string {
+  const upper = catTitle.toUpperCase();
+  if (upper.startsWith("ENARM -") || upper.includes("- ENARM")) return "enarm";
+  if (upper.startsWith("ENURM -")) return "enurm";
+  if (upper.startsWith("USMLE")) return "usmle-step-1";
+  return "mir";
+}
+
+async function ensureExams(): Promise<Record<string, string>> {
+  console.log("\n=== Ensuring Exams ===");
+  const slugToId: Record<string, string> = {};
+  for (const ex of EXAMS) {
+    const { rows } = await pool.query("SELECT id FROM exams WHERE slug = $1", [ex.slug]);
+    if (rows.length) {
+      slugToId[ex.slug] = rows[0].id;
+      console.log(`  Exam exists: ${ex.slug}`);
+    } else {
+      const r = await pool.query(
+        "INSERT INTO exams (slug, name, description, sort_order, is_active) VALUES ($1, $2, $3, $4, true) RETURNING id",
+        [ex.slug, JSON.stringify(ex.name), JSON.stringify(ex.description), ex.sortOrder],
+      );
+      slugToId[ex.slug] = r.rows[0].id;
+      console.log(`  Created exam: ${ex.slug}`);
+    }
+  }
+  return slugToId;
+}
+
+async function getOrCreateSpecialtyTopic(
+  examId: string, catTitle: string,
+): Promise<{ specialtyId: string; topicId: string }> {
+  const slug = toSlug(catTitle);
+  let { rows: specs } = await pool.query(
+    "SELECT id FROM specialties WHERE exam_id = $1 AND slug = $2", [examId, slug],
+  );
+  const specialtyId = specs.length
+    ? specs[0].id
+    : (await pool.query(
+        "INSERT INTO specialties (exam_id, name, slug, sort_order) VALUES ($1, $2, $3, 0) RETURNING id",
+        [examId, JSON.stringify({ en: catTitle, es: catTitle }), slug],
+      )).rows[0].id;
+
+  let { rows: topics } = await pool.query(
+    "SELECT id FROM topics WHERE specialty_id = $1 AND slug = $2", [specialtyId, slug],
+  );
+  const topicId = topics.length
+    ? topics[0].id
+    : (await pool.query(
+        "INSERT INTO topics (specialty_id, name, slug, sort_order) VALUES ($1, $2, $3, 0) RETURNING id",
+        [specialtyId, JSON.stringify({ en: catTitle, es: catTitle }), slug],
+      )).rows[0].id;
+
+  return { specialtyId, topicId };
+}
+
 function readDocs(file: string): any[] {
   const fp = path.join(DATA_DIR, file);
   if (!fs.existsSync(fp)) {
@@ -156,14 +234,22 @@ async function migrateMemberships(docs: any[], adminId: string) {
   console.log(`  Plans imported: ${totalPlans}`);
 }
 
-async function migrateQuestions(docs: any[], adminId: string) {
+async function migrateQuestions(docs: any[], adminId: string, examSlugToId: Record<string, string>) {
   console.log("\n=== Questions (questions → questions + options + images) ===");
+
+  const catDocs = readDocs("categorys.json");
+  const catMap: Record<string, string> = {};
+  for (const c of catDocs) catMap[c.id] = c.title;
+
+  const specTopicCache: Record<string, { specialtyId: string; topicId: string }> = {};
+  let linked = 0;
+  let skipped = 0;
 
   for (const doc of docs) {
     try {
       const f = doc;
       const text = (f.title || "").trim();
-      if (!text) continue;
+      if (!text) { skipped++; continue; }
 
       const existing = await db
         .select()
@@ -172,110 +258,169 @@ async function migrateQuestions(docs: any[], adminId: string) {
         .limit(1);
       if (existing.length) {
         totalQuestions++;
-        continue;
+        // Still try to link
+      } else {
+        const answers: any[] = (f.answers || []).filter(
+          (a: any) => a.title && a.title.trim(),
+        );
+        if (answers.length === 0) { skipped++; continue; }
+
+        const [question] = (await db
+          .insert(schema.questions)
+          .values({
+            text,
+            explanation: f.explanation || "",
+            reference: f.reference || null,
+            difficulty: "medium",
+            isActive: f.isEnabled !== false,
+            createdBy: adminId,
+            createdAt: f.creationTime || new Date(),
+            updatedAt: new Date(),
+          })
+          .returning()) as any[];
+
+        totalQuestions++;
+
+        if (answers.length) {
+          await db.insert(schema.questionOptions).values(
+            answers.map((a: any, i: number) => ({
+              questionId: question.id,
+              text: a.title || "",
+              isCorrect: a.isCorrect === true,
+              sortOrder: i,
+            })),
+          );
+          totalOptions += answers.length;
+        }
+
+        const imgFields = [
+          { url: f.urlTitle01, sort: 0 },
+          { url: f.urlTitle02, sort: 1 },
+          { url: f.urlTitle03, sort: 2 },
+          { url: f.urlExplanation01, sort: 3 },
+          { url: f.urlExplanation02, sort: 4 },
+          { url: f.urlExplanation03, sort: 5 },
+          { url: f.urlReference01, sort: 6 },
+          { url: f.urlReference02, sort: 7 },
+          { url: f.urlReference03, sort: 8 },
+        ].filter((x) => x.url && x.url.trim());
+
+        if (imgFields.length) {
+          await db.insert(schema.questionImages).values(
+            imgFields.map((x) => ({
+              questionId: question.id,
+              url: x.url!,
+              sortOrder: x.sort,
+            })),
+          );
+          totalImages += imgFields.length;
+        }
       }
 
-      const answers: any[] = (f.answers || []).filter(
-        (a: any) => a.title && a.title.trim(),
+      // Link to exam / specialty / topic
+      const catId = getCatIdFromDoc(doc);
+      const catTitle = catMap[catId || ""];
+      if (!catTitle) { continue; }
+
+      let examSlug = EXAM_TYPE_TO_SLUG[f.examType];
+      if (!examSlug) {
+        examSlug = detectExamSlug(catTitle);
+      }
+      const examId = examSlugToId[examSlug];
+      if (!examId) { continue; }
+
+      const cacheKey = `${examSlug}::${catTitle}`;
+      if (!specTopicCache[cacheKey]) {
+        specTopicCache[cacheKey] = await getOrCreateSpecialtyTopic(examId, catTitle);
+      }
+      const { specialtyId, topicId } = specTopicCache[cacheKey];
+
+      const { rows: qs } = await pool.query(
+        "SELECT id FROM questions WHERE text = $1 LIMIT 1", [text],
       );
-      if (answers.length === 0) continue;
-
-      const [question] = (await db
-        .insert(schema.questions)
-        .values({
-          text,
-          explanation: f.explanation || "",
-          reference: f.reference || null,
-          difficulty: "medium",
-          isActive: f.isEnabled !== false,
-          createdBy: adminId,
-          createdAt: f.creationTime || new Date(),
-          updatedAt: new Date(),
-        })
-        .returning()) as any[];
-
-      totalQuestions++;
-
-      // Options
-      if (answers.length) {
-        await db.insert(schema.questionOptions).values(
-          answers.map((a: any, i: number) => ({
-            questionId: question.id,
-            text: a.title || "",
-            isCorrect: a.isCorrect === true,
-            sortOrder: i,
-          })),
+      if (qs.length) {
+        await pool.query(
+          "UPDATE questions SET exam_id = $1, specialty_id = $2, topic_id = $3 WHERE id = $4",
+          [examId, specialtyId, topicId, qs[0].id],
         );
-        totalOptions += answers.length;
-      }
-
-      // Images from URL fields
-      const imgFields = [
-        { url: f.urlTitle01, sort: 0 },
-        { url: f.urlTitle02, sort: 1 },
-        { url: f.urlTitle03, sort: 2 },
-        { url: f.urlExplanation01, sort: 3 },
-        { url: f.urlExplanation02, sort: 4 },
-        { url: f.urlExplanation03, sort: 5 },
-        { url: f.urlReference01, sort: 6 },
-        { url: f.urlReference02, sort: 7 },
-        { url: f.urlReference03, sort: 8 },
-      ].filter((x) => x.url && x.url.trim());
-
-      if (imgFields.length) {
-        await db.insert(schema.questionImages).values(
-          imgFields.map((x) => ({
-            questionId: question.id,
-            url: x.url!,
-            sortOrder: x.sort,
-          })),
-        );
-        totalImages += imgFields.length;
+        linked++;
       }
     } catch (err: any) {
       console.error(`  Error migrating question: ${err.message}`);
     }
   }
-  console.log(`  Questions: ${totalQuestions}, Options: ${totalOptions}, Images: ${totalImages}`);
+  console.log(`  Questions: ${totalQuestions}, Options: ${totalOptions}, Images: ${totalImages}, linked to exam: ${linked}, skipped: ${skipped}`);
 }
 
-async function migrateFlashcards(docs: any[], adminId: string) {
+async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Record<string, string>) {
   console.log("\n=== Flashcards (flashcardquestions → flashcards) ===");
+
+  const catDocs = readDocs("flashcardcategorys.json");
+  const catMap: Record<string, string> = {};
+  for (const c of catDocs) catMap[c.id] = c.title;
+
+  const specTopicCache: Record<string, { specialtyId: string; topicId: string }> = {};
+  let linked = 0;
+  let skipped = 0;
 
   for (const doc of docs) {
     try {
       const f = doc;
       const front = (f.title || "").trim();
-      if (!front) continue;
+      if (!front) { skipped++; continue; }
 
       const existing = await db
         .select()
         .from(schema.flashcards)
         .where(eq(schema.flashcards.front, front))
         .limit(1);
-      if (existing.length) {
+      if (!existing.length) {
+        await db
+          .insert(schema.flashcards)
+          .values({
+            front,
+            back: f.explanation || "",
+            reference: f.reference || null,
+            isActive: f.isEnabled !== false,
+            createdBy: adminId,
+            createdAt: f.creationTime || new Date(),
+            updatedAt: new Date(),
+          });
         totalFlashcards++;
-        continue;
+      } else {
+        totalFlashcards++;
       }
 
-      await db
-        .insert(schema.flashcards)
-        .values({
-          front,
-          back: f.explanation || "",
-          reference: f.reference || null,
-          isActive: f.isEnabled !== false,
-          createdBy: adminId,
-          createdAt: f.creationTime || new Date(),
-          updatedAt: new Date(),
-        });
+      // Link to exam / specialty / topic
+      const catId = getCatIdFromDoc(doc);
+      const catTitle = catMap[catId || ""];
+      if (!catTitle) { continue; }
 
-      totalFlashcards++;
+      const examSlug = detectExamSlug(catTitle);
+      const examId = examSlugToId[examSlug];
+      if (!examId) { continue; }
+
+      const cacheKey = `${examSlug}::${catTitle}`;
+      if (!specTopicCache[cacheKey]) {
+        specTopicCache[cacheKey] = await getOrCreateSpecialtyTopic(examId, catTitle);
+      }
+      const { specialtyId, topicId } = specTopicCache[cacheKey];
+
+      const { rows: fc } = await pool.query(
+        "SELECT id FROM flashcards WHERE front = $1 AND is_active = true LIMIT 1", [front],
+      );
+      if (fc.length) {
+        await pool.query(
+          "UPDATE flashcards SET exam_id = $1, specialty_id = $2, topic_id = $3 WHERE id = $4",
+          [examId, specialtyId, topicId, fc[0].id],
+        );
+        linked++;
+      }
     } catch (err: any) {
       console.error(`  Error migrating flashcard: ${err.message}`);
     }
   }
-  console.log(`  Flashcards: ${totalFlashcards}`);
+  console.log(`  Flashcards: ${totalFlashcards}, linked to exam: ${linked}, skipped: ${skipped}`);
 }
 
 async function migrateVideoCategories(docs: any[]) {
@@ -561,15 +706,17 @@ async function main() {
 
   const adminId = (await migrateUsers(readDocs("appusers.json")))!;
 
+  const examSlugToId = await ensureExams();
+
   await migrateMemberships(readDocs("memberships.json"), adminId);
   await migrateParameters(readDocs("parameters.json"));
   await migrateVideoCategories(readDocs("videocategorys.json"));
   await migrateVideos(readDocs("videos.json"));
-  await migrateFlashcards(readDocs("flashcardquestions.json"), adminId);
+  await migrateFlashcards(readDocs("flashcardquestions.json"), adminId, examSlugToId);
   await migratePayments(readDocs("appusermembershippurchases.json"), adminId);
 
   // Questions — largest file, process last
-  await migrateQuestions(readDocs("questions.json"), adminId);
+  await migrateQuestions(readDocs("questions.json"), adminId, examSlugToId);
 
   console.log("\n=== Migration Complete ===");
   console.log(`  Users:        ${totalUsers}`);
