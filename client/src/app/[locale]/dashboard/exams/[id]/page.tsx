@@ -113,6 +113,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const [tabWarnings, setTabWarnings] = useState(0);
   const tabWarningsRef = useRef(0);
   const confirmSubmitRef = useRef<() => Promise<void>>();
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     confirmSubmitRef.current = handleConfirmSubmit;
@@ -136,15 +137,20 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [pageState, mode, t]);
 
   useEffect(() => {
-    if (pageState !== "taking" || mode !== "exam") return;
+    if (pageState !== "taking" && pageState !== "results") return;
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && pageState === "taking" && mode === "exam") {
-        setShowSubmitDialog(true);
+      if (isSubmittingRef.current) return;
+      if (!document.fullscreenElement) {
+        if (pageState === "taking" && mode === "exam") {
+          setShowSubmitDialog(true);
+        } else if (pageState === "results") {
+          router.push("/dashboard/exams");
+        }
       }
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, [pageState, mode]);
+  }, [pageState, mode, router]);
 
   useEffect(() => {
     let filtered = allQuestions;
@@ -207,6 +213,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { /* silent */ }
     } else {
       setShowAnswer(true);
+      setTimeout(() => {
+        if (currentIndex < displayQuestions.length - 1) {
+          navigateTo(currentIndex + 1);
+        }
+      }, 1500);
     }
   };
 
@@ -245,15 +256,18 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
   const handleConfirmSubmit = async () => {
     if (!attemptId || submitting) return;
+    isSubmittingRef.current = true;
     setSubmitting(true); setShowSubmitDialog(false); setShowTimeWarning(false);
     const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
     const total = displayQuestions.length;
     setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
     setPageState("results");
     useExamStore.setState({ isActive: false });
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    window.history.replaceState({}, "", `/dashboard/exams/${id}`);
+    if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
     try { await attemptsApi.complete(attemptId); } catch { /* silent */ }
     setSubmitting(false);
+    isSubmittingRef.current = false;
   };
 
   const handleFinishStudy = async () => {
@@ -275,8 +289,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
             onReview={() => { setPageState("taking"); setShowAnswer(true); }}
-            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); }}
-            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); router.push("/dashboard"); }} />
+            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.setState({ isActive: false }); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); }}
+            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
             <Card>
               <CardHeader><CardTitle className="text-lg">{t("topic_breakdown")}</CardTitle></CardHeader>
@@ -453,7 +467,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             </aside>
           </div>
         </div>
-        <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { setShowSubmitDialog(open); if (!open && mode === "exam") { document.documentElement.requestFullscreen().catch(() => {}); } }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
+        <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { setShowSubmitDialog(open); }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
         <ConfirmDialog open={showTimeWarning} onOpenChange={setShowTimeWarning} title={t("time_up")} description={t("time_up_desc")} confirmLabel={t("submit")} cancelLabel="" variant="default" onConfirm={handleConfirmSubmit} />
         {lightboxImage && (
           <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>

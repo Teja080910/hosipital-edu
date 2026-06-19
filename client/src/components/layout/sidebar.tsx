@@ -124,6 +124,11 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
       )}>
         <Link href="/" className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
           <Image src="/logo.png" alt={sb("brand")} width={40} height={40} className="rounded-lg bg-white p-1" />
+          {!isCollapsed && (
+            <span className="text-lg font-bold bg-gradient-to-r from-foreground via-blue-500 to-foreground dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent">
+              {sb("brand")}
+            </span>
+          )}
         </Link>
       </div>
 

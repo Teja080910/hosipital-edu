@@ -332,8 +332,7 @@
     "failed_submit_quiz": "Error al enviar el cuestionario",
     "question_of": "Pregunta {current} de {total}",
     "answered": "respondidas",
-    "score_percent": "Puntaje: {score}% ({correct}/{total} correctas)",
-    "questions_count": "{count} preguntas"
+    "score_percent": "Puntaje: {score}% ({correct}/{total} correctas)"
   },
   "lessons": {
     "not_found": "Lección no encontrada",

@@ -95,10 +95,10 @@ const currentLocale = useParams().locale as string;
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="rounded-xl border-border/50 shadow-lg mt-1 min-w-[130px]">
             <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
-              🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+              🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">active</span>}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
-              🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+              🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">active</span>}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
