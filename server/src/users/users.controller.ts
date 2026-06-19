@@ -1,26 +1,30 @@
 import {
-  Controller,
-  Get,
-  Patch,
-  Delete,
-  Param,
   Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
-import { UsersService } from "./users.service";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { Roles } from "../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
-import { Roles } from "../common/decorators/roles.decorator";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { I18nService } from "../common/i18n/i18n.service";
+import { UsersService } from "./users.service";
 
 @ApiTags("users")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller("users")
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private i18n: I18nService,
+  ) {}
 
   @Get()
   @UseGuards(RolesGuard)
@@ -37,7 +41,7 @@ export class UsersController {
   @ApiOperation({ summary: "Get user by id" })
   async findOne(@Param("id") id: string, @CurrentUser() user: any) {
     if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
-      return { message: "Access denied" };
+      return { message: this.i18n.t("users.accessDenied") };
     }
     return this.usersService.findById(id);
   }
@@ -78,7 +82,7 @@ export class UsersController {
     @CurrentUser() user: any,
   ) {
     if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
-      return { message: "Access denied" };
+      return { message: this.i18n.t("users.accessDenied") };
     }
     return this.usersService.update(id, data);
   }

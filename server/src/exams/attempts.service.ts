@@ -18,10 +18,14 @@ import {
   userSubscriptions,
   users,
 } from "../database/schema";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class AttemptsService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async create(data: {
     userId: string;
@@ -54,31 +58,31 @@ export class AttemptsService {
         .limit(1);
 
       if (!sub) {
-        throw new HttpException("No active subscription found.", HttpStatus.FORBIDDEN);
+        throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
       }
 
       const plan = sub.subscription_plans;
       if (plan.isCourseOnly) {
-        throw new HttpException("Your plan only grants access to courses, not exams.", HttpStatus.FORBIDDEN);
+        throw new HttpException(this.i18n.t("exams.planOnlyCourses"), HttpStatus.FORBIDDEN);
       }
 
       if (plan.examId && plan.examId !== data.examId) {
-        throw new HttpException("Your subscription does not include this exam type.", HttpStatus.FORBIDDEN);
+        throw new HttpException(this.i18n.t("exams.subscriptionNotIncludeExam"), HttpStatus.FORBIDDEN);
       }
 
       if (sub.user_subscriptions.remainingExamAttempts != null && sub.user_subscriptions.remainingExamAttempts < 1) {
-        throw new HttpException("No remaining exam attempts. Please upgrade your plan.", HttpStatus.FORBIDDEN);
+        throw new HttpException(this.i18n.t("exams.noRemainingAttempts"), HttpStatus.FORBIDDEN);
       }
 
       if (sub.user_subscriptions.remainingUses != null && sub.user_subscriptions.remainingUses < 1) {
-        throw new HttpException("You have exceeded the total usage limit for your plan.", HttpStatus.FORBIDDEN);
+        throw new HttpException(this.i18n.t("exams.usageLimitExceeded"), HttpStatus.FORBIDDEN);
       }
 
       if (plan.maxDays) {
         const created = new Date(sub.user_subscriptions.createdAt);
         const expired = new Date(created.getTime() + plan.maxDays * 24 * 60 * 60 * 1000);
         if (new Date() > expired) {
-          throw new HttpException("Your plan duration has expired.", HttpStatus.FORBIDDEN);
+          throw new HttpException(this.i18n.t("exams.planExpired"), HttpStatus.FORBIDDEN);
         }
       }
     }
@@ -118,7 +122,7 @@ export class AttemptsService {
       .from(examAttempts)
       .where(eq(examAttempts.id, id))
       .limit(1);
-    if (!attempt) throw new NotFoundException("Attempt not found");
+    if (!attempt) throw new NotFoundException(this.i18n.t("exams.attemptNotFound"));
 
     const answers = await this.db
       .select()
@@ -294,7 +298,7 @@ export class AttemptsService {
       .set({ status: "completed", completedAt: new Date() })
       .where(eq(examAttempts.id, id))
       .returning();
-    if (!attempt) throw new NotFoundException("Attempt not found");
+    if (!attempt) throw new NotFoundException(this.i18n.t("exams.attemptNotFound"));
     return attempt;
   }
 }

@@ -6,10 +6,14 @@ import {
   userCourseProgress,
 } from "../database/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class QuizAttemptsService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async create(userId: string, quizId: string) {
     const [quiz] = await this.db
@@ -17,7 +21,7 @@ export class QuizAttemptsService {
       .from(courseQuizzes)
       .where(eq(courseQuizzes.id, quizId))
       .limit(1);
-    if (!quiz) throw new NotFoundException("Quiz not found");
+    if (!quiz) throw new NotFoundException(this.i18n.t("courses.quizNotFound"));
 
     const [existing] = await this.db
       .select()
@@ -30,7 +34,7 @@ export class QuizAttemptsService {
         ),
       )
       .limit(1);
-    if (existing) throw new BadRequestException("Quiz already passed");
+    if (existing) throw new BadRequestException(this.i18n.t("courses.quizAlreadyPassed"));
 
     const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
 
@@ -53,7 +57,7 @@ export class QuizAttemptsService {
       .from(courseQuizAttempts)
       .where(eq(courseQuizAttempts.id, id))
       .limit(1);
-    if (!attempt) throw new NotFoundException("Quiz attempt not found");
+    if (!attempt) throw new NotFoundException(this.i18n.t("courses.quizAttemptNotFound"));
 
     const [quiz] = await this.db
       .select()
@@ -87,8 +91,8 @@ export class QuizAttemptsService {
         ),
       )
       .limit(1);
-    if (!attempt) throw new NotFoundException("Quiz attempt not found");
-    if (attempt.completedAt) throw new BadRequestException("Quiz already submitted");
+    if (!attempt) throw new NotFoundException(this.i18n.t("courses.quizAttemptNotFound"));
+    if (attempt.completedAt) throw new BadRequestException(this.i18n.t("courses.quizAlreadySubmitted"));
 
     const [quiz] = await this.db
       .select()

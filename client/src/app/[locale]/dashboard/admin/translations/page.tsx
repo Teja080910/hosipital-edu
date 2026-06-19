@@ -50,7 +50,7 @@ export default function AdminTranslationsPage() {
       setNamespaces(Array.from(ns).sort());
       setRows(Object.values(grouped));
     } catch {
-      toast.error("Failed to load translations");
+      toast.error(t("translations_load_failed"));
     } finally {
       setLoading(false);
     }

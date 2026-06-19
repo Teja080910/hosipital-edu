@@ -18,6 +18,7 @@ import { toast } from "sonner";
 
 export default function AdminVideosPage() {
   const t = useTranslations("admin");
+  const c = useTranslations("common");
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
@@ -43,7 +44,7 @@ export default function AdminVideosPage() {
       setModules(data);
       if (data.length > 0) setSelectedModule((prev: any) => prev ?? data[0]);
     } catch {
-      toast.error("Failed to load modules");
+      toast.error(t("load_failed_courses"));
     } finally {
       setLoading(false);
     }
@@ -78,15 +79,15 @@ export default function AdminVideosPage() {
       if (selectedExamId) payload.examId = selectedExamId;
       if (editingModule) {
         await streamApi.updateModule(editingModule.id, payload);
-        toast.success("Module updated");
+        toast.success(t("module_updated"));
       } else {
         await streamApi.createModule(payload);
-        toast.success("Module created");
+        toast.success(t("module_created"));
       }
       setModuleDialogOpen(false);
       fetchModules();
     } catch {
-      toast.error("Failed to save module");
+      toast.error(t("module_save_failed"));
     } finally {
       setSavingModule(false);
     }
@@ -96,12 +97,12 @@ export default function AdminVideosPage() {
     if (!deleteTarget) return;
     try {
       await streamApi.deleteModule(deleteTarget.id);
-      toast.success("Module deleted");
+      toast.success(t("module_deleted"));
       setDeleteTarget(null);
       if (selectedModule?.id === deleteTarget.id) setSelectedModule(null);
       fetchModules();
     } catch {
-      toast.error("Failed to delete module");
+      toast.error(t("module_delete_failed"));
     }
   };
 
@@ -109,11 +110,11 @@ export default function AdminVideosPage() {
     if (!deleteTarget) return;
     try {
       await streamApi.deleteLesson(deleteTarget.id);
-      toast.success("Lesson deleted");
+      toast.success(t("lesson_deleted"));
       setDeleteTarget(null);
       fetchModules();
     } catch {
-      toast.error("Failed to delete lesson");
+      toast.error(t("lesson_delete_failed"));
     }
   };
 
@@ -147,15 +148,15 @@ export default function AdminVideosPage() {
       };
       if (editingLesson) {
         await streamApi.updateLesson(editingLesson.id, payload);
-        toast.success("Lesson updated");
+        toast.success(t("lesson_updated"));
       } else {
         await streamApi.createLesson({ ...payload, moduleId: lessonModuleId! });
-        toast.success("Lesson created");
+        toast.success(t("lesson_created"));
       }
       setLessonDialogOpen(false);
       fetchModules();
     } catch {
-      toast.error("Failed to save lesson");
+      toast.error(t("lesson_save_failed"));
     } finally {
       setSavingLesson(false);
     }
@@ -191,9 +192,9 @@ export default function AdminVideosPage() {
     <PageTransition>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Video Manager</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("videos_page_title")}</h1>
           <Button onClick={openCreateModule}>
-            <Plus className="mr-2 h-4 w-4" /> New Module
+            <Plus className="mr-2 h-4 w-4" /> {t("new_module")}
           </Button>
         </div>
 
@@ -201,14 +202,14 @@ export default function AdminVideosPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <FolderOpen className="h-5 w-5" /> Modules
+                <FolderOpen className="h-5 w-5" /> {t("modules_label")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
               ) : modules.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No modules yet</p>
+                <p className="text-sm text-muted-foreground text-center py-8">{t("no_modules_yet")}</p>
               ) : (
                 <div className="space-y-2">
                   {modules.map((mod) => (
@@ -241,19 +242,19 @@ export default function AdminVideosPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Video className="h-5 w-5" /> Lessons
+                <Video className="h-5 w-5" /> {t("lessons_label")}
                 {selectedModule && (
                   <Button size="sm" className="ml-auto" onClick={() => openCreateLesson(selectedModule.id)}>
-                    <Plus className="mr-1 h-4 w-4" /> Add Lesson
+                    <Plus className="mr-1 h-4 w-4" /> {t("add_lesson")}
                   </Button>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {!selectedModule ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Select a module</p>
+                <p className="text-sm text-muted-foreground text-center py-8">{t("select_module")}</p>
               ) : selectedModule.lessons?.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No lessons in this module</p>
+                <p className="text-sm text-muted-foreground text-center py-8">{t("no_lessons_in_module_hint")}</p>
               ) : (
                 <div className="space-y-3">
                   {selectedModule.lessons?.map((lesson: any) => (
@@ -265,7 +266,7 @@ export default function AdminVideosPage() {
                           <Badge variant="secondary" className="text-xs">{lesson.duration}s</Badge>
                           {lesson.videoUrl && (
                             <Badge variant="outline" className="text-xs cursor-pointer" onClick={() => setPreviewUid(extractUid(lesson.videoUrl))}>
-                              <Play className="mr-1 h-3 w-3" /> Preview
+                              <Play className="mr-1 h-3 w-3" /> {t("preview_btn")}
                             </Badge>
                           )}
                         </div>
@@ -289,15 +290,15 @@ export default function AdminVideosPage() {
         <Dialog open={moduleDialogOpen} onOpenChange={setModuleDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingModule ? "Edit Module" : "New Module"}</DialogTitle>
+              <DialogTitle>{editingModule ? t("edit_module") : t("new_module")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium">Title</label>
+                <label className="text-sm font-medium">{t("title_label")}</label>
                 <Input value={moduleForm.title} onChange={(e) => setModuleForm((p) => ({ ...p, title: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium">Description</label>
+                <label className="text-sm font-medium">{t("description_label")}</label>
                 <Textarea value={moduleForm.description} onChange={(e) => setModuleForm((p) => ({ ...p, description: e.target.value }))} />
               </div>
               <div>
@@ -315,10 +316,10 @@ export default function AdminVideosPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setModuleDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setModuleDialogOpen(false)}>{c("cancel")}</Button>
               <Button onClick={saveModule} disabled={savingModule || !moduleForm.title}>
                 {savingModule ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {editingModule ? "Update" : "Create"}
+                {editingModule ? t("update_btn") : t("create_btn")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -327,7 +328,7 @@ export default function AdminVideosPage() {
         <Dialog open={lessonDialogOpen} onOpenChange={setLessonDialogOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>{editingLesson ? "Edit Lesson" : "New Lesson"}</DialogTitle>
+              <DialogTitle>{editingLesson ? t("edit_lesson") : t("new_lesson")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
@@ -335,20 +336,20 @@ export default function AdminVideosPage() {
                 <Input value={lessonForm.title} onChange={(e) => setLessonForm((p) => ({ ...p, title: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium">Description</label>
+                <label className="text-sm font-medium">{t("description_label")}</label>
                 <Textarea value={lessonForm.description} onChange={(e) => setLessonForm((p) => ({ ...p, description: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium">Video UID</label>
+                <label className="text-sm font-medium">{t("video_uid_label")}</label>
                 <div className="flex gap-2">
-                  <Input value={lessonForm.videoUrl} onChange={(e) => setLessonForm((p) => ({ ...p, videoUrl: e.target.value }))} placeholder="Cloudflare Stream UID" />
+                  <Input value={lessonForm.videoUrl} onChange={(e) => setLessonForm((p) => ({ ...p, videoUrl: e.target.value }))} placeholder={t("video_uid_placeholder")} />
                   <Button variant="outline" size="sm" onClick={() => { setUploadOpen(true); }}>
-                    Upload
+                    {t("upload_btn")}
                   </Button>
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium">Duration (seconds)</label>
+                <label className="text-sm font-medium">{t("duration_seconds_label")}</label>
                 <Input type="number" value={lessonForm.duration} onChange={(e) => setLessonForm((p) => ({ ...p, duration: e.target.value }))} />
               </div>
               {lessonForm.videoUrl && (
@@ -358,10 +359,10 @@ export default function AdminVideosPage() {
               )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setLessonDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setLessonDialogOpen(false)}>{c("cancel")}</Button>
               <Button onClick={saveLesson} disabled={savingLesson || !lessonForm.title}>
                 {savingLesson ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {editingLesson ? "Update" : "Create"}
+                {editingLesson ? t("update_btn") : t("create_btn")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -379,7 +380,7 @@ export default function AdminVideosPage() {
           <Dialog open={!!previewUid} onOpenChange={() => setPreviewUid(null)}>
             <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Video Preview</DialogTitle>
+                <DialogTitle>{t("video_preview")}</DialogTitle>
               </DialogHeader>
               <StreamVideoPlayer uid={previewUid} />
             </DialogContent>

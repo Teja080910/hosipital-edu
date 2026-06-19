@@ -1,5 +1,6 @@
 import { emailLayout } from "./layout";
 import { emailH1, emailText, emailButton, emailDivider, emailSmall, emailUserInfo } from "./components";
+import { t } from "./mail-messages";
 
 export interface SubscriptionPlanDetails {
   name: string;
@@ -11,21 +12,22 @@ export function subscriptionConfirmedTemplate(
   name: string,
   plan: SubscriptionPlanDetails,
   appUrl?: string,
+  locale: string = "en",
 ): string {
   return emailLayout({
     content: `
-      ${emailH1("Subscription confirmed!")}
-      ${emailText(`Hi ${name}, thank you for subscribing to MD Exam. Your payment was successful and your account is now active.`)}
+      ${emailH1(t(locale, "subscriptionConfirmed.heading"))}
+      ${emailText(t(locale, "subscriptionConfirmed.body1", { name }))}
       ${emailDivider()}
       <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
-        ${emailUserInfo("Plan", plan.name)}
-        ${emailUserInfo("Amount", plan.amount)}
-        ${emailUserInfo("Billing", plan.interval)}
+        ${emailUserInfo(t(locale, "subscriptionConfirmed.planLabel"), plan.name)}
+        ${emailUserInfo(t(locale, "subscriptionConfirmed.amountLabel"), plan.amount)}
+        ${emailUserInfo(t(locale, "subscriptionConfirmed.billingLabel"), plan.interval)}
       </table>
       ${emailDivider()}
-      ${emailText("You now have unlimited access to all courses, practice questions, flashcards, exam simulators, and detailed performance analytics.")}
-      ${emailButton("Start Learning", `${appUrl || "https://md-exams.com"}/dashboard`)}
-      ${emailSmall("Need help? Reply to this email or contact support@md-exams.com.")}
+      ${emailText(t(locale, "subscriptionConfirmed.body2"))}
+      ${emailButton(t(locale, "subscriptionConfirmed.button"), `${appUrl || "https://md-exams.com"}/dashboard`)}
+      ${emailSmall(t(locale, "subscriptionConfirmed.footer"))}
     `,
     appUrl,
   });

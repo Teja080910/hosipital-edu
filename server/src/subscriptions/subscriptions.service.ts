@@ -12,6 +12,7 @@ import { STRIPE } from "./stripe.provider";
 import Stripe from "stripe";
 import { MailService } from "../mail/mail.service";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class SubscriptionsService {
@@ -20,6 +21,7 @@ export class SubscriptionsService {
     @Inject(STRIPE) private stripe: Stripe,
     private config: ConfigService,
     private mailService: MailService,
+    private i18n: I18nService,
   ) {}
 
   async findPlans(visibleOnly = true) {
@@ -122,7 +124,7 @@ export class SubscriptionsService {
 
   async createCheckoutSession(userId: string, planId: string, locale: string = "en") {
     const plan = await this.findPlanById(planId);
-    if (!plan) throw new HttpException("Plan not found", HttpStatus.NOT_FOUND);
+    if (!plan) throw new HttpException(this.i18n.t("subscriptions.planNotFound"), HttpStatus.NOT_FOUND);
 
     let stripePriceId = plan.stripePriceId;
     if (!stripePriceId) {
@@ -195,7 +197,7 @@ export class SubscriptionsService {
       amount: parseFloat(plan.price),
       currency: plan.currency || "USD",
       status: "pending",
-      description: `${plan.name?.en || "Subscription"} - ${plan.interval}`,
+      description: this.i18n.t("subscriptions.descriptionTemplate", { name: plan.name?.en || "Subscription", interval: plan.interval }),
     });
 
     return { url: session.url };
@@ -223,7 +225,7 @@ export class SubscriptionsService {
     stripeCustomerId: string;
   }) {
     const plan = await this.findPlanById(data.planId);
-    if (!plan) throw new Error("Plan not found");
+    if (!plan) throw new Error(this.i18n.t("subscriptions.planNotFound"));
 
     await this.db
       .update(userSubscriptions)
@@ -310,7 +312,7 @@ export class SubscriptionsService {
       )
       .limit(1);
 
-    if (!sub) throw new HttpException("No active subscription", HttpStatus.NOT_FOUND);
+    if (!sub) throw new HttpException(this.i18n.t("subscriptions.noActiveSubscription"), HttpStatus.NOT_FOUND);
 
     if (sub.stripeSubscriptionId) {
       await this.stripe.subscriptions.update(sub.stripeSubscriptionId, {

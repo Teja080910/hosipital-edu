@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException, Inject } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, specialties, topics, subtopics, questions, userSubscriptions, subscriptionPlans } from "../database/schema";
-import { eq, asc, inArray, sql, and, isNull, or, type SQL } from "drizzle-orm";
+import { exams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions } from "../database/schema";
 
 @Injectable()
 export class ExamsService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findAll(user?: any) {
     let subExamId: string | null = null;
@@ -46,7 +50,7 @@ export class ExamsService {
       .from(exams)
       .where(eq(exams.id, id))
       .limit(1);
-    if (!exam) throw new NotFoundException("Exam not found");
+    if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
 
     const specs = await this.db
       .select()
@@ -94,7 +98,7 @@ export class ExamsService {
       .from(exams)
       .where(eq(exams.slug, slug))
       .limit(1);
-    if (!exam) throw new NotFoundException("Exam not found");
+    if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
     return exam;
   }
 
@@ -111,7 +115,7 @@ export class ExamsService {
       .set(cleanData)
       .where(eq(exams.id, id))
       .returning();
-    if (!exam) throw new NotFoundException("Exam not found");
+    if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
     return exam;
   }
 }

@@ -1,14 +1,15 @@
 import { emailLayout } from "./layout";
 import { emailH1, emailText, emailButton, emailSmall } from "./components";
+import { t } from "./mail-messages";
 
-export function paymentFailedTemplate(name: string, appUrl?: string): string {
+export function paymentFailedTemplate(name: string, appUrl?: string, locale: string = "en"): string {
   return emailLayout({
     content: `
-      ${emailH1("Payment failed")}
-      ${emailText(`Hi ${name}, we were unable to process your latest subscription payment. Don&rsquo;t worry &mdash; we&rsquo;ll try again in a few days.`)}
-      ${emailText("To avoid any interruption to your access, please update your payment method as soon as possible.")}
-      ${emailButton("Update Payment Method", `${appUrl || "https://md-exams.com"}/dashboard/subscribe`)}
-      ${emailSmall("If you need assistance, contact support@md-exams.com.")}
+      ${emailH1(t(locale, "paymentFailed.heading"))}
+      ${emailText(t(locale, "paymentFailed.body1", { name }))}
+      ${emailText(t(locale, "paymentFailed.body2"))}
+      ${emailButton(t(locale, "paymentFailed.button"), `${appUrl || "https://md-exams.com"}/dashboard/subscribe`)}
+      ${emailSmall(t(locale, "paymentFailed.footer"))}
     `,
     appUrl,
   });

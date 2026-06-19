@@ -6,11 +6,15 @@ import { LoginDto } from "./dto/login.dto";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { LocalAuthGuard } from "../common/guards/local-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @ApiTags("auth")
 @Controller("auth")
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private i18n: I18nService,
+  ) {}
 
   @Post("register")
   @ApiOperation({ summary: "Register new user" })
@@ -33,7 +37,7 @@ export class AuthController {
   @Post("logout")
   @ApiOperation({ summary: "Logout" })
   async logout() {
-    return { message: "Logged out successfully" };
+    return { message: this.i18n.t("auth.loggedOut") };
   }
 
   @Post("verify-email")

@@ -7,10 +7,14 @@ import { DRIZZLE } from "../database/database.provider";
 import { questions, questionOptions, questionImages, userSubscriptions, subscriptionPlans, users } from "../database/schema";
 import { and, eq, isNull, ilike, asc, inArray, or, type SQL } from "drizzle-orm";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class QuestionsService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findAll(filters: {
     examId?: string;
@@ -99,7 +103,7 @@ export class QuestionsService {
       .from(questions)
       .where(and(eq(questions.id, id), eq(questions.isActive, true)))
       .limit(1);
-    if (!question) throw new NotFoundException("Question not found");
+    if (!question) throw new NotFoundException(this.i18n.t("questions.notFound"));
 
     if (user) {
       const [u] = await this.db
@@ -163,7 +167,7 @@ export class QuestionsService {
       .set(cleanData)
       .where(eq(questions.id, id))
       .returning();
-    if (!question) throw new NotFoundException("Question not found");
+    if (!question) throw new NotFoundException(this.i18n.t("questions.notFound"));
 
     if (options && options.length > 0) {
       await this.db
@@ -194,8 +198,8 @@ export class QuestionsService {
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(questions.id, id))
       .returning();
-    if (!question) throw new NotFoundException("Question not found");
-    return { message: "Question deleted" };
+    if (!question) throw new NotFoundException(this.i18n.t("questions.notFound"));
+    return { message: this.i18n.t("questions.deleted") };
   }
 
   private async getSubscriptionExamId(userId: string): Promise<string | null> {
