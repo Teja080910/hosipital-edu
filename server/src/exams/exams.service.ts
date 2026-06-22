@@ -118,4 +118,85 @@ export class ExamsService {
     if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
     return exam;
   }
+
+  // ─── Specialty CRUD ───
+
+  async createSpecialty(examId: string, data: any) {
+    const { id, createdAt, ...clean } = data;
+    const [spec] = await this.db
+      .insert(specialties)
+      .values({ ...clean, examId, name: clean.name || { en: clean.nameEn || "" }, slug: clean.slug || (clean.nameEn || "").toLowerCase().replace(/\s+/g, "-") })
+      .returning();
+    return spec;
+  }
+
+  async updateSpecialty(id: string, data: any) {
+    const { createdAt, updatedAt, ...clean } = data;
+    const [spec] = await this.db
+      .update(specialties)
+      .set(clean)
+      .where(eq(specialties.id, id))
+      .returning();
+    if (!spec) throw new NotFoundException("Specialty not found");
+    return spec;
+  }
+
+  async deleteSpecialty(id: string) {
+    await this.db.delete(specialties).where(eq(specialties.id, id));
+    return { deleted: true };
+  }
+
+  // ─── Topic CRUD ───
+
+  async createTopic(specialtyId: string, data: any) {
+    const { id, createdAt, ...clean } = data;
+    const [topic] = await this.db
+      .insert(topics)
+      .values({ ...clean, specialtyId, name: clean.name || { en: clean.nameEn || "" }, slug: clean.slug || (clean.nameEn || "").toLowerCase().replace(/\s+/g, "-") })
+      .returning();
+    return topic;
+  }
+
+  async updateTopic(id: string, data: any) {
+    const { createdAt, updatedAt, ...clean } = data;
+    const [topic] = await this.db
+      .update(topics)
+      .set(clean)
+      .where(eq(topics.id, id))
+      .returning();
+    if (!topic) throw new NotFoundException("Topic not found");
+    return topic;
+  }
+
+  async deleteTopic(id: string) {
+    await this.db.delete(topics).where(eq(topics.id, id));
+    return { deleted: true };
+  }
+
+  // ─── Subtopic CRUD ───
+
+  async createSubtopic(topicId: string, data: any) {
+    const { id, createdAt, ...clean } = data;
+    const [sub] = await this.db
+      .insert(subtopics)
+      .values({ ...clean, topicId, name: clean.name || { en: clean.nameEn || "" }, slug: clean.slug || (clean.nameEn || "").toLowerCase().replace(/\s+/g, "-") })
+      .returning();
+    return sub;
+  }
+
+  async updateSubtopic(id: string, data: any) {
+    const { createdAt, updatedAt, ...clean } = data;
+    const [sub] = await this.db
+      .update(subtopics)
+      .set(clean)
+      .where(eq(subtopics.id, id))
+      .returning();
+    if (!sub) throw new NotFoundException("Subtopic not found");
+    return sub;
+  }
+
+  async deleteSubtopic(id: string) {
+    await this.db.delete(subtopics).where(eq(subtopics.id, id));
+    return { deleted: true };
+  }
 }

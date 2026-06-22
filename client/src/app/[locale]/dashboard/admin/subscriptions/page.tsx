@@ -23,7 +23,7 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
-import { subscriptionsApi, examsApi } from "@/lib/api";
+import { subscriptionsApi, examsApi, coursesApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 
@@ -37,6 +37,7 @@ export default function AdminSubscriptionsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [exams, setExams] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -47,10 +48,12 @@ export default function AdminSubscriptionsPage() {
     examId: "",
     isCourseOnly: false,
     maxDays: 0,
+    courseId: "",
   });
 
   useEffect(() => {
     examsApi.list().then(({ data }) => setExams(Array.isArray(data) ? data : [])).catch(() => {});
+    coursesApi.list().then(({ data }) => setCourses(Array.isArray(data) ? data : [])).catch(() => {});
   }, []);
 
   const fetchPlans = useCallback(async () => {
@@ -68,7 +71,7 @@ export default function AdminSubscriptionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "0", interval: "monthly", currency: "USD", isVisible: true, examId: "", isCourseOnly: false, maxDays: 0 });
+    setForm({ name: "", description: "", price: "0", interval: "monthly", currency: "USD", isVisible: true, examId: "", isCourseOnly: false, maxDays: 0, courseId: "" });
     setDialogOpen(true);
   };
 
@@ -84,6 +87,7 @@ export default function AdminSubscriptionsPage() {
       examId: p.examId || "",
       isCourseOnly: p.isCourseOnly ?? false,
       maxDays: p.maxDays || 0,
+      courseId: p.courseId || "",
     });
     setDialogOpen(true);
   };
@@ -102,6 +106,7 @@ export default function AdminSubscriptionsPage() {
         examId: form.examId || null,
         isCourseOnly: form.isCourseOnly,
         maxDays: form.maxDays || null,
+        courseId: form.courseId || null,
       };
       if (editing) {
         await subscriptionsApi.updatePlan(editing.id, payload);
@@ -295,6 +300,25 @@ export default function AdminSubscriptionsPage() {
                 <p className="text-xs text-muted-foreground">{t("is_course_only_desc")}</p>
               </div>
             </div>
+
+            {form.isCourseOnly && (
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("course")}</label>
+                <Select value={form.courseId || "__none__"} onValueChange={(v) => setForm({ ...form, courseId: v === "__none__" ? "" : v })}>
+                  <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4 transition-all duration-300 focus:border-primary/50 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)]">
+                    <SelectValue placeholder="Select a course" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="__none__">{t("none")}</SelectItem>
+                    {courses.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.title?.en || c.title || c.slug}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("max_days")}</label>

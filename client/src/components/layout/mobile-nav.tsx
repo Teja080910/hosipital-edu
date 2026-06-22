@@ -12,7 +12,7 @@ export function MobileNav() {
 
   const items = [
     { href: "/dashboard", icon: LayoutDashboard, label: t("dashboard") },
-    { href: "/dashboard/questions", icon: FileQuestion, label: t("questions") },
+    // { href: "/dashboard/questions", icon: FileQuestion, label: t("questions") },
     { href: "/dashboard/flashcards", icon: Library, label: t("flashcards") },
     { href: "/dashboard/exams", icon: GraduationCap, label: t("exams") },
     { href: "/dashboard/progress", icon: BarChart3, label: t("progress") },

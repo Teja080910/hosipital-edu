@@ -51,6 +51,7 @@ export default function AdminQuestionsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [exams, setExams] = useState<any[]>([]);
+  const [specialties, setSpecialties] = useState<any[]>([]);
   const [form, setForm] = useState({
     text: "",
     explanation: "",
@@ -76,6 +77,14 @@ export default function AdminQuestionsPage() {
 
   useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
   useEffect(() => { examsApi.list().then(({ data }) => setExams(data)).catch(() => {}); }, []);
+
+  useEffect(() => {
+    if (form.examId && form.examId !== "__none__") {
+      examsApi.get(form.examId).then(({ data }) => setSpecialties(data.specialties || [])).catch(() => setSpecialties([]));
+    } else {
+      setSpecialties([]);
+    }
+  }, [form.examId]);
 
   const openCreate = () => {
     setEditing(null);
@@ -354,7 +363,7 @@ export default function AdminQuestionsPage() {
 
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
-                <Select value={form.examId || "__none__"} onValueChange={(v) => setForm({ ...form, examId: v })}>
+                <Select value={form.examId || "__none__"} onValueChange={(v) => setForm({ ...form, examId: v, specialtyId: "" })}>
                   <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4 transition-all duration-300 focus:border-primary/50 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)]">
                     <SelectValue placeholder={t("none")} />
                   </SelectTrigger>
@@ -365,6 +374,21 @@ export default function AdminQuestionsPage() {
                 </Select>
               </div>
             </div>
+
+            {specialties.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("specialty")}</label>
+                <Select value={form.specialtyId || "__none__"} onValueChange={(v) => setForm({ ...form, specialtyId: v === "__none__" ? "" : v })}>
+                  <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4 transition-all duration-300 focus:border-primary/50 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)]">
+                    <SelectValue placeholder={t("none")} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="__none__">{t("none")}</SelectItem>
+                    {specialties.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name?.en || s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Images */}
             <div className="space-y-3">

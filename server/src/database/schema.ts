@@ -531,6 +531,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxUses: integer("max_uses"),
   isDefault: boolean("is_default").default(false),
   isCourseOnly: boolean("is_course_only").default(false),
+  courseId: uuid("course_id").references(() => courses.id, { onDelete: "set null" }),
   isVisible: boolean("is_visible").default(true).notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
