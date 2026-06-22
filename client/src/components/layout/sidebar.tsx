@@ -53,6 +53,8 @@ const adminItems = [
   { href: "/dashboard/admin", icon: BarChart, label: "dashboard_title" },
   { href: "/dashboard/admin/courses", icon: BookOpenCheck, label: "course_mgmt_title" },
   { href: "/dashboard/admin/questions", icon: FileQuestion, label: "question_mgmt_title" },
+  { href: "/dashboard/admin/flashcards", icon: Library, label: "flashcards_title" },
+  { href: "/dashboard/admin/specialties", icon: BookOpen, label: "specialties_title" },
   { href: "/dashboard/admin/articles", icon: FileText, label: "articles_title" },
   { href: "/dashboard/admin/videos", icon: Video, label: "videos_title" },
   { href: "/dashboard/admin/users", icon: Users, label: "user_mgmt_title" },

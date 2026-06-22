@@ -474,8 +474,8 @@ const sb = useTranslations("subscribe");
       </section>
 
       {/* Testimonials */}
-      <section className="relative py-24 lg:py-32 overflow-hidden">
-        <Image src="/hero-3.jpg" alt="" fill className="object-cover" />
+      <section className="relative py-24 lg:py-32 overflow-hidden min-h-[50vh]">
+        <Image src="/hero-3.jpg" alt="" fill className="object-cover object-center" sizes="100vw" />
         <div className="absolute inset-0 bg-background/65 backdrop-blur-[2px]" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div {...fadeUp} className="text-center mb-16">

@@ -23,9 +23,11 @@ export class CoursesController {
   constructor(private coursesService: CoursesService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "List courses" })
-  async findAll(@Query("all") all?: string) {
-    return this.coursesService.findAll(all !== "true");
+  async findAll(@Query("all") all?: string, @CurrentUser() user?: any) {
+    return this.coursesService.findAll(all !== "true", user?.id);
   }
 
   @Post()
