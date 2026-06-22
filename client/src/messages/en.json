@@ -194,6 +194,8 @@
   },
   "flashcards": {
     "title": "Flashcards",
+    "total": "Total",
+    "total_due": "Total Due",
     "review_now": "Review Now",
     "cards_due": "Cards Due",
     "mastered": "Mastered",

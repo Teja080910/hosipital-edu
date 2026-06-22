@@ -194,6 +194,8 @@
   },
   "flashcards": {
     "title": "Tarjetas de Estudio",
+    "total": "Total",
+    "total_due": "Total Pendientes",
     "review_now": "Repasar Ahora",
     "cards_due": "Tarjetas Pendientes",
     "mastered": "Dominadas",

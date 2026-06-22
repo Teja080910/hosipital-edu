@@ -23,6 +23,14 @@ function toDate(val: any): Date | null {
   return null;
 }
 
+function getFlashcardBack(f: any): string {
+  if (f.answers && f.answers.length) {
+    const correct = f.answers.find((a: any) => a.isCorrect);
+    return (correct?.title || f.answers[0].title) ?? "";
+  }
+  return f.explanation || "";
+}
+
 // Progress tracking
 let totalUsers = 0;
 let totalPlans = 0;
@@ -388,7 +396,7 @@ async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Rec
           .insert(schema.flashcards)
           .values({
             front,
-            back: f.explanation || "",
+            back: getFlashcardBack(f),
             reference: f.reference || null,
             isActive: f.isEnabled !== false,
             createdBy: adminId,
@@ -397,6 +405,10 @@ async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Rec
           });
         totalFlashcards++;
       } else {
+        await db
+          .update(schema.flashcards)
+          .set({ back: getFlashcardBack(f), updatedAt: new Date() })
+          .where(eq(schema.flashcards.id, existing[0].id));
         totalFlashcards++;
       }
 

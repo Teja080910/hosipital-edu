@@ -1,7 +1,7 @@
 import api from "../client";
 
 export const flashcardsApi = {
-  list: (params?: Record<string, string>) => api.get("/flashcards", { params }),
+  list: (params?: Record<string, string | number>) => api.get("/flashcards", { params }),
   specialties: () => api.get("/flashcards/specialties"),
   due: (limit?: number) => api.get("/flashcards/due", { params: { limit } }),
   create: (data: Record<string, unknown>) => api.post("/flashcards", data),

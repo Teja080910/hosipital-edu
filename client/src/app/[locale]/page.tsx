@@ -694,7 +694,7 @@ const sb = useTranslations("subscribe");
             </div>
           </div>
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            {t("copyright")}
+            {t("all_rights_reserved")}
           </div>
         </div>
       </footer>

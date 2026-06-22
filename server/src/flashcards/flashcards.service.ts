@@ -29,7 +29,7 @@ export class FlashcardsService {
   }, user?: any) {
     const { examId, specialtyId, topicId, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
-    const conditions = [eq(flashcards.isActive, true)];
+    const conditions = [eq(flashcards.isActive, true), sql`${flashcards.back} IS NOT NULL AND ${flashcards.back} != ''`];
 
     let subExamId: string | null = null;
     if (user) {
