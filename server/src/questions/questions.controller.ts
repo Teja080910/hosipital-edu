@@ -24,7 +24,7 @@ export class QuestionsController {
 
   @Get()
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full")
+  @AllowedAccountTypes("full", "course_only")
   @ApiBearerAuth()
   @ApiOperation({ summary: "List questions with filters" })
   @ApiQuery({ name: "examId", required: false })

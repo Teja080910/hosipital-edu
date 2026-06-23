@@ -6,14 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { FlashcardCard } from "@/components/flashcards/flashcard-card";
 import { FlashcardReview } from "@/components/flashcards/flashcard-review";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Library } from "lucide-react";
+import { Library, RefreshCw } from "lucide-react";
 import { flashcardsApi } from "@/lib/api/flashcards";
+import { Button } from "@/components/ui/button";
 
-const PAGE_SIZE = 10;
+const SESSION_KEY = "flashcard_session";
+const PAGE_SIZE = 20;
 
 interface FlashcardData {
   id: string;
@@ -31,11 +34,38 @@ interface SpecialtyOption {
   name: { en: string; es?: string };
 }
 
+interface SessionState {
+  cards: FlashcardData[];
+  currentIndex: number;
+  selectedSpecialty: string;
+  totalDue: number;
+}
+
+function saveSession(state: SessionState) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+  } catch {}
+}
+
+function loadSession(): SessionState | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearSession() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {}
+}
+
 export default function FlashcardsPage() {
   const t = useTranslations("flashcards");
   const c = useTranslations("common");
   const [cards, setCards] = useState<FlashcardData[]>([]);
-  const [total, setTotal] = useState(0);
   const [totalDue, setTotalDue] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -44,69 +74,90 @@ export default function FlashcardsPage() {
   const [error, setError] = useState<string | null>(null);
   const [specialties, setSpecialties] = useState<SpecialtyOption[]>([]);
   const [selectedSpecialty, setSelectedSpecialty] = useState("all");
+  const [allLoaded, setAllLoaded] = useState(false);
   const pageRef = useRef(1);
-  const allLoadedRef = useRef(false);
+  const loadingRef = useRef(false);
 
-  const fetchCards = useCallback(async (page: number, specialty?: string) => {
-    const params: Record<string, string | number> = { page, limit: PAGE_SIZE };
+  const fetchDueCards = useCallback(async (page: number, specialty?: string) => {
+    const params: Record<string, string | number> = { limit: PAGE_SIZE, page };
     if (specialty && specialty !== "all") params.specialtyId = specialty;
     const { data } = await flashcardsApi.list(params);
     return data;
   }, []);
 
-  const loadInitial = useCallback(async (specialty?: string) => {
+  const loadCards = useCallback(async (specialty?: string, restoreIndex?: number) => {
     setLoading(true);
     setError(null);
     pageRef.current = 1;
-    allLoadedRef.current = false;
+    setAllLoaded(false);
     try {
       const [cardsRes, specsRes, dueRes] = await Promise.all([
-        fetchCards(1, specialty),
+        fetchDueCards(1, specialty),
         flashcardsApi.specialties(),
         flashcardsApi.due(10000),
       ]);
       const items = cardsRes.data ?? [];
       setCards(items);
-      setTotal(cardsRes.total ?? items.length ?? 0);
       setTotalDue((dueRes.data ?? dueRes).length ?? 0);
       setSpecialties(specsRes.data ?? []);
-      allLoadedRef.current = items.length >= (cardsRes.total ?? 0);
+      setAllLoaded(items.length >= (cardsRes.total ?? 0));
+      if (restoreIndex !== undefined && restoreIndex < items.length) {
+        setCurrentIndex(restoreIndex);
+      } else {
+        setCurrentIndex(0);
+      }
+      setIsFlipped(false);
     } catch {
       setError("Failed to load flashcards");
     } finally {
       setLoading(false);
     }
-  }, [fetchCards]);
+  }, [fetchDueCards]);
 
   useEffect(() => {
-    loadInitial();
-  }, [loadInitial]);
+    const saved = loadSession();
+    if (saved && saved.cards.length > 0) {
+      setCards(saved.cards);
+      setCurrentIndex(saved.currentIndex);
+      setSelectedSpecialty(saved.selectedSpecialty);
+      setTotalDue(saved.totalDue);
+      setLoading(false);
+    } else {
+      loadCards();
+    }
+  }, [loadCards]);
+
+  useEffect(() => {
+    if (cards.length > 0) {
+      saveSession({ cards, currentIndex, selectedSpecialty, totalDue });
+    }
+  }, [cards, currentIndex, selectedSpecialty, totalDue]);
 
   const handleSpecialtyChange = useCallback(async (value: string) => {
     setSelectedSpecialty(value);
-    setCurrentIndex(0);
-    setIsFlipped(false);
-    await loadInitial(value);
-  }, [loadInitial]);
+    clearSession();
+    await loadCards(value);
+  }, [loadCards]);
 
   const loadNextPage = useCallback(async () => {
-    if (loadingMore || allLoadedRef.current) return;
+    if (loadingMore || allLoaded || loadingRef.current) return;
+    loadingRef.current = true;
     setLoadingMore(true);
     try {
       const nextPage = pageRef.current + 1;
-      const data = await fetchCards(nextPage, selectedSpecialty);
+      const data = await fetchDueCards(nextPage, selectedSpecialty);
       const items = data.data ?? [];
       if (items.length > 0) {
         pageRef.current = nextPage;
         setCards((prev) => [...prev, ...items]);
       }
-      allLoadedRef.current = cards.length + items.length >= (data.total ?? 0);
+      setAllLoaded(cards.length + items.length >= (data.total ?? 0));
     } catch {
-      // silently fail
     } finally {
       setLoadingMore(false);
+      loadingRef.current = false;
     }
-  }, [loadingMore, selectedSpecialty, fetchCards, cards.length]);
+  }, [loadingMore, allLoaded, selectedSpecialty, fetchDueCards, cards.length]);
 
   const currentCard = cards[currentIndex];
 
@@ -119,17 +170,30 @@ export default function FlashcardsPage() {
       const dueRes = await flashcardsApi.due(10000);
       setTotalDue((dueRes.data ?? dueRes).length ?? 0);
     } catch {
-      // silently fail review submission
+    }
+    if (rating === "again") {
+      setIsFlipped(false);
+      return;
     }
     if (currentIndex < cards.length - 1) {
       setCurrentIndex((i) => i + 1);
       setIsFlipped(false);
-    } else if (!allLoadedRef.current) {
+    } else if (!allLoaded) {
       await loadNextPage();
       setCurrentIndex((i) => i + 1);
       setIsFlipped(false);
+    } else {
+      setCards([]);
+      setCurrentIndex(0);
+      setIsFlipped(false);
+      clearSession();
     }
-  }, [currentCard, currentIndex, cards.length, loadNextPage]);
+  }, [currentCard, currentIndex, cards.length, allLoaded, loadNextPage]);
+
+  const handleRefresh = useCallback(async () => {
+    clearSession();
+    await loadCards(selectedSpecialty);
+  }, [loadCards, selectedSpecialty]);
 
   if (loading && cards.length === 0) {
     return (
@@ -156,11 +220,16 @@ export default function FlashcardsPage() {
   }
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
+              <RefreshCw className="h-3.5 w-3.5" />
+              {t("reshuffle")}
+            </Button>
             <Select value={selectedSpecialty} onValueChange={handleSpecialtyChange}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder={t("all_specialties")} />
@@ -178,14 +247,6 @@ export default function FlashcardsPage() {
         <div className="grid gap-4 sm:grid-cols-5">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{t("total")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">{t("total_due")}</CardTitle>
             </CardHeader>
             <CardContent>
@@ -194,7 +255,7 @@ export default function FlashcardsPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{t("review_now")}</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("in_session")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{cards.length}</div>
@@ -202,10 +263,18 @@ export default function FlashcardsPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{t("cards_due")}</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("current_card")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{Math.min(cards.length, totalDue)}</div>
+              <div className="text-2xl font-bold">{cards.length > 0 ? currentIndex + 1 : 0}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">{t("remaining")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{Math.max(0, cards.length - currentIndex - 1)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -213,12 +282,15 @@ export default function FlashcardsPage() {
               <CardTitle className="text-sm font-medium">{t("mastered")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{Math.max(0, totalDue - cards.length)}</div>
             </CardContent>
           </Card>
         </div>
 
-        <Progress value={total > 0 ? (currentIndex / total) * 100 : 0} className="h-2" />
+        <Progress
+          value={totalDue > 0 ? ((totalDue - cards.length + currentIndex) / totalDue) * 100 : 0}
+          className="h-2"
+        />
 
         {currentCard ? (
           <div className="max-w-2xl mx-auto space-y-6">
@@ -240,5 +312,6 @@ export default function FlashcardsPage() {
         )}
       </div>
     </PageTransition>
+    </AccountTypeGate>
   );
 }

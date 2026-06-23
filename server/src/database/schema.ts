@@ -145,6 +145,21 @@ export const questions = pgTable("questions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const questionExams = pgTable(
+  "question_exams",
+  {
+    questionId: uuid("question_id")
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    examId: uuid("exam_id")
+      .notNull()
+      .references(() => exams.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.questionId, table.examId] }),
+  }),
+);
+
 export const questionOptions = pgTable("question_options", {
   id: uuid("id").defaultRandom().primaryKey(),
   questionId: uuid("question_id")

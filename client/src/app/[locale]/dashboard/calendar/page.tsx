@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { calendarApi } from "@/lib/api/calendar";
 import { toast } from "sonner";
 import {
@@ -52,6 +53,10 @@ const typeColors: Record<string, string> = {
 
 function toDateStr(d: Date) {
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`;
+}
+
+function isoToDateStr(iso: string) {
+  return iso.slice(0, 10);
 }
 
 export default function CalendarPage() {
@@ -99,7 +104,7 @@ export default function CalendarPage() {
   const eventsByDate = useMemo(() => {
     const map: Record<string, any[]> = {};
     events.forEach((e: any) => {
-      const key = toDateStr(new Date(e.eventDate));
+      const key = isoToDateStr(e.eventDate);
       if (!map[key]) map[key] = [];
       map[key].push(e);
     });
@@ -111,11 +116,13 @@ export default function CalendarPage() {
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
   const handlePrevMonth = () => {
+    setSelectedWeek(null);
     if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
     else setCurrentMonth(currentMonth - 1);
   };
 
   const handleNextMonth = () => {
+    setSelectedWeek(null);
     if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1); }
     else setCurrentMonth(currentMonth + 1);
   };
@@ -132,7 +139,7 @@ export default function CalendarPage() {
       title: typeof event.title === "object" ? (event.title?.en || "") : event.title || "",
       description: typeof event.description === "object" ? (event.description?.en || "") : event.description || "",
       eventType: event.eventType || "study_schedule",
-      eventDate: toDateStr(new Date(event.eventDate)),
+      eventDate: isoToDateStr(event.eventDate),
       eventTime: event.eventTime || "",
       isAllDay: event.isAllDay || false,
     });
@@ -147,7 +154,7 @@ export default function CalendarPage() {
         title: { en: form.title, es: form.title },
         description: { en: form.description, es: form.description },
         eventType: form.eventType,
-        eventDate: new Date(form.eventDate).toISOString(),
+        eventDate: new Date(form.eventDate + "T12:00:00").toISOString(),
         eventTime: form.eventTime || null,
         isAllDay: form.isAllDay,
       };
@@ -182,6 +189,7 @@ export default function CalendarPage() {
   const monthLabel = t(`month_${currentMonth}`);
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -318,7 +326,7 @@ export default function CalendarPage() {
             <div className="space-y-4">
               {Array.from({ length: Math.ceil((firstDay + daysInMonth) / 7) }, (_, w) => {
                 const weekStart = new Date(currentYear, currentMonth, 1 + w * 7 - firstDay);
-                const weekEnd = new Date(currentYear, currentMonth, Math.min(7 + w * 7 - firstDay - 1, daysInMonth));
+                const weekEnd = new Date(currentYear, currentMonth, Math.min(7 + w * 7 - firstDay, daysInMonth));
                 if (weekStart.getMonth() !== currentMonth) return null;
                 const weekEvents = events.filter((e: any) => {
                   const d = new Date(e.eventDate);
@@ -418,5 +426,6 @@ export default function CalendarPage() {
         </Dialog>
       </div>
     </PageTransition>
+    </AccountTypeGate>
   );
 }

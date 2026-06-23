@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { attemptsApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, XCircle, Clock } from "lucide-react";
@@ -36,27 +37,32 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
 
   if (answers.length === 0) {
     return (
+      <AccountTypeGate>
       <PageTransition>
         <div className="max-w-3xl mx-auto space-y-4">
           <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
           <Card><CardContent className="text-center py-8 text-muted-foreground">{t("no_questions")}</CardContent></Card>
         </div>
       </PageTransition>
+      </AccountTypeGate>
     );
   }
 
   if (!question) {
     return (
+      <AccountTypeGate>
       <PageTransition>
         <div className="max-w-3xl mx-auto space-y-4">
           <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
           <Card><CardContent className="text-center py-8 text-muted-foreground">{t("no_questions")}</CardContent></Card>
         </div>
       </PageTransition>
+      </AccountTypeGate>
     );
   }
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="max-w-3xl mx-auto space-y-4 pb-12">
         <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
@@ -117,5 +123,6 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
           </>
         </div>
       </PageTransition>
+      </AccountTypeGate>
     );
   }

@@ -171,19 +171,6 @@ export class CoursesService {
 
     if (existing) throw new BadRequestException(this.i18n.t("courses.alreadyEnrolled"));
 
-    if (parseFloat(course.price) === 0 || stripePaymentId) {
-      const [enrollment] = await this.db
-        .insert(userCourseEnrollments)
-        .values({
-          userId,
-          courseId,
-          stripePaymentId,
-          accessExpiresAt: new Date(Date.now() + course.durationDays * 86400000),
-        })
-        .returning();
-      return enrollment;
-    }
-
     const [sub] = await this.db
       .select()
       .from(userSubscriptions)
@@ -199,12 +186,20 @@ export class CoursesService {
       )
       .limit(1);
 
-    if (sub && !sub.subscription_plans.isCourseOnly) {
+    const isCourseOnly = sub?.subscription_plans?.isCourseOnly;
+    const subCourseId = sub?.subscription_plans?.courseId;
+
+    if (isCourseOnly && subCourseId !== courseId) {
+      throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
+    }
+
+    if (parseFloat(course.price) === 0 || stripePaymentId || (sub && !isCourseOnly) || (isCourseOnly && subCourseId === courseId)) {
       const [enrollment] = await this.db
         .insert(userCourseEnrollments)
         .values({
           userId,
           courseId,
+          stripePaymentId,
           accessExpiresAt: new Date(Date.now() + course.durationDays * 86400000),
         })
         .returning();

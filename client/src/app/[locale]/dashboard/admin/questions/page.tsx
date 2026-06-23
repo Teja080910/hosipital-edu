@@ -59,6 +59,7 @@ export default function AdminQuestionsPage() {
     difficulty: "medium",
     specialtyId: "",
     examId: "",
+    examIds: [] as string[],
     options: EMPTY_OPTIONS,
     images: [] as { url: string; section: string; caption?: string; sortOrder: number }[],
   });
@@ -88,7 +89,7 @@ export default function AdminQuestionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ text: "", explanation: "", reference: "", difficulty: "medium", specialtyId: "", examId: "", options: EMPTY_OPTIONS, images: [] });
+    setForm({ text: "", explanation: "", reference: "", difficulty: "medium", specialtyId: "", examId: "", examIds: [], options: EMPTY_OPTIONS, images: [] });
     setDialogOpen(true);
   };
 
@@ -107,6 +108,7 @@ export default function AdminQuestionsPage() {
         difficulty: data.difficulty || "medium",
         specialtyId: data.specialtyId || "",
         examId: data.examId || "",
+        examIds: data.examIds || [],
         options: opts,
         images: (data.images || []).map((i: any) => ({ url: i.url, section: i.section || "title", caption: i.caption, sortOrder: i.sortOrder || 0 })),
       });
@@ -145,7 +147,7 @@ export default function AdminQuestionsPage() {
         difficulty: form.difficulty,
         specialtyId: null,
         topicId: null,
-        examId: !form.examId || form.examId === "__none__" || form.examId === "none" ? null : form.examId,
+        examIds: form.examIds,
       };
       if (opts.length > 0) payload.options = opts;
       if (form.images.length > 0) payload.images = form.images;
@@ -363,15 +365,34 @@ export default function AdminQuestionsPage() {
 
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
-                <Select value={form.examId || "__none__"} onValueChange={(v) => setForm({ ...form, examId: v, specialtyId: "" })}>
-                  <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4 transition-all duration-300 focus:border-primary/50 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)]">
-                    <SelectValue placeholder={t("none")} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="__none__">{t("none")}</SelectItem>
-                    {exams.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name?.en || e.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-xl border border-border/80 min-h-[44px]">
+                  {form.examIds.length === 0 && (
+                    <span className="text-sm text-muted-foreground/50 px-2 py-1">{t("none")}</span>
+                  )}
+                  {form.examIds.map((eId) => {
+                    const exam = exams.find((e: any) => e.id === eId);
+                    return (
+                      <span key={eId} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium">
+                        {exam?.name?.en || exam?.name || eId}
+                        <button type="button" onClick={() => setForm({ ...form, examIds: form.examIds.filter((id) => id !== eId) })} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {exams.filter((e: any) => !form.examIds.includes(e.id)).map((e: any) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, examIds: [...form.examIds, e.id] })}
+                      className="px-2.5 py-1 rounded-lg border border-border/60 text-xs text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+                    >
+                      + {e.name?.en || e.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
