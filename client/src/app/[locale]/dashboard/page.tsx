@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const tp = useTranslations("progress");
   const te = useTranslations("exams");
   const { user } = useAuth();
+  const isFull = user?.accountType === "full" || user?.role === "admin" || user?.role === "super_admin";
   const [stats, setStats] = useState<any>(null);
   const [exams, setExams] = useState<any[]>([]);
   const [recentAttempts, setRecentAttempts] = useState<any[]>([]);
@@ -32,12 +33,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      analyticsApi.userStats().then(({ data }) => setStats(data)).catch(() => {}),
-      examsApi.list().then((res) => setExams((res.data || []).slice(0, 4))).catch(() => {}),
-      attemptsApi.list().then((res) => setRecentAttempts((res.data || []).slice(0, PAGE_SIZE))).catch(() => {}),
-    ]).finally(() => setLoading(false));
-  }, [user]);
+    const promises: Promise<any>[] = [];
+    if (isFull) {
+      promises.push(analyticsApi.userStats().then(({ data }) => setStats(data)).catch(() => {}));
+      promises.push(examsApi.list().then((res) => setExams((res.data || []).slice(0, 4))).catch(() => {}));
+      promises.push(attemptsApi.list().then((res) => setRecentAttempts((res.data || []).slice(0, PAGE_SIZE))).catch(() => {}));
+    }
+    Promise.all(promises).finally(() => setLoading(false));
+  }, [user, isFull]);
 
   const statCards = stats
     ? [

@@ -152,7 +152,8 @@
     "password_reset_success": "Contraseña restablecida exitosamente",
     "password_requirements": "Al menos 8 caracteres",
     "target_exam": "Examen Objetivo",
-    "select_exam": "Selecciona tu examen objetivo"
+    "select_exam": "Selecciona tu examen objetivo",
+    "courses_only": "Solo Cursos (Sin Examen)"
   },
   "questions": {
     "title": "Banco de Preguntas",
@@ -208,7 +209,11 @@
     "easy": "Fácil",
     "all_specialties": "Todas las Especialidades",
     "all_caught_up": "¡Todo al día!",
-    "no_cards": "No hay tarjetas para repasar ahora"
+    "no_cards": "No hay tarjetas para repasar ahora",
+    "reshuffle": "Reordenar",
+    "in_session": "En Sesión",
+    "current_card": "Actual",
+    "remaining": "Restantes"
   },
   "common": {
     "loading": "Cargando...",
@@ -1008,5 +1013,10 @@
     "not_found_desc": "El contenido que buscas no existe o ha sido eliminado.",
     "go_home": "Ir al Inicio",
     "back": "Atrás"
+  },
+  "certificates": {
+    "back": "Volver al Panel",
+    "print": "Imprimir Certificado",
+    "not_found": "Certificado no encontrado"
   }
 }

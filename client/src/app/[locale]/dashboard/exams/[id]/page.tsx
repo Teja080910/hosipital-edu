@@ -1,7 +1,9 @@
 "use client";
 
 import { ExamResults } from "@/components/exams/exam-results";
+import { FloatingCalculator } from "@/components/exams/floating-calculator";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { QuestionTimer } from "@/components/questions/question-timer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,6 +70,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false);
   const [totalTimeSpent, setTotalTimeSpent] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [questionEntryTime, setQuestionEntryTime] = useState<number>(Date.now());
@@ -232,13 +235,9 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     }));
     if (mode === "exam") {
       try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { /* silent */ }
+      setShowAnswer(true);
     } else {
       setShowAnswer(true);
-      setTimeout(() => {
-        if (currentIndex < displayQuestions.length - 1) {
-          navigateTo(currentIndex + 1);
-        }
-      }, 1500);
     }
   };
 
@@ -253,7 +252,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const existing = q ? answers[q.id]?.optionId : null;
     setCurrentIndex(targetIndex);
     setSelectedOption(existing);
-    setShowAnswer(false);
+    if (!reviewMode) setShowAnswer(false);
     setQuestionEntryTime(Date.now());
   };
   const handleNext = () => navigateTo(currentIndex + 1);
@@ -306,10 +305,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
   if (pageState === "results" && results) {
     return (
+      <AccountTypeGate>
       <PageTransition>
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
-            onReview={() => { setPageState("taking"); setShowAnswer(true); }}
+            onReview={() => { setReviewMode(true); setPageState("taking"); setShowAnswer(true); }}
             onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.setState({ isActive: false }); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); }}
             onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
@@ -327,6 +327,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           )}
         </div>
       </PageTransition>
+      </AccountTypeGate>
     );
   }
 
@@ -338,6 +339,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const totalQ = examQuestions.length;
 
     return (
+      <AccountTypeGate>
       <PageTransition>
         <div className="mx-auto max-w-6xl space-y-5 px-4 p-20">
           {mode === "exam" && (
@@ -446,7 +448,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                 {!showAnswer && selectedOption && !answers[currentQuestion.id]?.optionId && (
                   <Button onClick={handleSubmitAnswer} className="w-full" size="lg">{t("submit")}</Button>
                 )}
-                {mode === "study" && showAnswer && <Button variant="outline" onClick={handleNext} className="w-full">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>}
+                {showAnswer && <Button variant="outline" onClick={handleNext} className="w-full">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>}
               </CardContent>
             </Card>
 
@@ -497,7 +499,9 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             </DialogContent>
           </Dialog>
         )}
+        <FloatingCalculator />
       </PageTransition>
+      </AccountTypeGate>
     );
   }
 
@@ -505,6 +509,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const timeOptions = [5, 10, 15, 20, 30, 60];
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="max-w-xl mx-auto space-y-6">
         <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
@@ -664,5 +669,6 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         </Card>
       </div>
     </PageTransition>
+    </AccountTypeGate>
   );
 }

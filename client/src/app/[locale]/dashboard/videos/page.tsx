@@ -1,6 +1,7 @@
 "use client";
 
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { StreamVideoPlayer } from "@/components/stream/stream-video-player";
 import { Badge } from "@/components/ui/badge";
 import { videosApi } from "@/lib/api";
@@ -56,6 +57,7 @@ export default function VideosPage() {
   }
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="space-y-6">
         <div>
@@ -124,5 +126,6 @@ export default function VideosPage() {
         </div>
       </div>
     </PageTransition>
+    </AccountTypeGate>
   );
 }

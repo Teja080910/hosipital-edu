@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { ExamHistory } from "@/components/exams/exam-history";
 import { examsApi } from "@/lib/api";
 import { GraduationCap, Loader2 } from "lucide-react";
@@ -32,6 +33,7 @@ export default function ExamsPage() {
   }, []);
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -72,5 +74,6 @@ export default function ExamsPage() {
         </div>
       </div>
     </PageTransition>
+    </AccountTypeGate>
   );
 }

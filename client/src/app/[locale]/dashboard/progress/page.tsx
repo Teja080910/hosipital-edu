@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { TrendingUp, Target, Clock, BookOpen, Zap } from "lucide-react";
 import { analyticsApi } from "@/lib/api/analytics";
 
@@ -39,6 +40,7 @@ export default function ProgressPage() {
   ] : [];
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="space-y-6">
         <div>
@@ -117,5 +119,6 @@ export default function ProgressPage() {
         )}
       </div>
     </PageTransition>
+    </AccountTypeGate>
   );
 }
