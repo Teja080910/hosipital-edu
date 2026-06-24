@@ -29,17 +29,23 @@ export class FlashcardsService {
   }, user?: any) {
     const { examId, specialtyId, topicId, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
-    const conditions = [eq(flashcards.isActive, true), sql`${flashcards.back} IS NOT NULL AND ${flashcards.back} != ''`];
+    const conditions = [eq(flashcards.isActive, true)];
 
-    let subExamId: string | null = null;
-    if (user) {
-      subExamId = await this.getSubscriptionExamId(user.id);
-    }
+    const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
 
-    if (subExamId) {
-      conditions.push(eq(flashcards.examId, subExamId));
-      if (examId && examId !== subExamId) {
-        return { items: [], total: 0 };
+    if (!isAdmin) {
+      let subExamId: string | null = null;
+      if (user) {
+        subExamId = await this.getSubscriptionExamId(user.id);
+      }
+
+      if (subExamId) {
+        conditions.push(eq(flashcards.examId, subExamId));
+        if (examId && examId !== subExamId) {
+          return { data: [], total: 0, page, limit };
+        }
+      } else if (examId) {
+        conditions.push(or(eq(flashcards.examId, examId), isNull(flashcards.examId)) as SQL<unknown>);
       }
     } else if (examId) {
       conditions.push(or(eq(flashcards.examId, examId), isNull(flashcards.examId)) as SQL<unknown>);

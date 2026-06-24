@@ -153,7 +153,7 @@
     "password_requirements": "Al menos 8 caracteres",
     "target_exam": "Examen Objetivo",
     "select_exam": "Selecciona tu examen objetivo",
-    "courses_only": "Solo Cursos (Sin Examen)"
+    "courses_only": "Cursos Clínicos"
   },
   "questions": {
     "title": "Banco de Preguntas",
@@ -728,6 +728,8 @@
     "mode": "modo",
     "exam": "Examen",
     "no_history": "No hay historial de exámenes aún.",
+    "start_combined": "Iniciar {count} Exámenes",
+    "clear": "Limpiar",
     "spent": "empleado",
     "your_answer": "Tu respuesta",
     "correct_answer": "Respuesta correcta",
@@ -1016,6 +1018,7 @@
   },
   "certificates": {
     "back": "Volver al Panel",
+    "download_pdf": "Descargar PDF",
     "print": "Imprimir Certificado",
     "not_found": "Certificado no encontrado"
   }

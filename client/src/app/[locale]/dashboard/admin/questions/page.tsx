@@ -80,12 +80,20 @@ export default function AdminQuestionsPage() {
   useEffect(() => { examsApi.list().then(({ data }) => setExams(data)).catch(() => {}); }, []);
 
   useEffect(() => {
-    const firstExamId = form.examIds[0];
-    if (firstExamId) {
-      examsApi.get(firstExamId).then(({ data }) => setSpecialties(data.specialties || [])).catch(() => setSpecialties([]));
-    } else {
+    if (form.examIds.length === 0) {
       setSpecialties([]);
+      return;
     }
+    Promise.all(
+      form.examIds.map((examId) =>
+        examsApi.get(examId).then(({ data }) => data.specialties || []).catch(() => [])
+      )
+    ).then((results) => {
+      const merged = results.flat().filter(
+        (s: any, i: number, arr: any[]) => arr.findIndex((x: any) => x.id === s.id) === i
+      );
+      setSpecialties(merged);
+    });
   }, [form.examIds]);
 
   const openCreate = () => {

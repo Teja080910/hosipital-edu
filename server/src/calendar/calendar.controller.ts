@@ -44,7 +44,7 @@ export class CalendarController {
   @AllowedAccountTypes("full")
   @ApiOperation({ summary: "Create event" })
   async create(@Body() data: any, @CurrentUser() user: any) {
-    return this.calendarService.create({ ...data, createdBy: user.id });
+    return this.calendarService.create({ ...data, userId: user.id, createdBy: user.id });
   }
 
   @Patch(":id")

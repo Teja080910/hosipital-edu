@@ -26,7 +26,7 @@ import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { flashcardsApi, examsApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Upload, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminFlashcardsPage() {
@@ -41,6 +41,9 @@ export default function AdminFlashcardsPage() {
   const [exams, setExams] = useState<any[]>([]);
   const [specialties, setSpecialties] = useState<any[]>([]);
   const [topics, setTopics] = useState<any[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importing, setImporting] = useState(false);
   const [form, setForm] = useState({
     front: "",
     back: "",
@@ -79,7 +82,7 @@ export default function AdminFlashcardsPage() {
   const fetchFlashcards = useCallback(async () => {
     try {
       const { data } = await flashcardsApi.list({ limit: "1000" });
-      setFlashcards(Array.isArray(data) ? data : data?.items || []);
+      setFlashcards(Array.isArray(data) ? data : data?.data || []);
     } catch {
       toast.error("Failed to load flashcards");
     } finally {
@@ -159,9 +162,61 @@ export default function AdminFlashcardsPage() {
     }
   };
 
+  const handleImport = async () => {
+    if (!importText.trim()) return;
+    setImporting(true);
+    try {
+      const lines = importText.trim().split("\n").filter(Boolean);
+      const cards = lines.map((line) => {
+        const parts = line.split("\t");
+        if (parts.length < 2) {
+          const m = line.match(/^(.+?)[\t,;]+(.+)$/);
+          return m ? { front: m[1].trim(), back: m[2].trim() } : null;
+        }
+        return { front: parts[0].trim(), back: parts[1].trim() };
+      }).filter(Boolean);
+
+      if (cards.length === 0) {
+        toast.error("No valid flashcards found. Use tab or comma-separated format: front\tback");
+        setImporting(false);
+        return;
+      }
+
+      const promises = cards.map((c: any) =>
+        flashcardsApi.create({
+          front: c.front,
+          back: c.back,
+          reference: "",
+          examId: null,
+          specialtyId: null,
+          topicId: null,
+        })
+      );
+      await Promise.all(promises);
+      toast.success(`${cards.length} flashcard(s) imported`);
+      setImportOpen(false);
+      setImportText("");
+      fetchFlashcards();
+    } catch {
+      toast.error("Failed to import flashcards");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const columns = [
     { key: "front", header: "Front", sortable: true, render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.front}</span> },
     { key: "back", header: "Back", render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.back}</span> },
+    {
+      key: "specialty",
+      header: "Specialty",
+      render: (row: any) => <span className="text-sm text-muted-foreground">{row.specialty?.en || row.specialty || "—"}</span>,
+    },
+    {
+      key: "topic",
+      header: "Topic",
+      render: (row: any) => <span className="text-sm text-muted-foreground">{row.topic?.en || row.topic || "—"}</span>,
+    },
     {
       key: "actions",
       header: "",
@@ -194,7 +249,10 @@ export default function AdminFlashcardsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Flashcard Management</h1>
             <p className="text-muted-foreground">Create and manage flashcards</p>
           </div>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Create Flashcard</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-2" /> Import</Button>
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Create Flashcard</Button>
+          </div>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -350,6 +408,41 @@ export default function AdminFlashcardsPage() {
         variant="destructive"
         onConfirm={handleDelete}
       />
+
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="sm:max-w-xl rounded-2xl border border-border/80 bg-background/95 backdrop-blur-xl shadow-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b border-border/60">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div className="text-left">
+                <DialogTitle className="text-xl font-bold tracking-tight">Import Flashcards</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Paste tab or comma-separated data (front, back) — one per line</p>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="p-6 space-y-4">
+            <Textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              rows={10}
+              className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm font-mono"
+              placeholder={`front\tback\nExample question\tExample answer`}
+            />
+            <p className="text-xs text-muted-foreground">
+              Format: one flashcard per line, front and back separated by tab or comma
+            </p>
+          </div>
+          <DialogFooter className="p-6 pt-4 border-t border-border/60 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => { setImportOpen(false); setImportText(""); }} className="rounded-xl px-6 h-10 text-sm font-medium">{c("cancel")}</Button>
+            <Button onClick={handleImport} disabled={importing || !importText.trim()} className="rounded-xl px-6 h-10 text-sm font-medium shadow-md">
+              {importing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Import
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }
