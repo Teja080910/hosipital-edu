@@ -153,7 +153,7 @@
     "password_requirements": "At least 8 characters",
     "target_exam": "Target Exam",
     "select_exam": "Select your target exam",
-    "courses_only": "Courses Only (No Exam)"
+    "courses_only": "Clinical Courses"
   },
   "questions": {
     "title": "Question Bank",
@@ -729,6 +729,8 @@
     "mode": "mode",
     "exam": "Exam",
     "no_history": "No exam history yet.",
+    "start_combined": "Start {count} Exams",
+    "clear": "Clear",
     "spent": "spent",
     "your_answer": "Your answer",
     "correct_answer": "Correct answer",
@@ -1017,6 +1019,7 @@
   },
   "certificates": {
     "back": "Back to Dashboard",
+    "download_pdf": "Download PDF",
     "print": "Print Certificate",
     "not_found": "Certificate not found"
   }

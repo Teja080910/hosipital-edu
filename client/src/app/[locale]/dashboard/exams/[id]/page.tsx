@@ -64,6 +64,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const [showSpecialties, setShowSpecialties] = useState(false);
   const [showTopics, setShowTopics] = useState(false);
   const [showSubtopics, setShowSubtopics] = useState(false);
+  const [combinedExamIds, setCombinedExamIds] = useState<string[]>([]);
+  const [combinedExams, setCombinedExams] = useState<any[]>([]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }>>({});
@@ -96,15 +98,37 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const subtopicsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    Promise.all([
-      examsApi.get(id),
-      questionsApi.list({ examId: id }),
-    ])
-      .then(([examRes, questionsRes]) => {
+    const loadExams = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const examIds = params.getAll("examIds");
+      const specialtyIds = params.getAll("specialtyIds");
+      if (specialtyIds.length > 0) {
+        setSelectedSpecialties(specialtyIds);
+      }
+      if (examIds.length > 0) {
+        setCombinedExamIds(examIds);
+        const results = await Promise.all(
+          examIds.map((eid) => examsApi.get(eid).then((r) => r.data))
+        );
+        setCombinedExams(results);
+        const allQuestions = await Promise.all(
+          examIds.map((eid) => questionsApi.list({ examId: eid }).then((r) => r.data))
+        );
+        const merged = allQuestions.flat();
+        setAllQuestions(merged);
+        setFilteredQuestions(merged);
+        setExam(results[0]);
+      } else {
+        const [examRes, questionsRes] = await Promise.all([
+          examsApi.get(id),
+          questionsApi.list({ examId: id }),
+        ]);
         setExam(examRes.data);
         setAllQuestions(questionsRes.data);
         setFilteredQuestions(questionsRes.data);
-      })
+      }
+    };
+    loadExams()
       .catch(() => toast.error(t("load_failed")))
       .finally(() => setLoading(false));
   }, [id, t]);
@@ -184,8 +208,12 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     setFilteredQuestions(filtered);
   }, [selectedSpecialties, selectedTopic, selectedSubtopic, allQuestions]);
 
-  const specialties = exam?.specialties || [];
-  const currentSpecialties = specialties.filter((s: any) => selectedSpecialties.includes(s.id));
+  const specialties = combinedExams.length > 0
+    ? combinedExams.flatMap((e: any) => e.specialties || [])
+    : exam?.specialties || [];
+  const validSpecialtyIds = new Set(specialties.map((s: any) => s.id));
+  const effectiveSelected = selectedSpecialties.filter((id) => validSpecialtyIds.has(id));
+  const currentSpecialties = specialties.filter((s: any) => effectiveSelected.includes(s.id));
   const topics = currentSpecialties.length > 0 ? currentSpecialties.flatMap((s: any) => s.topics || []) : specialties.flatMap((s: any) => s.topics || []);
   const currentTopic = topics.find((t: any) => t.id === selectedTopic);
   const subtopics = currentTopic?.subtopics || [];
@@ -199,15 +227,20 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const totalQuestions = Math.min(questionLimit, filteredQuestions.length);
     if (totalQuestions === 0) { toast.error(t("no_questions")); return; }
     try {
-      const { data: attempt } = await attemptsApi.create({
-        examId: id, mode,
-        questionCount: totalQuestions,
-        timeLimit: mode === "exam" ? timeLimit : undefined,
-        customTitle: customTitle || undefined,
-      });
+      const examIdsToUse = combinedExamIds.length > 0 ? combinedExamIds : [id];
+      const attempts = await Promise.all(
+        examIdsToUse.map((eid) =>
+          attemptsApi.create({
+            examId: eid, mode,
+            questionCount: Math.ceil(totalQuestions / examIdsToUse.length),
+            timeLimit: mode === "exam" ? timeLimit : undefined,
+            customTitle: customTitle || undefined,
+          }).then((r) => r.data)
+        )
+      );
       const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
       setExamQuestions(shuffled);
-      setAttemptId(attempt.id);
+      setAttemptId(attempts[0].id);
       setTimeRemaining(mode === "exam" ? timeLimit * 60 : 0);
       setTotalTimeSpent(0); setAnswers({}); setCurrentIndex(0);
       setSelectedOption(null); setShowAnswer(false);
@@ -235,7 +268,9 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     }));
     if (mode === "exam") {
       try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { /* silent */ }
-      setShowAnswer(true);
+      if (currentIndex < examQuestions.length - 1) {
+        handleNext();
+      }
     } else {
       setShowAnswer(true);
     }
@@ -252,7 +287,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const existing = q ? answers[q.id]?.optionId : null;
     setCurrentIndex(targetIndex);
     setSelectedOption(existing);
-    if (!reviewMode) setShowAnswer(false);
+    if (!reviewMode && mode !== "exam") setShowAnswer(false);
     setQuestionEntryTime(Date.now());
   };
   const handleNext = () => navigateTo(currentIndex + 1);
@@ -264,14 +299,12 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const computeTopicBreakdown = () => {
     const topicMap: Record<string, { correct: number; total: number }> = {};
     for (const q of displayQuestions) {
-      const tId = q.topicId || "unknown";
-      if (!topicMap[tId]) topicMap[tId] = { correct: 0, total: 0 };
-      topicMap[tId].total++;
-      if (answers[q.id]?.isCorrect) topicMap[tId].correct++;
+      const tName = q.topic || "unknown";
+      if (!topicMap[tName]) topicMap[tName] = { correct: 0, total: 0 };
+      topicMap[tName].total++;
+      if (answers[q.id]?.isCorrect) topicMap[tName].correct++;
     }
-    const topicNames: Record<string, string> = {};
-    for (const spec of specialties) for (const topic of spec.topics || []) { topicNames[topic.id] = localized(topic.name); for (const sub of topic.subtopics || []) topicNames[sub.id] = localized(sub.name); }
-    return Object.entries(topicMap).map(([id, data]) => ({ topic: topicNames[id] || id, correct: data.correct, total: data.total }));
+    return Object.entries(topicMap).map(([topic, data]) => ({ topic, correct: data.correct, total: data.total }));
   };
 
   const handleConfirmSubmit = async () => {
@@ -342,7 +375,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       <AccountTypeGate>
       <PageTransition>
         <div className="mx-auto max-w-6xl space-y-5 px-4 p-20">
-          {mode === "exam" && (
+          {mode === "exam" && !reviewMode && (
             <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
               <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -482,10 +515,17 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
               </Card>
 
               <div className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-3 shadow-card">
-                <Button variant="outline" onClick={handlePrevious} disabled={currentIndex === 0} className="flex-1"><ArrowLeft className="h-4 w-4 mr-2" /> {t("previous")}</Button>
+                {reviewMode ? (
+                  <div className="flex w-full gap-3">
+                    <Button variant="outline" onClick={handlePrevious} disabled={currentIndex === 0} className="flex-1"><ArrowLeft className="h-4 w-4 mr-2" /> {t("previous")}</Button>
+                    <Button variant="outline" onClick={handleNext} disabled={currentIndex >= totalQ - 1} className="flex-1">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>
+                  </div>
+                ) : (
+                  <><Button variant="outline" onClick={handlePrevious} disabled={currentIndex === 0} className="flex-1"><ArrowLeft className="h-4 w-4 mr-2" /> {t("previous")}</Button>
                 {currentIndex >= totalQ - 1 ? (
                   mode === "exam" ? <Button onClick={handleRequestSubmit} disabled={submitting} className="flex-1">{submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{t("submit")}</Button> : <Button onClick={handleFinishStudy} className="flex-1">{t("submit")}</Button>
-                ) : <Button onClick={handleNext} disabled={!answered && mode === "exam"} className="flex-1">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>}
+                ) : <Button onClick={handleNext} disabled={!answered && mode === "exam"} className="flex-1">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>}</>
+                )}
               </div>
             </aside>
           </div>
@@ -546,81 +586,37 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
               <div ref={specialtiesRef}>
                 <label className="text-sm font-medium mb-2 block">{t("specialty")}</label>
                 <div className="relative">
-                  <button onClick={() => { setShowSpecialties(!showSpecialties); setShowTopics(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
-                    <span className={selectedSpecialties.length > 0 ? "" : "text-muted-foreground"}>
-                      {selectedSpecialties.length > 0 ? `${selectedSpecialties.length} ${t("selected")}` : t("all_specialties")}
-                    </span><ChevronDown className="h-4 w-4" />
+                  <button onClick={() => { setShowSpecialties(!showSpecialties); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
+                    <span className={effectiveSelected.length > 0 ? "" : "text-muted-foreground"}>
+                      {effectiveSelected.length > 0
+                        ? `${effectiveSelected.length} ${t("selected")}`
+                        : t("all_specialties")}
+                    </span><ChevronDown className="h-4 w-4 flex-shrink-0" />
                   </button>
                   {showSpecialties && (
                     <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
-                      <ScrollArea className="max-h-48">
-                        <CardContent className="p-1">
-                          <button onClick={() => { setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedSpecialties.length === 0 && <Check className="h-4 w-4 text-primary" />}{t("all_specialties")}</button>
-                          {specialties.map((s: any) => {
-                            const isSelected = selectedSpecialties.includes(s.id);
-                            return (
-                              <button key={s.id} onClick={() => {
-                                setSelectedSpecialties((prev) =>
-                                  prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id]
-                                );
-                                setSelectedTopic("");
-                                setSelectedSubtopic("");
-                              }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">
-                                <div className={`h-4 w-4 rounded border flex items-center justify-center ${isSelected ? "bg-primary border-primary" : "border-input"}`}>
-                                  {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                                </div>
-                                {localized(s.name)}
-                              </button>
-                            );
-                          })}
-                        </CardContent>
-                      </ScrollArea>
-                    </Card>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {topics.length > 0 && (
-              <div ref={topicsRef}>
-                <label className="text-sm font-medium mb-2 block">{t("topic")}</label>
-                <div className="relative">
-                  <button onClick={() => { setShowTopics(!showTopics); setShowSpecialties(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
-                    <span className={selectedTopic ? "" : "text-muted-foreground"}>{selectedTopic ? localized(currentTopic?.name) : t("all_topics")}</span><ChevronDown className="h-4 w-4" />
-                  </button>
-                  {showTopics && (
-                    <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
-                      <ScrollArea className="max-h-48">
-                        <CardContent className="p-1">
-                          <button onClick={() => { setSelectedTopic(""); setSelectedSubtopic(""); setShowTopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{!selectedTopic && <Check className="h-4 w-4 text-primary" />}{t("all_topics")}</button>
-                          {topics.map((t: any) => (
-                            <button key={t.id} onClick={() => { setSelectedTopic(t.id); setSelectedSubtopic(""); setShowTopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedTopic === t.id && <Check className="h-4 w-4 text-primary" />}{localized(t.name)}</button>
-                          ))}
-                        </CardContent>
-                      </ScrollArea>
-                    </Card>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {selectedTopic && subtopics.length > 0 && (
-              <div ref={subtopicsRef}>
-                <label className="text-sm font-medium mb-2 block">{t("subtopic")}</label>
-                <div className="relative">
-                  <button onClick={() => { setShowSubtopics(!showSubtopics); setShowSpecialties(false); setShowTopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
-                    <span className={selectedSubtopic ? "" : "text-muted-foreground"}>{selectedSubtopic ? localized(subtopics.find((s: any) => s.id === selectedSubtopic)?.name) : t("all_subtopics")}</span><ChevronDown className="h-4 w-4" />
-                  </button>
-                  {showSubtopics && (
-                    <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
-                      <ScrollArea className="max-h-48">
-                        <CardContent className="p-1">
-                          <button onClick={() => { setSelectedSubtopic(""); setShowSubtopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{!selectedSubtopic && <Check className="h-4 w-4 text-primary" />}{t("all_subtopics")}</button>
-                          {subtopics.map((s: any) => (
-                            <button key={s.id} onClick={() => { setSelectedSubtopic(s.id); setShowSubtopics(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedSubtopic === s.id && <Check className="h-4 w-4 text-primary" />}{localized(s.name)}</button>
-                          ))}
-                        </CardContent>
-                      </ScrollArea>
+                      <div className="max-h-72 overflow-y-auto p-1">
+                        <button onClick={() => { setSelectedSpecialties([]); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{effectiveSelected.length === 0 && <Check className="h-4 w-4 text-primary" />}{t("all_specialties")}</button>
+                        {[...specialties].sort((a: any, b: any) => {
+                          const aSel = effectiveSelected.includes(a.id) ? 0 : 1;
+                          const bSel = effectiveSelected.includes(b.id) ? 0 : 1;
+                          return aSel - bSel;
+                        }).map((s: any) => {
+                          const isSelected = effectiveSelected.includes(s.id);
+                          return (
+                            <button key={s.id} onClick={() => {
+                              setSelectedSpecialties((prev) =>
+                                prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id]
+                              );
+                            }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">
+                              <div className={`h-4 w-4 rounded border flex items-center justify-center ${isSelected ? "bg-primary border-primary" : "border-input"}`}>
+                                {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                              </div>
+                              {localized(s.name)}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </Card>
                   )}
                 </div>
@@ -652,7 +648,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {mode === "exam" && (
+          {mode === "exam" && !reviewMode && (
               <div>
                 <label className="text-sm font-medium mb-2 block">{t("time_limit")}</label>
                 <div className="grid grid-cols-3 gap-2">
