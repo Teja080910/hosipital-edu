@@ -93,6 +93,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const tabWarningsRef = useRef(0);
   const confirmSubmitRef = useRef<() => Promise<void>>();
   const isSubmittingRef = useRef(false);
+  const submittedRef = useRef(false);
   const specialtiesRef = useRef<HTMLDivElement>(null);
   const topicsRef = useRef<HTMLDivElement>(null);
   const subtopicsRef = useRef<HTMLDivElement>(null);
@@ -310,6 +311,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const handleConfirmSubmit = async () => {
     if (!attemptId || submitting) return;
     isSubmittingRef.current = true;
+    submittedRef.current = true;
     setSubmitting(true); setShowSubmitDialog(false); setShowTimeWarning(false);
     const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
     const total = displayQuestions.length;
@@ -530,7 +532,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             </aside>
           </div>
         </div>
-        <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { setShowSubmitDialog(open); }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
+        <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { if (!open && !submittedRef.current) { setShowSubmitDialog(false); if (mode === "exam" && pageState === "taking") { document.documentElement.requestFullscreen().catch(() => {}); } } else { setShowSubmitDialog(open); } }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
         <ConfirmDialog open={showTimeWarning} onOpenChange={setShowTimeWarning} title={t("time_up")} description={t("time_up_desc")} confirmLabel={t("submit")} cancelLabel="" variant="default" onConfirm={handleConfirmSubmit} />
         {lightboxImage && (
           <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>

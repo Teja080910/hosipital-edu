@@ -2,8 +2,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Clock, Target, XCircle } from "lucide-react";
+import { CheckCircle, Clock, Target, XCircle, ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 
 interface ExamResultsProps {
   score: number;
@@ -33,6 +34,12 @@ export function ExamResults({
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={onGoHome}>
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          {t("back_to_exams")}
+        </Button>
+      </div>
       <Card className="text-center">
         <CardHeader>
           <CardTitle className="text-2xl">{t("your_results")}</CardTitle>

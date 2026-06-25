@@ -62,6 +62,15 @@ function clearSession() {
   } catch {}
 }
 
+function shuffle<T>(array: T[]): T[] {
+  const a = [...array];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export default function FlashcardsPage() {
   const t = useTranslations("flashcards");
   const c = useTranslations("common");
@@ -89,18 +98,29 @@ export default function FlashcardsPage() {
     setLoading(true);
     setError(null);
     pageRef.current = 1;
-    setAllLoaded(false);
+    setAllLoaded(true);
     try {
-      const [cardsRes, specsRes, dueRes] = await Promise.all([
-        fetchDueCards(1, specialty),
-        flashcardsApi.specialties(),
-        flashcardsApi.due(10000),
-      ]);
-      const items = cardsRes.data ?? [];
-      setCards(items);
-      setTotalDue((dueRes.data ?? dueRes).length ?? 0);
+      const specsRes = await flashcardsApi.specialties();
       setSpecialties(specsRes.data ?? []);
-      setAllLoaded(items.length >= (cardsRes.total ?? 0));
+
+      let items: FlashcardData[] = [];
+      let total = 0;
+      try {
+        const dueRes = await flashcardsApi.due(10000);
+        items = dueRes.data ?? dueRes ?? [];
+        total = items.length;
+      } catch {}
+
+      if (items.length === 0) {
+        try {
+          const cardsRes = await fetchDueCards(1, specialty);
+          items = cardsRes.data ?? [];
+          total = cardsRes.total ?? 0;
+        } catch {}
+      }
+
+      setCards(items);
+      setTotalDue(total);
       if (restoreIndex !== undefined && restoreIndex < items.length) {
         setCurrentIndex(restoreIndex);
       } else {
@@ -190,10 +210,11 @@ export default function FlashcardsPage() {
     }
   }, [currentCard, currentIndex, cards.length, allLoaded, loadNextPage]);
 
-  const handleRefresh = useCallback(async () => {
-    clearSession();
-    await loadCards(selectedSpecialty);
-  }, [loadCards, selectedSpecialty]);
+  const handleRefresh = useCallback(() => {
+    setCards((prev) => shuffle(prev));
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  }, []);
 
   if (loading && cards.length === 0) {
     return (
@@ -282,13 +303,13 @@ export default function FlashcardsPage() {
               <CardTitle className="text-sm font-medium">{t("mastered")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{Math.max(0, totalDue - cards.length)}</div>
+              <div className="text-2xl font-bold">{currentIndex}</div>
             </CardContent>
           </Card>
         </div>
 
         <Progress
-          value={totalDue > 0 ? ((totalDue - cards.length + currentIndex) / totalDue) * 100 : 0}
+          value={totalDue > 0 ? (currentIndex / totalDue) * 100 : 0}
           className="h-2"
         />
 

@@ -10,7 +10,7 @@ import {
   questions,
   specialties,
 } from "../database/schema";
-import { eq, and, count, sql, gte, lte, desc } from "drizzle-orm";
+import { eq, and, count, sql, gte, lte, desc, between } from "drizzle-orm";
 
 @Injectable()
 export class AnalyticsService {
@@ -158,9 +158,148 @@ export class AnalyticsService {
       .select({ count: count() })
       .from(examAttempts);
 
+    const [totalQuestions] = await this.db
+      .select({ count: count() })
+      .from(userQuestionProgress);
+
+    const [totalFlashcards] = await this.db
+      .select({ count: count() })
+      .from(userFlashcardReviews);
+
     return {
       totalUsers: totalUsers?.count || 0,
       totalAttempts: totalAttempts?.count || 0,
+      totalQuestionsAnswered: totalQuestions?.count || 0,
+      totalFlashcardsReviewed: totalFlashcards?.count || 0,
     };
+  }
+
+  async getDailyActiveUsers(days = 30) {
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    start.setHours(0, 0, 0, 0);
+
+    const rows = await this.db
+      .select({
+        date: sql<string>`date_trunc('day', ${examAttempts.startedAt})::date`,
+        count: sql<number>`count(distinct ${examAttempts.userId})::int`,
+      })
+      .from(examAttempts)
+      .where(gte(examAttempts.startedAt, start))
+      .groupBy(sql`date_trunc('day', ${examAttempts.startedAt})::date`)
+      .orderBy(sql`date_trunc('day', ${examAttempts.startedAt})::date`);
+
+    return rows;
+  }
+
+  async getMonthlyActiveUsers(months = 12) {
+    const start = new Date();
+    start.setMonth(start.getMonth() - months);
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+
+    const rows = await this.db
+      .select({
+        month: sql<string>`date_trunc('month', ${examAttempts.startedAt})::date`,
+        count: sql<number>`count(distinct ${examAttempts.userId})::int`,
+      })
+      .from(examAttempts)
+      .where(gte(examAttempts.startedAt, start))
+      .groupBy(sql`date_trunc('month', ${examAttempts.startedAt})::date`)
+      .orderBy(sql`date_trunc('month', ${examAttempts.startedAt})::date`);
+
+    return rows;
+  }
+
+  async getCohortRetention() {
+    const rows = await this.db
+      .select({
+        cohortMonth: sql<string>`date_trunc('month', ${users.createdAt})::date`,
+        userId: users.id,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(sql`${users.createdAt} IS NOT NULL`)
+      .orderBy(sql`date_trunc('month', ${users.createdAt})::date`);
+
+    const cohorts: Record<string, { total: number; activeMonths: Set<number> }> = {};
+    for (const row of rows) {
+      const cohort = new Date(row.cohortMonth).getTime();
+      if (!cohorts[cohort]) cohorts[cohort] = { total: 0, activeMonths: new Set() };
+      cohorts[cohort].total++;
+    }
+
+    const now = new Date();
+    const userActivity = await this.db
+      .select({
+        userId: examAttempts.userId,
+        month: sql<string>`date_trunc('month', ${examAttempts.startedAt})::date`,
+      })
+      .from(examAttempts)
+      .where(gte(examAttempts.startedAt, new Date(now.getFullYear() - 2, 0, 1)))
+      .groupBy(examAttempts.userId, sql`date_trunc('month', ${examAttempts.startedAt})::date`);
+
+    const userCohort: Record<string, number> = {};
+    for (const row of rows) {
+      if (!userCohort[row.userId]) userCohort[row.userId] = new Date(row.cohortMonth).getTime();
+    }
+
+    for (const act of userActivity) {
+      const cohort = userCohort[act.userId];
+      if (cohort && cohorts[cohort]) {
+        const monthOffset = Math.round(
+          (new Date(act.month).getTime() - cohort) / (30 * 24 * 60 * 60 * 1000),
+        );
+        if (monthOffset >= 0) cohorts[cohort].activeMonths.add(monthOffset);
+      }
+    }
+
+    const result: { cohort: string; total: number; retention: Record<string, number> }[] = [];
+    for (const [cohortKey, data] of Object.entries(cohorts)) {
+      const retention: Record<string, number> = {};
+      for (let m = 0; m <= 6; m++) {
+        retention[`month_${m}`] = data.activeMonths.has(m)
+          ? Math.round((data.activeMonths.size / data.total) * 100)
+          : 0;
+      }
+      result.push({
+        cohort: new Date(Number(cohortKey)).toISOString().slice(0, 7),
+        total: data.total,
+        retention,
+      });
+    }
+
+    return result.slice(-12);
+  }
+
+  async getUserGrowth(days = 30) {
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    start.setHours(0, 0, 0, 0);
+
+    const rows = await this.db
+      .select({
+        date: sql<string>`date_trunc('day', ${users.createdAt})::date`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(users)
+      .where(gte(users.createdAt, start))
+      .groupBy(sql`date_trunc('day', ${users.createdAt})::date`)
+      .orderBy(sql`date_trunc('day', ${users.createdAt})::date`);
+
+    return rows;
+  }
+
+  async getExamCompletionStats() {
+    const rows = await this.db
+      .select({
+        examId: examAttempts.examId,
+        started: sql<number>`count(*)::int`,
+        completed: sql<number>`sum(case when status = 'completed' then 1 else 0 end)::int`,
+      })
+      .from(examAttempts)
+      .groupBy(examAttempts.examId);
+
+    return rows;
   }
 }

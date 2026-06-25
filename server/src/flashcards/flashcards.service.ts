@@ -10,7 +10,7 @@ import {
   specialties,
   topics,
 } from "../database/schema";
-import { eq, and, inArray, isNull, or, count, sql, type SQL } from "drizzle-orm";
+import { eq, and, inArray, isNull, or, count, sql, lte, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -94,39 +94,32 @@ export class FlashcardsService {
 
   async findDue(userId: string, limit = 20) {
     const subExamId = await this.getSubscriptionExamId(userId);
+    const now = new Date();
     const conditions = [
       eq(userFlashcardReviews.userId, userId),
       eq(flashcards.isActive, true),
+      lte(userFlashcardReviews.nextReviewAt, now),
     ];
     if (subExamId) conditions.push(eq(flashcards.examId, subExamId));
 
     return this.db
       .select({
-        id: userFlashcardReviews.id,
-        userId: userFlashcardReviews.userId,
-        flashcardId: userFlashcardReviews.flashcardId,
-        easeFactor: userFlashcardReviews.easeFactor,
-        interval: userFlashcardReviews.interval,
-        repetitions: userFlashcardReviews.repetitions,
-        nextReviewAt: userFlashcardReviews.nextReviewAt,
-        lastReviewedAt: userFlashcardReviews.lastReviewedAt,
-        createdAt: userFlashcardReviews.createdAt,
-        updatedAt: userFlashcardReviews.updatedAt,
-        flashcard: {
-          id: flashcards.id,
-          front: flashcards.front,
-          back: flashcards.back,
-          reference: flashcards.reference,
-          examId: flashcards.examId,
-          specialtyId: flashcards.specialtyId,
-          topicId: flashcards.topicId,
-        },
+        id: flashcards.id,
+        front: flashcards.front,
+        back: flashcards.back,
+        reference: flashcards.reference,
+        specialtyId: flashcards.specialtyId,
+        topicId: flashcards.topicId,
+        specialty: specialties.name,
+        topic: topics.name,
       })
       .from(userFlashcardReviews)
       .innerJoin(
         flashcards,
         eq(flashcards.id, userFlashcardReviews.flashcardId),
       )
+      .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+      .leftJoin(topics, eq(flashcards.topicId, topics.id))
       .where(and(...conditions))
       .limit(limit);
   }
@@ -296,17 +289,19 @@ export class FlashcardsService {
 
   async getSpecialties(userId: string) {
     const subExamId = await this.getSubscriptionExamId(userId);
-    const conditions: any[] = [eq(flashcards.isActive, true)];
-    if (subExamId) conditions.push(eq(flashcards.examId, subExamId));
 
-    const rows = await this.db
-      .selectDistinct({
+    let query = this.db
+      .select({
         id: specialties.id,
         name: specialties.name,
       })
-      .from(flashcards)
-      .innerJoin(specialties, eq(flashcards.specialtyId, specialties.id))
-      .where(and(...conditions));
+      .from(specialties);
+
+    if (subExamId) {
+      query = query.where(eq(specialties.examId, subExamId));
+    }
+
+    const rows = await query;
 
     rows.sort((a, b) => (a.name?.en ?? "").localeCompare(b.name?.en ?? ""));
 
