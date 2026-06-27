@@ -42,6 +42,11 @@ let totalModules = 0;
 let totalLessons = 0;
 let totalPayments = 0;
 let totalTranslations = 0;
+let totalUserSubscriptions = 0;
+let totalExamAttempts = 0;
+let totalExamAnswers = 0;
+let totalUserQuestionProgress = 0;
+let totalFlashcardReviews = 0;
 
 function getDocId(doc: any): string {
   return doc._id || "";
@@ -610,6 +615,296 @@ async function migratePayments(docs: any[], adminId: string) {
   console.log(`  Payments: ${totalPayments}`);
 }
 
+async function migrateUserSubscriptions(docs: any[], adminId: string) {
+  console.log("\n=== User Subscriptions (appusermembershippurchases → user_subscriptions) ===");
+
+  const plans = await db
+    .select({ id: schema.subscriptionPlans.id, name: schema.subscriptionPlans.name })
+    .from(schema.subscriptionPlans);
+  const users = await db
+    .select({ id: schema.users.id, email: schema.users.email })
+    .from(schema.users);
+  const userByEmail: Record<string, string> = {};
+  for (const u of users) userByEmail[u.email.toLowerCase()] = u.id;
+
+  for (const doc of docs) {
+    try {
+      const f = doc;
+      const email = (f.username || "").toLowerCase().trim();
+      if (!email) continue;
+
+      const userId = userByEmail[email];
+      if (!userId) continue;
+
+      const toMembership = f.toMembership || {};
+      const planTitle = (toMembership.title || "").trim();
+      if (!planTitle) continue;
+
+      const plan = plans.find(
+        (p) => (p.name as any)?.en === planTitle || (p.name as any)?.es === planTitle,
+      );
+      if (!plan) continue;
+
+      const existing = await db
+        .select()
+        .from(schema.userSubscriptions)
+        .where(
+          and(
+            eq(schema.userSubscriptions.userId, userId),
+            eq(schema.userSubscriptions.planId, plan.id),
+          ),
+        )
+        .limit(1);
+      if (existing.length) {
+        totalUserSubscriptions++;
+        continue;
+      }
+
+      const now = new Date();
+      const maxDays = toMembership.maxDays || 30;
+      const periodEnd = new Date(now.getTime() + maxDays * 24 * 60 * 60 * 1000);
+
+      await db
+        .insert(schema.userSubscriptions)
+        .values({
+          userId,
+          planId: plan.id,
+          status: "active",
+          currentPeriodStart: toDate(f.creationTime) || now,
+          currentPeriodEnd: periodEnd,
+          remainingExamAttempts: toMembership.maxQuestions ?? null,
+          remainingFlashcardAttempts: toMembership.maxFlashcards ?? null,
+          remainingUses: toMembership.maxUses ?? null,
+          createdAt: toDate(f.creationTime) || now,
+          updatedAt: now,
+        });
+
+      totalUserSubscriptions++;
+    } catch (err: any) {
+      console.error(`  Error migrating user subscription: ${err.message}`);
+    }
+  }
+  console.log(`  User subscriptions imported: ${totalUserSubscriptions}`);
+}
+
+async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Record<string, string>) {
+  console.log("\n=== Exam History (appuserexams → exam_attempts + exam_answers + user_question_progress) ===");
+
+  const users = await db
+    .select({ id: schema.users.id, email: schema.users.email })
+    .from(schema.users);
+  const userByEmail: Record<string, string> = {};
+  for (const u of users) userByEmail[u.email.toLowerCase()] = u.id;
+
+  const questions = await db
+    .select({ id: schema.questions.id, text: schema.questions.text })
+    .from(schema.questions);
+  const questionByText: Record<string, string> = {};
+  for (const q of questions) questionByText[q.text] = q.id;
+
+  const options = await db
+    .select({
+      id: schema.questionOptions.id,
+      questionId: schema.questionOptions.questionId,
+      text: schema.questionOptions.text,
+    })
+    .from(schema.questionOptions);
+  const optionByQText: Record<string, Record<string, string>> = {};
+  for (const o of options) {
+    if (!optionByQText[o.questionId]) optionByQText[o.questionId] = {};
+    optionByQText[o.questionId][o.text] = o.id;
+  }
+
+  for (const doc of docs) {
+    try {
+      const f = doc;
+      const email = (f.username || "").toLowerCase().trim();
+      if (!email) continue;
+      const userId = userByEmail[email];
+      if (!userId) continue;
+
+      const attemptId = f.id || getDocId(doc);
+      if (!attemptId) continue;
+
+      const existing = await db
+        .select()
+        .from(schema.examAttempts)
+        .where(eq(schema.examAttempts.id, attemptId))
+        .limit(1);
+      if (existing.length) {
+        totalExamAttempts++;
+        continue;
+      }
+
+      // Detect exam from category titles
+      const cats = f.categorys || [];
+      const catTitle = cats.length > 0 ? (cats[0].title || "") : "";
+      const examSlug = detectExamSlug(catTitle);
+      const examId = examSlugToId[examSlug] || adminId;
+
+      const qas = f.questionAnswers || [];
+      const totalQ = qas.length;
+      const answeredQ = qas.filter((qa: any) => qa.answer).length;
+      const correctQ = qas.filter((qa: any) => qa.answer?.isCorrect).length;
+      const startTime = toDate(f.creationTime) || new Date();
+      const endTime = toDate(f.endTime);
+      const timeSpent = endTime ? Math.round((endTime.getTime() - startTime.getTime()) / 1000) : 0;
+
+      await db
+        .insert(schema.examAttempts)
+        .values({
+          id: attemptId,
+          userId,
+          examId,
+          mode: f.isOpen ? "practice" : "exam",
+          status: "completed",
+          customTitle: f.customTitle || null,
+          isShowTimeCounter: f.isShowTimeCounter || false,
+          questionCount: totalQ,
+          answeredCount: answeredQ,
+          correctCount: correctQ,
+          timeLimit: f.maxTime || null,
+          timeSpent,
+          startedAt: startTime,
+          completedAt: endTime,
+          createdAt: startTime,
+        });
+
+      totalExamAttempts++;
+
+      for (const qa of qas) {
+        const answer = qa.answer;
+        if (!answer) continue;
+
+        const qText = (qa.question?.title || "").trim();
+        const questionId = questionByText[qText];
+        if (!questionId) continue;
+
+        const answerText = (answer.title || "").trim();
+        const optionId = optionByQText[questionId]?.[answerText] || null;
+
+        await db
+          .insert(schema.examAnswers)
+          .values({
+            attemptId,
+            questionId,
+            selectedOptionId: optionId,
+            isCorrect: answer.isCorrect === true,
+            timeSpent: 0,
+            answeredAt: startTime,
+          })
+          .onConflictDoNothing();
+
+        totalExamAnswers++;
+
+        const existingProgress = await db
+          .select()
+          .from(schema.userQuestionProgress)
+          .where(
+            and(
+              eq(schema.userQuestionProgress.userId, userId),
+              eq(schema.userQuestionProgress.questionId, questionId),
+            ),
+          )
+          .limit(1);
+
+        if (existingProgress.length) {
+          await db
+            .update(schema.userQuestionProgress)
+            .set({
+              timesAnswered: existingProgress[0].timesAnswered + 1,
+              timesCorrect: existingProgress[0].timesCorrect + (answer.isCorrect ? 1 : 0),
+              lastAnsweredAt: startTime,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.userQuestionProgress.id, existingProgress[0].id));
+        } else {
+          await db
+            .insert(schema.userQuestionProgress)
+            .values({
+              userId,
+              questionId,
+              timesAnswered: 1,
+              timesCorrect: answer.isCorrect ? 1 : 0,
+              lastAnsweredAt: startTime,
+            });
+        }
+        totalUserQuestionProgress++;
+      }
+    } catch (err: any) {
+      console.error(`  Error migrating exam: ${err.message}`);
+    }
+  }
+  console.log(`  Exam attempts: ${totalExamAttempts}, Answers: ${totalExamAnswers}, Question progress: ${totalUserQuestionProgress}`);
+}
+
+async function migrateFlashcardReviews(docs: any[]) {
+  console.log("\n=== Flashcard Reviews (flashcard_sr → user_flashcard_reviews) ===");
+
+  const users = await db
+    .select({ id: schema.users.id, email: schema.users.email })
+    .from(schema.users);
+  const userByEmail: Record<string, string> = {};
+  for (const u of users) userByEmail[u.email.toLowerCase()] = u.id;
+
+  const flashcards = await db
+    .select({ id: schema.flashcards.id, front: schema.flashcards.front })
+    .from(schema.flashcards);
+  const flashcardByFront: Record<string, string> = {};
+  for (const f of flashcards) flashcardByFront[f.front] = f.id;
+
+  for (const doc of docs) {
+    try {
+      const f = doc;
+      const email = (f.username || "").toLowerCase().trim();
+      if (!email) continue;
+      const userId = userByEmail[email];
+      if (!userId) continue;
+
+      const flashcardTitle = (f.flashcardTitle || "").trim();
+      const flashcardId = flashcardByFront[flashcardTitle];
+      if (!flashcardId) continue;
+
+      const existing = await db
+        .select()
+        .from(schema.userFlashcardReviews)
+        .where(
+          and(
+            eq(schema.userFlashcardReviews.userId, userId),
+            eq(schema.userFlashcardReviews.flashcardId, flashcardId),
+          ),
+        )
+        .limit(1);
+      if (existing.length) {
+        totalFlashcardReviews++;
+        continue;
+      }
+
+      const lastReview = toDate(f.lastReviewDate) || new Date();
+      const nextReview = toDate(f.nextReviewDate) || new Date();
+
+      await db
+        .insert(schema.userFlashcardReviews)
+        .values({
+          userId,
+          flashcardId,
+          easeFactor: Math.round((f.easeFactor || 2.5) * 100),
+          interval: f.intervalDays || 0,
+          repetitions: f.repetitions || 0,
+          nextReviewAt: nextReview,
+          lastReviewedAt: lastReview,
+          createdAt: lastReview,
+          updatedAt: lastReview,
+        });
+
+      totalFlashcardReviews++;
+    } catch (err: any) {
+      console.error(`  Error migrating flashcard review: ${err.message}`);
+    }
+  }
+  console.log(`  Flashcard reviews imported: ${totalFlashcardReviews}`);
+}
+
 async function migrateParameters(docs: any[]) {
   console.log("\n=== Parameters (parameters → translations) ===");
 
@@ -735,6 +1030,9 @@ async function main() {
   await migrateVideos(readDocs("videos.json"));
   await migrateFlashcards(readDocs("flashcardquestions.json"), adminId, examSlugToId);
   await migratePayments(readDocs("appusermembershippurchases.json"), adminId);
+  await migrateUserSubscriptions(readDocs("appusermembershippurchases.json"), adminId);
+  await migrateExamHistory(readDocs("appuserexams.json"), adminId, examSlugToId);
+  await migrateFlashcardReviews(readDocs("flashcard_sr.json"));
 
   // Questions — largest file, process last
   await migrateQuestions(readDocs("questions.json"), adminId, examSlugToId);
@@ -749,6 +1047,11 @@ async function main() {
   console.log(`  Video Mods:   ${totalModules}`);
   console.log(`  Video Less:   ${totalLessons}`);
   console.log(`  Payments:     ${totalPayments}`);
+  console.log(`  User Subs:   ${totalUserSubscriptions}`);
+  console.log(`  Exam Att:    ${totalExamAttempts}`);
+  console.log(`  Exam Ans:    ${totalExamAnswers}`);
+  console.log(`  Q Progress:  ${totalUserQuestionProgress}`);
+  console.log(`  FC Reviews:  ${totalFlashcardReviews}`);
   console.log(`  Transl:       ${totalTranslations}`);
 
   await pool.end();

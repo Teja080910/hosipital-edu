@@ -84,7 +84,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p className="text-lg font-medium break-words">{question.text}</p>
+                <p className="text-lg font-medium break-words" dangerouslySetInnerHTML={{ __html: question.text }} />
                 <div className="space-y-3">
                   {question.options.map((option: any) => {
                     const isSelected = currentAnswer.selectedOptionId === option.id;
@@ -106,7 +106,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                   })}
                 </div>
                 {currentAnswer.timeSpent > 0 && <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{currentAnswer.timeSpent}s {t("spent")}</span></div>}
-                <div className="rounded-lg bg-muted p-4"><p className="text-sm font-medium mb-1">{t("explanation")}</p><p className="text-sm text-muted-foreground">{question.explanation}</p></div>
+                <div className="rounded-lg bg-muted p-4"><p className="text-sm font-medium mb-1">{t("explanation")}</p><p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: question.explanation }} /></div>
               </CardContent>
             </Card>
 

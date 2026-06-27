@@ -18,7 +18,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 @ApiTags("exam-attempts")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, AccountTypeGuard)
-@AllowedAccountTypes("full")
+@AllowedAccountTypes("full", "course_only")
 @Controller("exam-attempts")
 export class AttemptsController {
   constructor(private attemptsService: AttemptsService) {}

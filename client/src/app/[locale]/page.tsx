@@ -654,11 +654,11 @@ const sb = useTranslations("subscribe");
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="#features">
+              <a href="mailto:info@md-exam.com">
                 <Button variant="outline" size="xl" className="text-base hover:shadow-subtle transition-all duration-200">
                   {t("talk_to_sales")}
                 </Button>
-              </Link>
+              </a>
             </div>
           </motion.div>
         </div>
@@ -679,17 +679,17 @@ const sb = useTranslations("subscribe");
               <Link href="/content/faq" className="hover:text-foreground transition-colors">{t("faq_title")}</Link>
             </div>
             <div className="flex items-center gap-4">
-              <a href="https://facebook.com/mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="https://www.facebook.com/mdexamedu" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="https://twitter.com/mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="https://instagram.com/mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="https://www.instagram.com/md_exam/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="https://youtube.com/@mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="https://www.youtube.com/@MD-exam" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Youtube className="h-5 w-5" />
+              </a>
+              <a href="mailto:info@md-exam.com" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
+                info@md-exam.com
               </a>
             </div>
           </div>

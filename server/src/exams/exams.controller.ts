@@ -29,7 +29,7 @@ export class ExamsController {
 
   @Get(":id")
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full")
+  @AllowedAccountTypes("full", "course_only")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get exam with specialties" })
   async findOne(@Param("id") id: string, @CurrentUser() user: any) {

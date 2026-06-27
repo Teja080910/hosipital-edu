@@ -19,9 +19,11 @@ export class VideosController {
   constructor(private videosService: VideosService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "List all video modules with lessons" })
-  async findAll() {
-    return this.videosService.findAll();
+  async findAll(@CurrentUser() user: any) {
+    return this.videosService.findAll(user);
   }
 
   @Get(":id")

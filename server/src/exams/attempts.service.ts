@@ -68,7 +68,7 @@ export class AttemptsService {
       }
 
       const plan = sub.subscription_plans;
-      if (plan.isCourseOnly) {
+      if (plan.isCourseOnly && plan.examId !== data.examId) {
         throw new HttpException(this.i18n.t("exams.planOnlyCourses"), HttpStatus.FORBIDDEN);
       }
 

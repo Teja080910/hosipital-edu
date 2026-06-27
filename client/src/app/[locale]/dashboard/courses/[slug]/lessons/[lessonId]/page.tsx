@@ -22,9 +22,20 @@ export default function LessonPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [quiz, setQuiz] = useState<any>(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   useEffect(() => {
     if (!slug || !lessonId) return;
+    coursesApi.checkEnrollment(slug).then(({ data }) => {
+      if (!data.enrolled) {
+        router.push(`/dashboard/courses/${slug}`);
+        return;
+      }
+      setIsEnrolled(true);
+    }).catch(() => {
+      router.push(`/dashboard/courses/${slug}`);
+      return;
+    });
     coursesApi.get(slug).then(({ data }) => {
       const found: any[] = [];
       data.modules?.forEach((m: any) => {

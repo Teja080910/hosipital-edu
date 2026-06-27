@@ -6,6 +6,8 @@ import {
   userSubscriptions,
   payments,
   users,
+  userCourseEnrollments,
+  courses,
 } from "../database/schema";
 import { eq, and, gt, sql, isNull } from "drizzle-orm";
 import { STRIPE } from "./stripe.provider";
@@ -353,7 +355,24 @@ async handleWebhook(event: any) {
           .set({ status: "completed", stripePaymentIntentId: paymentIntent })
           .where(eq(payments.stripePaymentIntentId, session.id));
 
-        if (planId && userId && stripeSubscriptionId) {
+        if (session.metadata?.type === "course_enrollment") {
+          const courseId = session.metadata?.courseId;
+          if (userId && courseId) {
+            const [course] = await this.db
+              .select()
+              .from(courses)
+              .where(eq(courses.id, courseId))
+              .limit(1);
+            if (course) {
+              await this.db.insert(userCourseEnrollments).values({
+                userId,
+                courseId,
+                stripePaymentId: session.id,
+                accessExpiresAt: new Date(Date.now() + (course.durationDays || 365) * 86400000),
+              });
+            }
+          }
+        } else if (planId && userId && stripeSubscriptionId) {
           await this.activateSubscription({
             userId,
             planId,

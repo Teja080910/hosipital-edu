@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { streamApi, examsApi } from "@/lib/api";
-import { FolderOpen, Loader2, Pencil, Play, Plus, Trash2, Video } from "lucide-react";
+import { FolderOpen, Loader2, Pencil, Play, Plus, Trash2, Video, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -36,7 +36,7 @@ export default function AdminVideosPage() {
   const [lessonModuleId, setLessonModuleId] = useState<string | null>(null);
   const [previewUid, setPreviewUid] = useState<string | null>(null);
   const [exams, setExams] = useState<any[]>([]);
-  const [selectedExamId, setSelectedExamId] = useState<string>("");
+  const [examIds, setExamIds] = useState<string[]>([]);
 
   const fetchModules = useCallback(async () => {
     try {
@@ -58,14 +58,14 @@ export default function AdminVideosPage() {
   const openCreateModule = () => {
     setEditingModule(null);
     setModuleForm({ title: "", description: "" });
-    setSelectedExamId("");
+    setExamIds([]);
     setModuleDialogOpen(true);
   };
 
   const openEditModule = (mod: any) => {
     setEditingModule(mod);
     setModuleForm({ title: mod.title?.en ?? mod.title ?? "", description: mod.description?.en ?? mod.description ?? "" });
-    setSelectedExamId(mod.examId || "");
+    setExamIds(mod.examIds || []);
     setModuleDialogOpen(true);
   };
 
@@ -75,8 +75,8 @@ export default function AdminVideosPage() {
       const payload: any = {
         title: { en: moduleForm.title },
         description: { en: moduleForm.description },
+        examIds,
       };
-      if (selectedExamId) payload.examId = selectedExamId;
       if (editingModule) {
         await streamApi.updateModule(editingModule.id, payload);
         toast.success(t("module_updated"));
@@ -302,17 +302,35 @@ export default function AdminVideosPage() {
                 <Textarea value={moduleForm.description} onChange={(e) => setModuleForm((p) => ({ ...p, description: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium">Exam (optional)</label>
-                <select
-                  value={selectedExamId}
-                  onChange={(e) => setSelectedExamId(e.target.value)}
-                  className="w-full border rounded-lg p-2 text-sm bg-background"
-                >
-                  <option value="">All exams (no restriction)</option>
-                  {exams.map((ex: any) => (
-                    <option key={ex.id} value={ex.id}>{ex.name?.en || ex.name}</option>
+                <label className="text-sm font-medium">Exams (optional)</label>
+                <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-lg border border-border/80 min-h-[44px] mt-1">
+                  {examIds.length === 0 && (
+                    <span className="text-sm text-muted-foreground/50 px-2 py-1">All exams (no restriction)</span>
+                  )}
+                  {examIds.map((eId) => {
+                    const exam = exams.find((e: any) => e.id === eId);
+                    return (
+                      <span key={eId} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium">
+                        {exam?.name?.en || exam?.name || eId}
+                        <button type="button" onClick={() => setExamIds(examIds.filter((id) => id !== eId))} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {exams.filter((e: any) => !examIds.includes(e.id)).map((e: any) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => setExamIds([...examIds, e.id])}
+                      className="px-2.5 py-1 rounded-lg border border-border/60 text-xs text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+                    >
+                      + {e.name?.en || e.name}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             </div>
             <DialogFooter>

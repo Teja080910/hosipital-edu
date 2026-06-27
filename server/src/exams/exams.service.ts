@@ -14,14 +14,19 @@ export class ExamsService {
   async findAll(user?: any) {
     let allowedExamId: string | null = null;
     if (user) {
-      const [sub] = await this.db
-        .select({ examId: subscriptionPlans.examId })
-        .from(userSubscriptions)
-        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
-        .limit(1);
-      allowedExamId = sub?.examId || user.targetExamId || null;
+      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      if (!isAdmin) {
+        const [sub] = await this.db
+          .select({ examId: subscriptionPlans.examId })
+          .from(userSubscriptions)
+          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+          .limit(1);
+        allowedExamId = sub?.examId || user.targetExamId || null;
+      }
     }
+
+    if (user && !allowedExamId && user.role !== "admin" && user.role !== "super_admin") return [];
 
     const questionFilter = allowedExamId
       ? sql`(SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = ${allowedExamId} AND question_exams.question_id = questions.id)`
