@@ -81,7 +81,7 @@ export default function AdminFlashcardsPage() {
       const { data } = await flashcardsApi.list({ limit: "1000" });
       setFlashcards(Array.isArray(data) ? data : data?.items || []);
     } catch {
-      toast.error("Failed to load flashcards");
+      toast.error(t("failed_to_load_flashcards"));
     } finally {
       setLoading(false);
     }
@@ -122,7 +122,7 @@ export default function AdminFlashcardsPage() {
           specialtyId: form.specialtyId || null,
           topicId: form.topicId || null,
         });
-        toast.success("Flashcard updated");
+        toast.success(t("flashcard_updated"));
       } else {
         const qty = Math.max(1, form.quantity);
         const promises = Array.from({ length: qty }, () =>
@@ -136,12 +136,12 @@ export default function AdminFlashcardsPage() {
           })
         );
         await Promise.all(promises);
-        toast.success(`${qty} flashcard(s) created`);
+        toast.success(t("flashcard_created", { count: qty }));
       }
       setDialogOpen(false);
       fetchFlashcards();
     } catch {
-      toast.error(editing ? "Failed to update flashcard" : "Failed to create flashcard(s)");
+      toast.error(editing ? t("failed_to_update_flashcard") : t("failed_to_create_flashcard"));
     } finally {
       setSaving(false);
     }
@@ -151,17 +151,17 @@ export default function AdminFlashcardsPage() {
     if (!deleteTarget) return;
     try {
       await flashcardsApi.remove(deleteTarget.id);
-      toast.success("Flashcard deleted");
+      toast.success(t("flashcard_deleted"));
       setDeleteTarget(null);
       fetchFlashcards();
     } catch {
-      toast.error("Failed to delete flashcard");
+      toast.error(t("failed_to_delete_flashcard"));
     }
   };
 
   const columns = [
-    { key: "front", header: "Front", sortable: true, render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.front}</span> },
-    { key: "back", header: "Back", render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.back}</span> },
+    { key: "front", header: t("col_front"), sortable: true, render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.front}</span> },
+    { key: "back", header: t("col_back"), render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.back}</span> },
     {
       key: "actions",
       header: "",
@@ -191,10 +191,10 @@ export default function AdminFlashcardsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Flashcard Management</h1>
-            <p className="text-muted-foreground">Create and manage flashcards</p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("flashcard_mgmt_title")}</h1>
+            <p className="text-muted-foreground">{t("flashcard_mgmt_subtitle")}</p>
           </div>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Create Flashcard</Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> {t("create_flashcard")}</Button>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -212,69 +212,69 @@ export default function AdminFlashcardsPage() {
               </div>
               <div className="text-left">
                 <DialogTitle className="text-xl font-bold tracking-tight">
-                  {editing ? "Edit Flashcard" : "Create Flashcard"}
+                  {editing ? t("edit_flashcard") : t("create_flashcard")}
                 </DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">{editing ? "Update flashcard details" : "Fill in the fields to create one or more flashcards"}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{editing ? t("flashcard_edit_desc") : t("flashcard_create_desc")}</p>
               </div>
             </div>
           </DialogHeader>
 
           <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Front</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("col_front")}</label>
               <Textarea
                 autoFocus
                 value={form.front}
                 onChange={(e) => setForm({ ...form, front: e.target.value })}
                 rows={3}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
-                placeholder="Enter the front text (question)"
+                placeholder={t("placeholder_front")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Back</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("col_back")}</label>
               <Textarea
                 value={form.back}
                 onChange={(e) => setForm({ ...form, back: e.target.value })}
                 rows={3}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
-                placeholder="Enter the back text (answer)"
+                placeholder={t("placeholder_back")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Reference</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("reference")}</label>
               <Input
                 value={form.reference}
                 onChange={(e) => setForm({ ...form, reference: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
-                placeholder="Optional reference or source"
+                placeholder={t("placeholder_reference")}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Exam</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
                 <Select value={form.examId || "__none__"} onValueChange={(v) => setForm({ ...form, examId: v === "__none__" ? "" : v, specialtyId: "", topicId: "" })}>
                   <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4">
-                    <SelectValue placeholder="Select exam" />
+                    <SelectValue placeholder={t("select_exam_placeholder")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="__none__">None</SelectItem>
+      <SelectItem value="__none__">{t("none")}</SelectItem>
                     {exams.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name?.en || e.slug}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Specialty</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("specialty")}</label>
                 <Select value={form.specialtyId || "__none__"} onValueChange={(v) => setForm({ ...form, specialtyId: v === "__none__" ? "" : v, topicId: "" })}>
                   <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4">
-                    <SelectValue placeholder="Select specialty" />
+                    <SelectValue placeholder={t("select_specialty_placeholder")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="__none__">None</SelectItem>
+                    <SelectItem value="__none__">{t("none")}</SelectItem>
                     {specialties.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name?.en || s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -283,14 +283,14 @@ export default function AdminFlashcardsPage() {
 
             {topics.length > 0 && (
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Topic</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("topic")}</label>
                 <Select value={form.topicId || "__none__"} onValueChange={(v) => setForm({ ...form, topicId: v === "__none__" ? "" : v })}>
                   <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4">
-                    <SelectValue placeholder="Select topic" />
+                    <SelectValue placeholder={t("select_topic_placeholder")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="__none__">None</SelectItem>
-                    {topics.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name?.en || t.name}</SelectItem>)}
+                    <SelectItem value="__none__">{t("none")}</SelectItem>
+                    {topics.map((tr: any) => <SelectItem key={tr.id} value={tr.id}>{tr.name?.en || tr.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -298,7 +298,7 @@ export default function AdminFlashcardsPage() {
 
             {!editing && (
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Quantity</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("quantity")}</label>
                 <div className="flex items-center gap-4">
                   <input
                     type="range"
@@ -324,7 +324,7 @@ export default function AdminFlashcardsPage() {
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>1</span>
-                  <span className="font-medium text-sm">{form.quantity} flashcard{form.quantity !== 1 ? "s" : ""}</span>
+                  <span className="font-medium text-sm">{t("flashcard_count", { count: form.quantity })}</span>
                   <span>50</span>
                 </div>
               </div>
@@ -335,7 +335,7 @@ export default function AdminFlashcardsPage() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl px-6 h-10 text-sm font-medium">{c("cancel")}</Button>
             <Button onClick={handleSave} disabled={saving || !form.front.trim() || !form.back.trim()} className="rounded-xl px-6 h-10 text-sm font-medium shadow-md">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editing ? c("save") : `Create ${form.quantity > 1 ? `${form.quantity} ` : ""}Flashcard${form.quantity !== 1 ? "s" : ""}`}
+              {editing ? c("save") : t("create_flashcard")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -344,8 +344,8 @@ export default function AdminFlashcardsPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Delete Flashcard"
-        description="Are you sure you want to delete this flashcard?"
+        title={t("delete_flashcard_title")}
+        description={t("flashcard_delete_desc")}
         confirmLabel={c("delete")}
         variant="destructive"
         onConfirm={handleDelete}

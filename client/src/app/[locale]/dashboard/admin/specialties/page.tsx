@@ -59,7 +59,7 @@ export default function AdminSpecialtiesPage() {
       const { data } = await examsApi.get(examId);
       setExamData(data);
     } catch {
-      toast.error("Failed to load exam");
+      toast.error(t("failed_to_load_exam"));
     } finally {
       setLoadingExam(false);
     }
@@ -99,17 +99,17 @@ export default function AdminSpecialtiesPage() {
         if (dialogType === "specialty") await examsApi.updateSpecialty(editing.id, payload);
         else if (dialogType === "topic") await examsApi.updateTopic(editing.id, payload);
         else await examsApi.updateSubtopic(editing.id, payload);
-        toast.success("Updated");
+        toast.success(t("updated"));
       } else {
         if (dialogType === "specialty") await examsApi.createSpecialty(selectedExamId, payload);
         else if (dialogType === "topic") await examsApi.createTopic(parentId, payload);
         else await examsApi.createSubtopic(parentId, payload);
-        toast.success("Created");
+        toast.success(t("created"));
       }
       setDialogOpen(false);
       loadExam(selectedExamId);
     } catch {
-      toast.error("Failed to save");
+      toast.error(t("failed_to_save"));
     } finally {
       setSaving(false);
     }
@@ -121,11 +121,11 @@ export default function AdminSpecialtiesPage() {
       if (deleteTarget.type === "specialty") await examsApi.deleteSpecialty(deleteTarget.id);
       else if (deleteTarget.type === "topic") await examsApi.deleteTopic(deleteTarget.id);
       else await examsApi.deleteSubtopic(deleteTarget.id);
-      toast.success("Deleted");
+      toast.success(t("deleted"));
       setDeleteTarget(null);
       loadExam(selectedExamId);
     } catch {
-      toast.error("Failed to delete");
+      toast.error(t("failed_to_delete"));
     }
   };
 
@@ -157,15 +157,15 @@ export default function AdminSpecialtiesPage() {
     <PageTransition>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Specialty Management</h1>
-          <p className="text-muted-foreground">Manage specialties, topics, and subtopics for each exam</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("specialty_mgmt_title")}</h1>
+          <p className="text-muted-foreground">{t("specialty_mgmt_subtitle")}</p>
         </div>
 
         <div className="flex items-center gap-4">
           <div className="w-80">
             <Select value={selectedExamId} onValueChange={setSelectedExamId}>
               <SelectTrigger className="w-full bg-muted/20 border-border/80 rounded-xl h-11 px-4">
-                <SelectValue placeholder="Select an exam" />
+                <SelectValue placeholder={t("select_exam_placeholder")} />
               </SelectTrigger>
               <SelectContent>
                 {exams.map((e: any) => (
@@ -175,7 +175,7 @@ export default function AdminSpecialtiesPage() {
             </Select>
           </div>
           {selectedExamId && (
-            <Button onClick={() => openCreate("specialty")}><Plus className="h-4 w-4 mr-2" /> Add Specialty</Button>
+            <Button onClick={() => openCreate("specialty")}><Plus className="h-4 w-4 mr-2" /> {t("add_specialty")}</Button>
           )}
         </div>
 
@@ -187,7 +187,7 @@ export default function AdminSpecialtiesPage() {
           <Card>
             <CardContent className="pt-6 space-y-4">
               {(!examData.specialties || examData.specialties.length === 0) ? (
-                <p className="text-center text-muted-foreground py-8">No specialties yet. Click "Add Specialty" to create one.</p>
+                <p className="text-center text-muted-foreground py-8">{t("no_specialties_yet")}</p>
               ) : (
                 examData.specialties.map((spec: any) => (
                   <div key={spec.id} className="border border-border/60 rounded-xl overflow-hidden">
@@ -216,7 +216,7 @@ export default function AdminSpecialtiesPage() {
                     {expandedSpecs.has(spec.id) && (
                       <div className="border-t border-border/50 pl-8 pr-4 py-3 space-y-2">
                         {(!spec.topics || spec.topics.length === 0) ? (
-                          <p className="text-sm text-muted-foreground">No topics yet.</p>
+                          <p className="text-sm text-muted-foreground">{t("no_topics_yet")}</p>
                         ) : (
                           spec.topics.map((topic: any) => (
                             <div key={topic.id} className="border border-border/40 rounded-lg overflow-hidden">
@@ -245,7 +245,7 @@ export default function AdminSpecialtiesPage() {
                               {expandedTopics.has(topic.id) && (
                                 <div className="border-t border-border/40 pl-8 pr-4 py-2 space-y-1">
                                   {(!topic.subtopics || topic.subtopics.length === 0) ? (
-                                    <p className="text-xs text-muted-foreground">No subtopics yet.</p>
+                                    <p className="text-xs text-muted-foreground">{t("no_subtopics_yet")}</p>
                                   ) : (
                                     topic.subtopics.map((sub: any) => (
                                       <div key={sub.id} className="flex items-center justify-between p-2 rounded hover:bg-muted/10 transition-colors">
@@ -289,7 +289,7 @@ export default function AdminSpecialtiesPage() {
               </div>
               <div className="text-left">
                 <DialogTitle className="text-xl font-bold tracking-tight">
-                  {editing ? "Edit" : "Create"} {dialogType === "specialty" ? "Specialty" : dialogType === "topic" ? "Topic" : "Subtopic"}
+                  {editing ? c("edit") : c("create")} {dialogType === "specialty" ? t("type_specialty") : dialogType === "topic" ? t("type_topic") : t("type_subtopic")}
                 </DialogTitle>
               </div>
             </div>
@@ -297,28 +297,28 @@ export default function AdminSpecialtiesPage() {
 
           <div className="p-6 space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Name (English)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("name_english")}</label>
               <Input
                 autoFocus
                 value={form.nameEn}
                 onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
-                placeholder="e.g. Cardiology"
+                placeholder={t("placeholder_name_english")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Name (Spanish)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("name_spanish")}</label>
               <Input
                 value={form.nameEs}
                 onChange={(e) => setForm({ ...form, nameEs: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
-                placeholder="e.g. Cardiología"
+                placeholder={t("placeholder_name_spanish")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Sort Order</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("sort_order")}</label>
               <Input
                 type="number"
                 value={form.sortOrder}
@@ -341,8 +341,8 @@ export default function AdminSpecialtiesPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title={`Delete ${deleteTarget?.type || ""}`}
-        description={`Are you sure you want to delete "${deleteTarget?.name || ""}"? This action cannot be undone.`}
+        title={t("delete_type_title", { type: deleteTarget?.type || "" })}
+        description={t("delete_type_desc", { name: deleteTarget?.name || "" })}
         confirmLabel={c("delete")}
         variant="destructive"
         onConfirm={handleDelete}

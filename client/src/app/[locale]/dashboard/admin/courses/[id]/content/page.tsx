@@ -351,7 +351,7 @@ export default function AdminCourseContentPage() {
             )}
             {lessonForm.contentType === "pdf" && (
               <div>
-                <label className="text-sm font-medium">PDF File</label>
+                <label className="text-sm font-medium">{t("pdf_file")}</label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="file"
@@ -377,7 +377,7 @@ export default function AdminCourseContentPage() {
             )}
             {lessonForm.contentType === "image" && (
               <div>
-                <label className="text-sm font-medium">Image File</label>
+                <label className="text-sm font-medium">{t("image_file")}</label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="file"

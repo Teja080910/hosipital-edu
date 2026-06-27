@@ -25,6 +25,7 @@ import { Plus, Pencil, Trash2, Star, Loader2 } from "lucide-react";
 
 export default function AdminTestimonialsPage() {
   const t = useTranslations("admin");
+  const c = useTranslations("common");
   const params = useParams();
   const locale = String(params.locale || "en");
   const [testimonials, setTestimonials] = useState<any[]>([]);
@@ -50,7 +51,7 @@ export default function AdminTestimonialsPage() {
       const { data } = await testimonialsApi.getAllAdmin();
       setTestimonials(data);
     } catch {
-      toast.error("Failed to load testimonials");
+      toast.error(t("failed_to_load_testimonials"));
     } finally {
       setLoading(false);
     }
@@ -97,15 +98,15 @@ export default function AdminTestimonialsPage() {
       };
       if (editing) {
         await testimonialsApi.update(editing.id, payload);
-        toast.success("Testimonial updated");
+        toast.success(t("testimonial_updated"));
       } else {
         await testimonialsApi.create(payload);
-        toast.success("Testimonial created");
+        toast.success(t("testimonial_created"));
       }
       setDialogOpen(false);
       fetchTestimonials();
     } catch {
-      toast.error("Failed to save testimonial");
+      toast.error(t("failed_to_save"));
     } finally {
       setSaving(false);
     }
@@ -115,11 +116,11 @@ export default function AdminTestimonialsPage() {
     if (!deleteTarget) return;
     try {
       await testimonialsApi.remove(deleteTarget.id);
-      toast.success("Testimonial deleted");
+      toast.success(t("testimonial_deleted"));
       setDeleteTarget(null);
       fetchTestimonials();
     } catch {
-      toast.error("Failed to delete testimonial");
+      toast.error(t("failed_to_delete"));
     }
   };
 
@@ -128,14 +129,14 @@ export default function AdminTestimonialsPage() {
       await testimonialsApi.update(item.id, { isActive: !item.isActive });
       fetchTestimonials();
     } catch {
-      toast.error("Failed to update testimonial");
+      toast.error(t("failed_to_update_testimonial"));
     }
   };
 
   const columns = [
     {
       key: "rating",
-      header: "Rating",
+      header: t("col_rating"),
       render: (row: any) => (
         <div className="flex gap-0.5">
           {[...Array(5)].map((_, j) => (
@@ -146,18 +147,18 @@ export default function AdminTestimonialsPage() {
     },
     {
       key: "name",
-      header: "Name",
+      header: t("col_name"),
       sortable: true,
       render: (row: any) => row.name?.[locale] || row.name?.en || "",
     },
     {
       key: "role",
-      header: "Role",
+      header: t("col_role"),
       render: (row: any) => row.role?.[locale] || row.role?.en || "",
     },
     {
       key: "text",
-      header: "Testimonial",
+      header: t("col_testimonial"),
       render: (row: any) => (
         <span className="line-clamp-2 italic text-muted-foreground">
           &ldquo;{row.text?.[locale] || row.text?.en || ""}&rdquo;
@@ -166,7 +167,7 @@ export default function AdminTestimonialsPage() {
     },
     {
       key: "isActive",
-      header: "Active",
+      header: t("col_active"),
       render: (row: any) => (
         <Switch
           checked={row.isActive}
@@ -204,12 +205,12 @@ export default function AdminTestimonialsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Testimonials</h1>
-            <p className="text-muted-foreground mt-1">Manage student testimonials shown on the landing page</p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("testimonials_title")}</h1>
+            <p className="text-muted-foreground mt-1">{t("testimonials_subtitle")}</p>
           </div>
           <Button onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Testimonial
+            {t("add_testimonial")}
           </Button>
         </div>
 
@@ -223,40 +224,40 @@ export default function AdminTestimonialsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent key={dialogOpen ? "open" : "closed"} className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit Testimonial" : "Add Testimonial"}</DialogTitle>
+            <DialogTitle>{editing ? t("edit_testimonial") : t("add_testimonial")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Name (EN)</label>
-                <Input value={form.nameEn} onChange={(e) => setForm({ ...form, nameEn: e.target.value })} placeholder="e.g. Maria Garcia" />
+                <label className="text-sm font-medium">{t("name_en")}</label>
+                <Input value={form.nameEn} onChange={(e) => setForm({ ...form, nameEn: e.target.value })} placeholder={t("placeholder_name_en")} />
               </div>
               <div>
-                <label className="text-sm font-medium">Name (ES)</label>
-                <Input value={form.nameEs} onChange={(e) => setForm({ ...form, nameEs: e.target.value })} placeholder="e.g. Maria Garcia" />
+                <label className="text-sm font-medium">{t("name_es")}</label>
+                <Input value={form.nameEs} onChange={(e) => setForm({ ...form, nameEs: e.target.value })} placeholder={t("placeholder_name_en")} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Role (EN)</label>
-                <Input value={form.roleEn} onChange={(e) => setForm({ ...form, roleEn: e.target.value })} placeholder="e.g. Medical Student" />
+                <label className="text-sm font-medium">{t("role_en")}</label>
+                <Input value={form.roleEn} onChange={(e) => setForm({ ...form, roleEn: e.target.value })} placeholder={t("placeholder_role_en")} />
               </div>
               <div>
-                <label className="text-sm font-medium">Role (ES)</label>
-                <Input value={form.roleEs} onChange={(e) => setForm({ ...form, roleEs: e.target.value })} placeholder="e.g. Estudiante de Medicina" />
+                <label className="text-sm font-medium">{t("role_es")}</label>
+                <Input value={form.roleEs} onChange={(e) => setForm({ ...form, roleEs: e.target.value })} placeholder={t("placeholder_role_es")} />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium">Testimonial (EN)</label>
-              <Textarea value={form.textEn} onChange={(e) => setForm({ ...form, textEn: e.target.value })} rows={3} placeholder="What the student says..." />
+              <label className="text-sm font-medium">{t("testimonial_en")}</label>
+              <Textarea value={form.textEn} onChange={(e) => setForm({ ...form, textEn: e.target.value })} rows={3} placeholder={t("placeholder_testimonial_en")} />
             </div>
             <div>
-              <label className="text-sm font-medium">Testimonial (ES)</label>
-              <Textarea value={form.textEs} onChange={(e) => setForm({ ...form, textEs: e.target.value })} rows={3} placeholder="Lo que el estudiante dice..." />
+              <label className="text-sm font-medium">{t("testimonial_es")}</label>
+              <Textarea value={form.textEs} onChange={(e) => setForm({ ...form, textEs: e.target.value })} rows={3} placeholder={t("placeholder_testimonial_es")} />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium">Rating (1-5)</label>
+                <label className="text-sm font-medium">{t("rating_label")}</label>
                 <Input
                   type="number"
                   min={1}
@@ -266,7 +267,7 @@ export default function AdminTestimonialsPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Sort Order</label>
+                <label className="text-sm font-medium">{t("sort_order")}</label>
                 <Input
                   type="number"
                   value={form.sortOrder}
@@ -275,14 +276,14 @@ export default function AdminTestimonialsPage() {
               </div>
               <div className="flex items-end pb-1">
                 <Switch checked={form.isActive} onCheckedChange={(v) => setForm({ ...form, isActive: v })} />
-                <span className="ml-2 text-sm">Active</span>
+                <span className="ml-2 text-sm">{t("col_active")}</span>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{c("cancel")}</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : editing ? "Update" : "Create"}
+              {saving ? t("saving") : editing ? t("update_btn_text") : c("create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -292,8 +293,8 @@ export default function AdminTestimonialsPage() {
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
-        title="Delete Testimonial"
-        description="This action cannot be undone."
+        title={t("delete_title")}
+        description={t("delete_testimonial_confirm")}
       />
     </PageTransition>
   );

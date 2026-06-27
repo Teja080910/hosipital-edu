@@ -50,7 +50,7 @@ export class UsersController {
   @ApiOperation({ summary: "Get user's referral info" })
   async getReferral(@Param("id") id: string, @CurrentUser() user: any) {
     if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
-      return { message: "Access denied" };
+      return { message: this.i18n.t("users.accessDenied") };
     }
     return this.usersService.getReferralInfo(id);
   }
