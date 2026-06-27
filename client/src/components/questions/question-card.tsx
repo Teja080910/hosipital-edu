@@ -51,12 +51,12 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h3 className="text-lg font-medium break-words">{question.text}</h3>
+          <h3 className="text-lg font-medium break-words" dangerouslySetInnerHTML={{ __html: question.text }} />
         </div>
 
-        {question.images && question.images.length > 0 && (
+        {question.images && question.images.filter((img) => img.section === "title" || !img.section).length > 0 && (
           <div className="flex flex-wrap gap-4">
-            {question.images.map((img) => (
+            {question.images.filter((img) => img.section === "title" || !img.section).map((img) => (
               <a key={img.id} href={img.url} target="_blank" rel="noopener noreferrer">
                 <img src={img.url} alt={img.caption || t("question_image")} className="max-w-full rounded-lg border" style={{ maxHeight: 400 }} />
               </a>
@@ -114,7 +114,10 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
         {showAnswer && question.explanation && (
           <div className="rounded-lg bg-muted p-4">
             <p className="text-sm font-medium mb-1">{t("explanation")}:</p>
-            <div className="text-sm text-muted-foreground space-y-1">{question.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
+            <div className="text-sm text-muted-foreground space-y-1" dangerouslySetInnerHTML={{ __html: question.explanation }} />
+            {question.images?.filter((img) => img.section === "explanation").map((img) => (
+              <img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />
+            ))}
           </div>
         )}
       </CardContent>

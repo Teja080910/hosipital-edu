@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { coursesApi, certificatesApi } from "@/lib/api";
 import { CourseQuiz } from "@/components/courses/course-quiz";
 import { ChevronRight, Clock, DollarSign, FileQuestion, FileText, Loader2, Play, Award, ClipboardCheck, BarChart3 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ export default function CourseDetailPage() {
   const c = useTranslations("common");
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +51,21 @@ export default function CourseDetailPage() {
       }
     }).catch(() => toast.error(t("not_found"))).finally(() => setLoading(false));
   }, [slug, t, user]);
+
+  useEffect(() => {
+    if (searchParams.get("enroll") === "success") {
+      setIsEnrolled(true);
+      toast.success(t("enrolled"));
+      const url = new URL(window.location.href);
+      url.searchParams.delete("enroll");
+      url.searchParams.delete("session_id");
+      window.history.replaceState({}, "", url.toString());
+      coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
+      coursesApi.getPreTest(slug).then(({ data }) => setPreTest(data)).catch(() => {});
+      coursesApi.getPostTest(slug).then(({ data }) => setPostTest(data)).catch(() => {});
+      coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
+    }
+  }, [searchParams, slug, t]);
 
   useEffect(() => {
     if (!isEnrolled || !slug) return;
@@ -94,7 +110,11 @@ export default function CourseDetailPage() {
     if (!course) return;
     setEnrolling(true);
     try {
-      await coursesApi.enroll(slug);
+      const { data } = await coursesApi.enroll(slug);
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
       setIsEnrolled(true);
       toast.success(t("enrolled"));
       coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
@@ -262,6 +282,9 @@ export default function CourseDetailPage() {
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("what_you_will_learn")}</h3>
                   <p className="text-sm mt-1 whitespace-pre-wrap">{course.whatYouWillLearn.en}</p>
                 </div>
+              )}
+              {!course.introduction?.en && !course.objectives?.en && !course.targetAudience?.en && !course.prerequisites?.en && !course.whatYouWillLearn?.en && (
+                <p className="text-sm text-muted-foreground">{t("no_details")}</p>
               )}
             </CardContent>
           </Card>

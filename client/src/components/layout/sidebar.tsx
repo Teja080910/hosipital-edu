@@ -44,8 +44,8 @@ const allNavItems = [
   { href: "/dashboard/flashcards", icon: Library, label: "flashcards", accountTypes: ["full"] },
   { href: "/dashboard/exams", icon: GraduationCap, label: "exams", accountTypes: ["full"] },
   { href: "/dashboard/courses", icon: BookOpen, label: "courses" },
-  { href: "/dashboard/calendar", icon: Calendar, label: "calendar" },
-  { href: "/dashboard/progress", icon: BarChart3, label: "progress" },
+  { href: "/dashboard/calendar", icon: Calendar, label: "calendar", accountTypes: ["full"] },
+  { href: "/dashboard/progress", icon: BarChart3, label: "progress", accountTypes: ["full"] },
   { href: "/dashboard/videos", icon: Video, label: "videos", accountTypes: ["full"] },
 ];
 
@@ -83,6 +83,9 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const navItems = allNavItems.filter(item => {
     if (!item.accountTypes) return true;
+    if (user?.accountType === "course_only") {
+      return item.label === "courses" || item.label === "dashboard";
+    }
     return item.accountTypes.includes(user?.accountType || "full");
   });
   const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);

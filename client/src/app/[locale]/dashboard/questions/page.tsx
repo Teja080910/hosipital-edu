@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { QuestionFilter } from "@/components/questions/question-filter";
 import { QuestionCard } from "@/components/questions/question-card";
 import { ExamHistory } from "@/components/exams/exam-history";
@@ -85,6 +86,7 @@ export default function QuestionsPage() {
   const selectedQuestion = questions.find((q) => q.id === viewingId) || null;
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -203,5 +205,6 @@ export default function QuestionsPage() {
         </Tabs>
       </div>
     </PageTransition>
+    </AccountTypeGate>
   );
 }

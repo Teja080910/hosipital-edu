@@ -26,7 +26,7 @@ import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { flashcardsApi, examsApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Upload, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminFlashcardsPage() {
@@ -41,11 +41,15 @@ export default function AdminFlashcardsPage() {
   const [exams, setExams] = useState<any[]>([]);
   const [specialties, setSpecialties] = useState<any[]>([]);
   const [topics, setTopics] = useState<any[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importing, setImporting] = useState(false);
   const [form, setForm] = useState({
     front: "",
     back: "",
     reference: "",
     examId: "",
+    examIds: [] as string[],
     specialtyId: "",
     topicId: "",
     quantity: 1,
@@ -56,16 +60,23 @@ export default function AdminFlashcardsPage() {
   }, []);
 
   useEffect(() => {
-    if (form.examId) {
-      examsApi.get(form.examId).then(({ data }) => {
-        setSpecialties(data.specialties || []);
-        setTopics([]);
-      }).catch(() => setSpecialties([]));
-    } else {
+    if (form.examIds.length === 0) {
       setSpecialties([]);
       setTopics([]);
+      return;
     }
-  }, [form.examId]);
+    Promise.all(
+      form.examIds.map((examId) =>
+        examsApi.get(examId).then(({ data }) => data.specialties || []).catch(() => [])
+      )
+    ).then((results) => {
+      const merged = results.flat().filter(
+        (s: any, i: number, arr: any[]) => arr.findIndex((x: any) => x.id === s.id) === i
+      );
+      setSpecialties(merged);
+      setTopics([]);
+    });
+  }, [form.examIds]);
 
   useEffect(() => {
     if (form.specialtyId) {
@@ -79,7 +90,7 @@ export default function AdminFlashcardsPage() {
   const fetchFlashcards = useCallback(async () => {
     try {
       const { data } = await flashcardsApi.list({ limit: "1000" });
-      setFlashcards(Array.isArray(data) ? data : data?.items || []);
+      setFlashcards(Array.isArray(data) ? data : data?.data || []);
     } catch {
       toast.error(t("failed_to_load_flashcards"));
     } finally {
@@ -91,7 +102,7 @@ export default function AdminFlashcardsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ front: "", back: "", reference: "", examId: "", specialtyId: "", topicId: "", quantity: 1 });
+    setForm({ front: "", back: "", reference: "", examId: "", examIds: [], specialtyId: "", topicId: "", quantity: 1 });
     setDialogOpen(true);
   };
 
@@ -102,6 +113,7 @@ export default function AdminFlashcardsPage() {
       back: f.back || "",
       reference: f.reference || "",
       examId: f.examId || "",
+      examIds: f.examIds || [],
       specialtyId: f.specialtyId || "",
       topicId: f.topicId || "",
       quantity: 1,
@@ -118,7 +130,7 @@ export default function AdminFlashcardsPage() {
           front: form.front,
           back: form.back,
           reference: form.reference,
-          examId: form.examId || null,
+          examIds: form.examIds,
           specialtyId: form.specialtyId || null,
           topicId: form.topicId || null,
         });
@@ -130,7 +142,7 @@ export default function AdminFlashcardsPage() {
             front: form.front,
             back: form.back,
             reference: form.reference,
-            examId: form.examId || null,
+            examIds: form.examIds,
             specialtyId: form.specialtyId || null,
             topicId: form.topicId || null,
           })
@@ -159,9 +171,61 @@ export default function AdminFlashcardsPage() {
     }
   };
 
+  const handleImport = async () => {
+    if (!importText.trim()) return;
+    setImporting(true);
+    try {
+      const lines = importText.trim().split("\n").filter(Boolean);
+      const cards = lines.map((line) => {
+        const parts = line.split("\t");
+        if (parts.length < 2) {
+          const m = line.match(/^(.+?)[\t,;]+(.+)$/);
+          return m ? { front: m[1].trim(), back: m[2].trim() } : null;
+        }
+        return { front: parts[0].trim(), back: parts[1].trim() };
+      }).filter(Boolean);
+
+      if (cards.length === 0) {
+        toast.error("No valid flashcards found. Use tab or comma-separated format: front\tback");
+        setImporting(false);
+        return;
+      }
+
+      const promises = cards.map((c: any) =>
+        flashcardsApi.create({
+          front: c.front,
+          back: c.back,
+          reference: "",
+          examId: null,
+          specialtyId: null,
+          topicId: null,
+        })
+      );
+      await Promise.all(promises);
+      toast.success(`${cards.length} flashcard(s) imported`);
+      setImportOpen(false);
+      setImportText("");
+      fetchFlashcards();
+    } catch {
+      toast.error("Failed to import flashcards");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const columns = [
     { key: "front", header: t("col_front"), sortable: true, render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.front}</span> },
     { key: "back", header: t("col_back"), render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.back}</span> },
+    {
+      key: "specialty",
+      header: "Specialty",
+      render: (row: any) => <span className="text-sm text-muted-foreground">{row.specialty?.en || row.specialty || "—"}</span>,
+    },
+    {
+      key: "topic",
+      header: "Topic",
+      render: (row: any) => <span className="text-sm text-muted-foreground">{row.topic?.en || row.topic || "—"}</span>,
+    },
     {
       key: "actions",
       header: "",
@@ -194,7 +258,10 @@ export default function AdminFlashcardsPage() {
             <h1 className="text-3xl font-bold tracking-tight">{t("flashcard_mgmt_title")}</h1>
             <p className="text-muted-foreground">{t("flashcard_mgmt_subtitle")}</p>
           </div>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> {t("create_flashcard")}</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-2" /> Import</Button>
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> {t("create_flashcard")}</Button>
+          </div>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -256,15 +323,34 @@ export default function AdminFlashcardsPage() {
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
-                <Select value={form.examId || "__none__"} onValueChange={(v) => setForm({ ...form, examId: v === "__none__" ? "" : v, specialtyId: "", topicId: "" })}>
-                  <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4">
-                    <SelectValue placeholder={t("select_exam_placeholder")} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-      <SelectItem value="__none__">{t("none")}</SelectItem>
-                    {exams.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name?.en || e.slug}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-xl border border-border/80 min-h-[44px]">
+                  {form.examIds.length === 0 && (
+                    <span className="text-sm text-muted-foreground/50 px-2 py-1">{t("none")}</span>
+                  )}
+                  {form.examIds.map((eId) => {
+                    const exam = exams.find((e: any) => e.id === eId);
+                    return (
+                      <span key={eId} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium">
+                        {exam?.name?.en || exam?.name || eId}
+                        <button type="button" onClick={() => setForm({ ...form, examIds: form.examIds.filter((id) => id !== eId), specialtyId: "", topicId: "" })} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {exams.filter((e: any) => !form.examIds.includes(e.id)).map((e: any) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, examIds: [...form.examIds, e.id] })}
+                      className="px-2.5 py-1 rounded-lg border border-border/60 text-xs text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+                    >
+                      + {e.name?.en || e.name}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -350,6 +436,41 @@ export default function AdminFlashcardsPage() {
         variant="destructive"
         onConfirm={handleDelete}
       />
+
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="sm:max-w-xl rounded-2xl border border-border/80 bg-background/95 backdrop-blur-xl shadow-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b border-border/60">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div className="text-left">
+                <DialogTitle className="text-xl font-bold tracking-tight">Import Flashcards</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Paste tab or comma-separated data (front, back) — one per line</p>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="p-6 space-y-4">
+            <Textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              rows={10}
+              className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm font-mono"
+              placeholder={`front\tback\nExample question\tExample answer`}
+            />
+            <p className="text-xs text-muted-foreground">
+              Format: one flashcard per line, front and back separated by tab or comma
+            </p>
+          </div>
+          <DialogFooter className="p-6 pt-4 border-t border-border/60 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => { setImportOpen(false); setImportText(""); }} className="rounded-xl px-6 h-10 text-sm font-medium">{c("cancel")}</Button>
+            <Button onClick={handleImport} disabled={importing || !importText.trim()} className="rounded-xl px-6 h-10 text-sm font-medium shadow-md">
+              {importing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Import
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }

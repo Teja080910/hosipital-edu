@@ -3,6 +3,7 @@ import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import {
   flashcards,
+  flashcardExams,
   userFlashcardReviews,
   users,
   userSubscriptions,
@@ -10,7 +11,7 @@ import {
   specialties,
   topics,
 } from "../database/schema";
-import { eq, and, inArray, isNull, or, count, sql, type SQL } from "drizzle-orm";
+import { eq, and, inArray, isNull, or, count, sql, lte, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -29,20 +30,41 @@ export class FlashcardsService {
   }, user?: any) {
     const { examId, specialtyId, topicId, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
-    const conditions = [eq(flashcards.isActive, true), sql`${flashcards.back} IS NOT NULL AND ${flashcards.back} != ''`];
+    const conditions = [eq(flashcards.isActive, true)];
 
-    let subExamId: string | null = null;
-    if (user) {
-      subExamId = await this.getSubscriptionExamId(user.id);
-    }
+    const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
 
-    if (subExamId) {
-      conditions.push(eq(flashcards.examId, subExamId));
-      if (examId && examId !== subExamId) {
-        return { items: [], total: 0 };
+    if (!isAdmin) {
+      let subExamId: string | null = null;
+      if (user) {
+        subExamId = await this.getSubscriptionExamId(user.id);
+      }
+
+      if (subExamId) {
+        const subFIds = await this.db
+          .select({ flashcardId: flashcardExams.flashcardId })
+          .from(flashcardExams)
+          .where(eq(flashcardExams.examId, subExamId));
+        const subIds = subFIds.map((r: any) => r.flashcardId);
+        conditions.push(inArray(flashcards.id, subIds));
+        if (examId && examId !== subExamId) {
+          return { data: [], total: 0, page, limit };
+        }
+      } else if (examId) {
+        const examFIds = await this.db
+          .select({ flashcardId: flashcardExams.flashcardId })
+          .from(flashcardExams)
+          .where(eq(flashcardExams.examId, examId));
+        const eIds = examFIds.map((r: any) => r.flashcardId);
+        conditions.push(inArray(flashcards.id, eIds));
       }
     } else if (examId) {
-      conditions.push(or(eq(flashcards.examId, examId), isNull(flashcards.examId)) as SQL<unknown>);
+      const examFIds = await this.db
+        .select({ flashcardId: flashcardExams.flashcardId })
+        .from(flashcardExams)
+        .where(eq(flashcardExams.examId, examId));
+      const eIds = examFIds.map((r: any) => r.flashcardId);
+      conditions.push(inArray(flashcards.id, eIds));
     }
 
     if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
@@ -78,8 +100,22 @@ export class FlashcardsService {
       .limit(limit)
       .offset(offset);
 
+    const fIds = rows.map((r: any) => r.id);
+    const allExamLinks = fIds.length
+      ? await this.db
+          .select()
+          .from(flashcardExams)
+          .where(inArray(flashcardExams.flashcardId, fIds))
+      : [];
+
+    const examIdsByF = new Map<string, string[]>();
+    for (const link of allExamLinks) {
+      if (!examIdsByF.has(link.flashcardId)) examIdsByF.set(link.flashcardId, []);
+      examIdsByF.get(link.flashcardId)!.push(link.examId);
+    }
+
     return {
-      data: rows,
+      data: rows.map((r: any) => ({ ...r, examIds: examIdsByF.get(r.id) || [] })),
       total: totalResult?.total ?? 0,
       page,
       limit,
@@ -88,55 +124,74 @@ export class FlashcardsService {
 
   async findDue(userId: string, limit = 20) {
     const subExamId = await this.getSubscriptionExamId(userId);
+    const now = new Date();
     const conditions = [
       eq(userFlashcardReviews.userId, userId),
       eq(flashcards.isActive, true),
+      lte(userFlashcardReviews.nextReviewAt, now),
     ];
-    if (subExamId) conditions.push(eq(flashcards.examId, subExamId));
+    if (subExamId) {
+      const subFIds = await this.db
+        .select({ flashcardId: flashcardExams.flashcardId })
+        .from(flashcardExams)
+        .where(eq(flashcardExams.examId, subExamId));
+      const subIds = subFIds.map((r: any) => r.flashcardId);
+      conditions.push(inArray(flashcards.id, subIds));
+    }
 
     return this.db
       .select({
-        id: userFlashcardReviews.id,
-        userId: userFlashcardReviews.userId,
-        flashcardId: userFlashcardReviews.flashcardId,
-        easeFactor: userFlashcardReviews.easeFactor,
-        interval: userFlashcardReviews.interval,
-        repetitions: userFlashcardReviews.repetitions,
-        nextReviewAt: userFlashcardReviews.nextReviewAt,
-        lastReviewedAt: userFlashcardReviews.lastReviewedAt,
-        createdAt: userFlashcardReviews.createdAt,
-        updatedAt: userFlashcardReviews.updatedAt,
-        flashcard: {
-          id: flashcards.id,
-          front: flashcards.front,
-          back: flashcards.back,
-          reference: flashcards.reference,
-          examId: flashcards.examId,
-          specialtyId: flashcards.specialtyId,
-          topicId: flashcards.topicId,
-        },
+        id: flashcards.id,
+        front: flashcards.front,
+        back: flashcards.back,
+        reference: flashcards.reference,
+        specialtyId: flashcards.specialtyId,
+        topicId: flashcards.topicId,
+        specialty: specialties.name,
+        topic: topics.name,
       })
       .from(userFlashcardReviews)
       .innerJoin(
         flashcards,
         eq(flashcards.id, userFlashcardReviews.flashcardId),
       )
+      .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+      .leftJoin(topics, eq(flashcards.topicId, topics.id))
       .where(and(...conditions))
       .limit(limit);
   }
 
   async create(data: any) {
-    const [card] = await this.db.insert(flashcards).values(stripTimestamps(data)).returning();
+    const { examIds, ...cardData } = data;
+    const [card] = await this.db.insert(flashcards).values(stripTimestamps(cardData)).returning();
+    if (examIds?.length) {
+      await this.db
+        .insert(flashcardExams)
+        .values(examIds.map((eId: string) => ({ flashcardId: card.id, examId: eId })));
+    }
     return card;
   }
 
   async update(id: string, data: any) {
+    const { examIds, ...cardData } = data;
     const [card] = await this.db
       .update(flashcards)
-      .set({ ...stripTimestamps(data), updatedAt: new Date() })
+      .set({ ...stripTimestamps(cardData), updatedAt: new Date() })
       .where(eq(flashcards.id, id))
       .returning();
     if (!card) throw new NotFoundException(this.i18n.t("flashcards.notFound"));
+
+    if (examIds) {
+      await this.db
+        .delete(flashcardExams)
+        .where(eq(flashcardExams.flashcardId, id));
+      if (examIds.length > 0) {
+        await this.db
+          .insert(flashcardExams)
+          .values(examIds.map((eId: string) => ({ flashcardId: id, examId: eId })));
+      }
+    }
+
     return card;
   }
 
@@ -188,12 +243,12 @@ export class FlashcardsService {
         .limit(1);
 
       if (plan?.examId) {
-        const [card] = await this.db
-          .select({ examId: flashcards.examId })
-          .from(flashcards)
-          .where(eq(flashcards.id, flashcardId))
+        const [link] = await this.db
+          .select()
+          .from(flashcardExams)
+          .where(and(eq(flashcardExams.flashcardId, flashcardId), eq(flashcardExams.examId, plan.examId)))
           .limit(1);
-        if (!card || card.examId !== plan.examId) {
+        if (!link) {
           throw new HttpException("Flashcard not found for your subscription.", HttpStatus.FORBIDDEN);
         }
       }
@@ -290,17 +345,19 @@ export class FlashcardsService {
 
   async getSpecialties(userId: string) {
     const subExamId = await this.getSubscriptionExamId(userId);
-    const conditions: any[] = [eq(flashcards.isActive, true)];
-    if (subExamId) conditions.push(eq(flashcards.examId, subExamId));
 
-    const rows = await this.db
-      .selectDistinct({
+    let query = this.db
+      .select({
         id: specialties.id,
         name: specialties.name,
       })
-      .from(flashcards)
-      .innerJoin(specialties, eq(flashcards.specialtyId, specialties.id))
-      .where(and(...conditions));
+      .from(specialties);
+
+    if (subExamId) {
+      query = query.where(eq(specialties.examId, subExamId));
+    }
+
+    const rows = await query;
 
     rows.sort((a, b) => (a.name?.en ?? "").localeCompare(b.name?.en ?? ""));
 

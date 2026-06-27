@@ -12,6 +12,8 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { CalendarService } from "./calendar.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { AccountTypeGuard } from "../common/guards/account-type.guard";
+import { AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("calendar")
@@ -22,6 +24,8 @@ export class CalendarController {
   constructor(private calendarService: CalendarService) {}
 
   @Get()
+  @UseGuards(AccountTypeGuard)
+  @AllowedAccountTypes("full")
   @ApiOperation({ summary: "Get events filtered by date range" })
   async findAll(
     @CurrentUser() user: any,
@@ -36,18 +40,24 @@ export class CalendarController {
   }
 
   @Post()
+  @UseGuards(AccountTypeGuard)
+  @AllowedAccountTypes("full")
   @ApiOperation({ summary: "Create event" })
   async create(@Body() data: any, @CurrentUser() user: any) {
-    return this.calendarService.create({ ...data, createdBy: user.id });
+    return this.calendarService.create({ ...data, userId: user.id, createdBy: user.id });
   }
 
   @Patch(":id")
+  @UseGuards(AccountTypeGuard)
+  @AllowedAccountTypes("full")
   @ApiOperation({ summary: "Update event" })
   async update(@Param("id") id: string, @Body() data: any) {
     return this.calendarService.update(id, data);
   }
 
   @Delete(":id")
+  @UseGuards(AccountTypeGuard)
+  @AllowedAccountTypes("full")
   @ApiOperation({ summary: "Delete event" })
   async remove(@Param("id") id: string) {
     return this.calendarService.delete(id);

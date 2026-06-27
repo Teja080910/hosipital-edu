@@ -75,7 +75,7 @@ export class StreamController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create a video module" })
-  async createModule(@Body() data: { title: any; description: any; examId?: string; sortOrder?: number }) {
+  async createModule(@Body() data: { title: any; description: any; examIds?: string[]; sortOrder?: number }) {
     return this.stream.createModule(data);
   }
 
@@ -86,7 +86,7 @@ export class StreamController {
   @ApiOperation({ summary: "Update a video module" })
   async updateModule(
     @Param("id") id: string,
-    @Body() data: { title?: any; description?: any; examId?: string; sortOrder?: number; isActive?: boolean },
+    @Body() data: { title?: any; description?: any; examIds?: string[]; sortOrder?: number; isActive?: boolean },
   ) {
     return this.stream.updateModule(id, data);
   }

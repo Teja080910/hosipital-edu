@@ -1,8 +1,8 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions } from "../database/schema";
+import { exams, questionExams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions } from "../database/schema";
 
 @Injectable()
 export class ExamsService {
@@ -12,20 +12,29 @@ export class ExamsService {
   ) {}
 
   async findAll(user?: any) {
-    let subExamId: string | null = null;
+    let allowedExamId: string | null = null;
     if (user) {
-      const [sub] = await this.db
-        .select({ examId: subscriptionPlans.examId })
-        .from(userSubscriptions)
-        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
-        .limit(1);
-      subExamId = sub?.examId || null;
+      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      if (!isAdmin) {
+        const [sub] = await this.db
+          .select({ examId: subscriptionPlans.examId })
+          .from(userSubscriptions)
+          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+          .limit(1);
+        allowedExamId = sub?.examId || user.targetExamId || null;
+      }
     }
 
-    const questionFilter = subExamId
-      ? sql`questions.exam_id = ${subExamId}`
-      : sql`(questions.exam_id = exams.id OR questions.exam_id IS NULL)`;
+    if (user && !allowedExamId && user.role !== "admin" && user.role !== "super_admin") return [];
+
+    const questionFilter = allowedExamId
+      ? sql`(SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = ${allowedExamId} AND question_exams.question_id = questions.id)`
+      : sql`(SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = exams.id AND question_exams.question_id = questions.id)`;
+
+    const examFilter = allowedExamId
+      ? eq(exams.id, allowedExamId)
+      : eq(exams.isActive, true);
 
     const rows = await this.db
       .select({
@@ -36,21 +45,37 @@ export class ExamsService {
         isActive: exams.isActive,
         sortOrder: exams.sortOrder,
         createdAt: exams.createdAt,
-        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE ${questionFilter} AND questions.is_active = true)`,
+        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE ${questionFilter} > 0 AND questions.is_active = true)`,
       })
       .from(exams)
-      .where(eq(exams.isActive, true))
+      .where(examFilter)
       .orderBy(asc(exams.sortOrder));
     return rows;
   }
 
-  async findById(id: string) {
+  async findById(id: string, user?: any) {
     const [exam] = await this.db
       .select()
       .from(exams)
       .where(eq(exams.id, id))
       .limit(1);
     if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
+
+    if (user) {
+      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      if (!isAdmin) {
+        const [sub] = await this.db
+          .select({ examId: subscriptionPlans.examId })
+          .from(userSubscriptions)
+          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+          .limit(1);
+        const allowedExamId = sub?.examId || user.targetExamId || null;
+        if (allowedExamId && allowedExamId !== id) {
+          throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
+        }
+      }
+    }
 
     const specs = await this.db
       .select()

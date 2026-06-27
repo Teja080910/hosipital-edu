@@ -34,7 +34,8 @@ function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [targetExamId, setTargetExamId] = useState("");
+  const COURSES_OPTION = "courses";
+  const [targetExamId, setTargetExamId] = useState(COURSES_OPTION);
   const [exams, setExams] = useState<{ id: string; name: Record<string, string>; slug: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -71,7 +72,7 @@ function RegisterPage() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      await register(name, email, password, referralCode, targetExamId || undefined);
+      await register(name, email, password, referralCode, targetExamId === COURSES_OPTION ? undefined : targetExamId || undefined, targetExamId === COURSES_OPTION ? "course_only" : undefined);
       toast.success(t("account_created"));
       setLoading(false);
       router.push("/dashboard");
@@ -195,6 +196,7 @@ function RegisterPage() {
                     <SelectValue placeholder={t("select_exam")} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value={COURSES_OPTION}>📚 {t("courses_only")}</SelectItem>
                     {exams.map((exam) => (
                       <SelectItem key={exam.id} value={exam.id}>
                         {exam.name?.en || exam.slug}

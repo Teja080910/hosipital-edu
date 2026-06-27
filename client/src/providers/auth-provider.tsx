@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, referralCode?: string, targetExamId?: string) => Promise<void>;
+  register: (name: string, email: string, password: string, referralCode?: string, targetExamId?: string, accountType?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
   };
 
-  const register = async (name: string, email: string, password: string, referralCode?: string, targetExamId?: string) => {
+  const register = async (name: string, email: string, password: string, referralCode?: string, targetExamId?: string, accountType?: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     const { data } = await authApi.register({
       name: name.trim(),
@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       referralCode,
       targetExamId,
+      accountType,
     });
     setTokens(data.access_token ?? data.accessToken, data.refresh_token ?? data.refreshToken);
     setUser(data.user);

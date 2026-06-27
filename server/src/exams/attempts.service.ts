@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { DRIZZLE } from "../database/database.provider";
@@ -36,12 +37,17 @@ export class AttemptsService {
     customTitle?: string;
   }) {
     const [user] = await this.db
-      .select({ role: users.role })
+      .select({ role: users.role, targetExamId: users.targetExamId })
       .from(users)
       .where(eq(users.id, data.userId))
       .limit(1);
 
     const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+
+    if (!isAdmin && user.targetExamId && user.targetExamId !== data.examId) {
+      throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
+    }
+
     let sub: any = null;
 
     if (!isAdmin) {
@@ -62,7 +68,7 @@ export class AttemptsService {
       }
 
       const plan = sub.subscription_plans;
-      if (plan.isCourseOnly) {
+      if (plan.isCourseOnly && plan.examId !== data.examId) {
         throw new HttpException(this.i18n.t("exams.planOnlyCourses"), HttpStatus.FORBIDDEN);
       }
 

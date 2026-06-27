@@ -4,7 +4,7 @@ import {
   Inject,
 } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
-import { questions, questionOptions, questionImages, userSubscriptions, subscriptionPlans, users } from "../database/schema";
+import { questions, questionExams, questionOptions, questionImages, userSubscriptions, subscriptionPlans, users } from "../database/schema";
 import { and, eq, isNull, ilike, asc, inArray, or, type SQL } from "drizzle-orm";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { I18nService } from "../common/i18n/i18n.service";
@@ -31,27 +31,39 @@ export class QuestionsService {
     const conditions = [eq(questions.isActive, true)];
 
     let isAdmin = false;
+    let isCourseOnly = false;
     if (user) {
       const [u] = await this.db
-        .select({ role: users.role })
+        .select({ role: users.role, accountType: users.accountType })
         .from(users)
         .where(eq(users.id, user.id))
         .limit(1);
       isAdmin = u && (u.role === "admin" || u.role === "super_admin");
+      isCourseOnly = u?.accountType === "course_only";
     }
 
     let subExamId: string | null = null;
-    if (user && !isAdmin) {
+    if (user && !isAdmin && !isCourseOnly) {
       subExamId = await this.getSubscriptionExamId(user.id);
     }
 
     if (subExamId) {
-      conditions.push(eq(questions.examId, subExamId));
+      const subQIds = await this.db
+        .select({ questionId: questionExams.questionId })
+        .from(questionExams)
+        .where(eq(questionExams.examId, subExamId));
+      const subIds = subQIds.map((r: any) => r.questionId);
+      conditions.push(inArray(questions.id, subIds));
       if (examId && examId !== subExamId) {
         return [];
       }
     } else if (examId) {
-      conditions.push(or(eq(questions.examId, examId), isNull(questions.examId)) as SQL<unknown>);
+      const examQIds = await this.db
+        .select({ questionId: questionExams.questionId })
+        .from(questionExams)
+        .where(eq(questionExams.examId, examId));
+      const eIds = examQIds.map((r: any) => r.questionId);
+      conditions.push(inArray(questions.id, eIds));
     }
 
     if (specialtyId) conditions.push(eq(questions.specialtyId, specialtyId));
@@ -82,6 +94,11 @@ export class QuestionsService {
       .where(inArray(questionImages.questionId, qIds))
       .orderBy(asc(questionImages.sortOrder));
 
+    const allExamLinks = await this.db
+      .select()
+      .from(questionExams)
+      .where(inArray(questionExams.questionId, qIds));
+
     const optionsByQ = new Map<string, any[]>();
     for (const opt of allOptions) {
       if (!optionsByQ.has(opt.questionId)) optionsByQ.set(opt.questionId, []);
@@ -94,7 +111,18 @@ export class QuestionsService {
       imagesByQ.get(img.questionId)!.push(img);
     }
 
-    return items.map((q: any) => ({ ...q, options: optionsByQ.get(q.id) || [], images: imagesByQ.get(q.id) || [] }));
+    const examIdsByQ = new Map<string, string[]>();
+    for (const link of allExamLinks) {
+      if (!examIdsByQ.has(link.questionId)) examIdsByQ.set(link.questionId, []);
+      examIdsByQ.get(link.questionId)!.push(link.examId);
+    }
+
+    return items.map((q: any) => ({
+      ...q,
+      options: optionsByQ.get(q.id) || [],
+      images: imagesByQ.get(q.id) || [],
+      examIds: examIdsByQ.get(q.id) || [],
+    }));
   }
 
   async findById(id: string, user?: any) {
@@ -107,15 +135,23 @@ export class QuestionsService {
 
     if (user) {
       const [u] = await this.db
-        .select({ role: users.role })
+        .select({ role: users.role, accountType: users.accountType })
         .from(users)
         .where(eq(users.id, user.id))
         .limit(1);
       const isAdmin = u && (u.role === "admin" || u.role === "super_admin");
-      if (!isAdmin) {
+      const isCourseOnly = u?.accountType === "course_only";
+      if (!isAdmin && !isCourseOnly) {
         const subExamId = await this.getSubscriptionExamId(user.id);
-        if (subExamId && question.examId !== subExamId) {
-          throw new NotFoundException("Question not found");
+        if (subExamId) {
+          const links = await this.db
+            .select()
+            .from(questionExams)
+            .where(and(eq(questionExams.questionId, id), eq(questionExams.examId, subExamId)))
+            .limit(1);
+          if (!links.length) {
+            throw new NotFoundException("Question not found");
+          }
         }
       }
     }
@@ -132,11 +168,21 @@ export class QuestionsService {
       .where(eq(questionImages.questionId, id))
       .orderBy(asc(questionImages.sortOrder));
 
-    return { ...question, options, images };
+    const examLinks = await this.db
+      .select()
+      .from(questionExams)
+      .where(eq(questionExams.questionId, id));
+
+    return {
+      ...question,
+      options,
+      images,
+      examIds: examLinks.map((l: any) => l.examId),
+    };
   }
 
   async create(data: any) {
-    const { options, images, ...questionData } = data;
+    const { options, images, examIds, ...questionData } = data;
     const [question] = await this.db
       .insert(questions)
       .values(stripTimestamps(questionData))
@@ -152,12 +198,17 @@ export class QuestionsService {
         .insert(questionImages)
         .values(images.map((i: any) => stripTimestamps({ ...i, questionId: question.id })));
     }
+    if (examIds?.length) {
+      await this.db
+        .insert(questionExams)
+        .values(examIds.map((eId: string) => ({ questionId: question.id, examId: eId })));
+    }
 
     return this.findById(question.id);
   }
 
   async update(id: string, data: any) {
-    const { options, images, createdBy, createdAt, updatedAt, deletedAt, examId, specialtyId, topicId, subtopicId, ...questionData } = data;
+    const { options, images, examIds, createdBy, createdAt, updatedAt, deletedAt, examId, specialtyId, topicId, subtopicId, ...questionData } = data;
     const cleanData: any = { ...questionData, updatedAt: new Date() };
     if (examId !== undefined) cleanData.examId = examId || null;
     if (specialtyId !== undefined) cleanData.specialtyId = specialtyId || null;
@@ -186,6 +237,17 @@ export class QuestionsService {
         await this.db
           .insert(questionImages)
           .values(images.map((i: any) => stripTimestamps({ ...i, questionId: id })));
+      }
+    }
+
+    if (examIds) {
+      await this.db
+        .delete(questionExams)
+        .where(eq(questionExams.questionId, id));
+      if (examIds.length > 0) {
+        await this.db
+          .insert(questionExams)
+          .values(examIds.map((eId: string) => ({ questionId: id, examId: eId })));
       }
     }
 
