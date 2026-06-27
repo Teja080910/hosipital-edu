@@ -104,7 +104,7 @@ export default function ExamsPage() {
               const specs = examDetails[exam.id]?.specialties || [];
               const selectedSpecs = selectedExams[exam.id] || [];
               return (
-                <Card key={exam.id} className={`overflow-hidden transition-colors ${isSelected ? "ring-2 ring-primary" : ""}`}>
+                <Card key={exam.id} className={`overflow-hidden ${isSelected ? "ring-2 ring-primary" : ""}`}>
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
@@ -113,7 +113,7 @@ export default function ExamsPage() {
                       </div>
                       <button
                         onClick={() => toggleExam(exam.id)}
-                        className={`flex-shrink-0 h-6 w-6 rounded border flex items-center justify-center transition-colors ${isSelected ? "bg-primary border-primary" : "border-input hover:border-primary"}`}
+                        className={`flex-shrink-0 h-6 w-6 rounded border flex items-center justify-center ${isSelected ? "bg-primary border-primary" : "border-input"}`}
                       >
                         {isSelected && <Check className="h-4 w-4 text-primary-foreground" />}
                       </button>
@@ -146,10 +146,10 @@ export default function ExamsPage() {
                               <button
                                 key={s.id}
                                 onClick={() => toggleSpecialty(exam.id, s.id)}
-                                className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                                className={`text-xs px-2 py-1 rounded-full border ${
                                   isSpecSelected
                                     ? "bg-primary text-primary-foreground border-primary"
-                                    : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                                    : "bg-background text-muted-foreground border-border"
                                 }`}
                               >
                                 {localized(s.name)}

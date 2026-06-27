@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { DRIZZLE } from "../database/database.provider";
 import {
   courses,
@@ -15,12 +16,16 @@ import {
 } from "../database/schema";
 import { eq, and, asc, inArray, sql, desc, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
+import { STRIPE } from "../subscriptions/stripe.provider";
+import Stripe from "stripe";
 
 @Injectable()
 export class CoursesService {
   constructor(
     @Inject(DRIZZLE) private db: any,
     private i18n: I18nService,
+    private config: ConfigService,
+    @Inject(STRIPE) private stripe: Stripe,
   ) {}
 
   async findAll(onlyActive = true, userId?: string) {
@@ -149,7 +154,7 @@ export class CoursesService {
     return { message: this.i18n.t("courses.deleted") };
   }
 
-  async enroll(userId: string, courseId: string, stripePaymentId?: string) {
+  async enroll(userId: string, courseId: string, stripePaymentId?: string, locale?: string) {
     const [course] = await this.db
       .select()
       .from(courses)
@@ -204,6 +209,27 @@ export class CoursesService {
         })
         .returning();
       return enrollment;
+    }
+
+    if (!stripePaymentId) {
+      const appUrl = this.config.get<string>("APP_URL") || "http://localhost:4175";
+      const session = await this.stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [{
+          price_data: {
+            currency: "usd",
+            product_data: { name: course.title?.en || "Course" },
+            unit_amount: Math.round(parseFloat(course.price) * 100),
+          },
+          quantity: 1,
+        }],
+        client_reference_id: userId,
+        metadata: { courseId, type: "course_enrollment" },
+        success_url: `${appUrl}/${locale || "en"}/dashboard/courses/${course.slug}?enroll=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}/${locale || "en"}/dashboard/courses/${course.slug}`,
+      });
+      return { url: session.url };
     }
 
     throw new BadRequestException(this.i18n.t("courses.paymentRequired"));

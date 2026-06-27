@@ -1,13 +1,24 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
-import { videoModules, videoLessons, userVideoProgress } from "../database/schema";
-import { eq, asc, and, sql } from "drizzle-orm";
+import { videoModules, videoModuleExams, videoLessons, userVideoProgress, userSubscriptions, subscriptionPlans } from "../database/schema";
+import { eq, asc, and, inArray, isNull, or, type SQL } from "drizzle-orm";
 
 @Injectable()
 export class VideosService {
   constructor(@Inject(DRIZZLE) private db: any) {}
 
-  async findAll() {
+  async findAll(user?: any) {
+    let subExamId: string | null = null;
+    if (user) {
+      const [sub] = await this.db
+        .select({ examId: subscriptionPlans.examId })
+        .from(userSubscriptions)
+        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+        .limit(1);
+      subExamId = sub?.examId || null;
+    }
+
     const modules = await this.db
       .select()
       .from(videoModules)
@@ -16,12 +27,23 @@ export class VideosService {
 
     const result: Array<Record<string, unknown>> = [];
     for (const mod of modules) {
+      const examLinks = await this.db
+        .select()
+        .from(videoModuleExams)
+        .where(eq(videoModuleExams.moduleId, mod.id));
+
+      const modExamIds = examLinks.map((l: any) => l.examId);
+
+      if (subExamId && modExamIds.length > 0 && !modExamIds.includes(subExamId)) {
+        continue;
+      }
+
       const lessons = await this.db
         .select()
         .from(videoLessons)
         .where(eq(videoLessons.moduleId, mod.id))
         .orderBy(asc(videoLessons.sortOrder));
-      result.push({ ...mod, lessons });
+      result.push({ ...mod, lessons, examIds: modExamIds });
     }
     return result;
   }

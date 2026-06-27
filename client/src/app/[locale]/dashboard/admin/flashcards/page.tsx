@@ -26,7 +26,7 @@ import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { flashcardsApi, examsApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Copy, Upload, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Copy, Upload, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminFlashcardsPage() {
@@ -49,6 +49,7 @@ export default function AdminFlashcardsPage() {
     back: "",
     reference: "",
     examId: "",
+    examIds: [] as string[],
     specialtyId: "",
     topicId: "",
     quantity: 1,
@@ -59,16 +60,23 @@ export default function AdminFlashcardsPage() {
   }, []);
 
   useEffect(() => {
-    if (form.examId) {
-      examsApi.get(form.examId).then(({ data }) => {
-        setSpecialties(data.specialties || []);
-        setTopics([]);
-      }).catch(() => setSpecialties([]));
-    } else {
+    if (form.examIds.length === 0) {
       setSpecialties([]);
       setTopics([]);
+      return;
     }
-  }, [form.examId]);
+    Promise.all(
+      form.examIds.map((examId) =>
+        examsApi.get(examId).then(({ data }) => data.specialties || []).catch(() => [])
+      )
+    ).then((results) => {
+      const merged = results.flat().filter(
+        (s: any, i: number, arr: any[]) => arr.findIndex((x: any) => x.id === s.id) === i
+      );
+      setSpecialties(merged);
+      setTopics([]);
+    });
+  }, [form.examIds]);
 
   useEffect(() => {
     if (form.specialtyId) {
@@ -94,7 +102,7 @@ export default function AdminFlashcardsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ front: "", back: "", reference: "", examId: "", specialtyId: "", topicId: "", quantity: 1 });
+    setForm({ front: "", back: "", reference: "", examId: "", examIds: [], specialtyId: "", topicId: "", quantity: 1 });
     setDialogOpen(true);
   };
 
@@ -105,6 +113,7 @@ export default function AdminFlashcardsPage() {
       back: f.back || "",
       reference: f.reference || "",
       examId: f.examId || "",
+      examIds: f.examIds || [],
       specialtyId: f.specialtyId || "",
       topicId: f.topicId || "",
       quantity: 1,
@@ -121,7 +130,7 @@ export default function AdminFlashcardsPage() {
           front: form.front,
           back: form.back,
           reference: form.reference,
-          examId: form.examId || null,
+          examIds: form.examIds,
           specialtyId: form.specialtyId || null,
           topicId: form.topicId || null,
         });
@@ -133,7 +142,7 @@ export default function AdminFlashcardsPage() {
             front: form.front,
             back: form.back,
             reference: form.reference,
-            examId: form.examId || null,
+            examIds: form.examIds,
             specialtyId: form.specialtyId || null,
             topicId: form.topicId || null,
           })
@@ -313,16 +322,35 @@ export default function AdminFlashcardsPage() {
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Exam</label>
-                <Select value={form.examId || "__none__"} onValueChange={(v) => setForm({ ...form, examId: v === "__none__" ? "" : v, specialtyId: "", topicId: "" })}>
-                  <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4">
-                    <SelectValue placeholder="Select exam" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="__none__">None</SelectItem>
-                    {exams.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name?.en || e.slug}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Exams</label>
+                <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-xl border border-border/80 min-h-[44px]">
+                  {form.examIds.length === 0 && (
+                    <span className="text-sm text-muted-foreground/50 px-2 py-1">None</span>
+                  )}
+                  {form.examIds.map((eId) => {
+                    const exam = exams.find((e: any) => e.id === eId);
+                    return (
+                      <span key={eId} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium">
+                        {exam?.name?.en || exam?.name || eId}
+                        <button type="button" onClick={() => setForm({ ...form, examIds: form.examIds.filter((id) => id !== eId), specialtyId: "", topicId: "" })} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {exams.filter((e: any) => !form.examIds.includes(e.id)).map((e: any) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, examIds: [...form.examIds, e.id] })}
+                      className="px-2.5 py-1 rounded-lg border border-border/60 text-xs text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+                    >
+                      + {e.name?.en || e.name}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-2">

@@ -82,7 +82,11 @@ export default function CoursesPage() {
   const handleEnroll = async (courseId: string, slug: string) => {
     setEnrolling(courseId);
     try {
-      await coursesApi.enroll(slug);
+      const { data } = await coursesApi.enroll(slug);
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
       setEnrolledIds((prev) => new Set(prev).add(courseId));
       toast.success(t("enrolled"));
     } catch {

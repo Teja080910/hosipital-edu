@@ -2,6 +2,7 @@
 
 import { ExamResults } from "@/components/exams/exam-results";
 import { FloatingCalculator } from "@/components/exams/floating-calculator";
+
 import { PageTransition } from "@/components/page-transition";
 import { AccountTypeGate } from "@/components/account-type-gate";
 import { QuestionTimer } from "@/components/questions/question-timer";
@@ -122,7 +123,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       } else {
         const [examRes, questionsRes] = await Promise.all([
           examsApi.get(id),
-          questionsApi.list({ examId: id }),
+          questionsApi.list({ examId: id, limit: 10000 }),
         ]);
         setExam(examRes.data);
         setAllQuestions(questionsRes.data);
@@ -190,7 +191,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const handleFullscreenChange = () => {
       if (isSubmittingRef.current) return;
       if (!document.fullscreenElement) {
-        if (pageState === "taking" && mode === "exam") {
+        if (pageState === "taking" && mode === "exam" && !showSubmitDialog) {
           setShowSubmitDialog(true);
         } else if (pageState === "results") {
           router.push("/dashboard/exams");
@@ -199,7 +200,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, [pageState, mode, router]);
+  }, [pageState, mode, router, showSubmitDialog]);
 
   useEffect(() => {
     let filtered = allQuestions;
@@ -344,7 +345,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       <PageTransition>
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
-            onReview={() => { setReviewMode(true); setPageState("taking"); setShowAnswer(true); }}
+            onReview={() => { setReviewMode(true); setPageState("taking"); setShowAnswer(true); setCurrentIndex(0); }}
             onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.setState({ isActive: false }); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); }}
             onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
@@ -377,6 +378,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       <AccountTypeGate>
       <PageTransition>
         <div className="mx-auto max-w-6xl space-y-5 px-4 p-20">
+          {reviewMode && (
+            <Button variant="ghost" onClick={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}
+            </Button>
+          )}
           {mode === "exam" && !reviewMode && (
             <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
               <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -435,10 +441,10 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6 p-5 sm:p-6">
-                <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words">{currentQuestion.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
-                {currentQuestion.images && currentQuestion.images.length > 0 && (
+                <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words" dangerouslySetInnerHTML={{ __html: currentQuestion.text }} />
+                {currentQuestion.images && currentQuestion.images.filter((img: any) => img.section === "title" || !img.section).length > 0 && (
                   <div className="flex flex-wrap gap-4">
-                    {currentQuestion.images.map((img: any) => (
+                    {currentQuestion.images.filter((img: any) => img.section === "title" || !img.section).map((img: any) => (
                       <button key={img.id} type="button" onClick={() => setLightboxImage(img.url)} className="text-left">
                         <img src={img.url} alt={img.caption || t("question_image")} className="max-w-full rounded-xl border shadow-subtle cursor-pointer hover:opacity-90 transition-opacity" style={{ maxHeight: 400 }} />
                       </button>
@@ -478,7 +484,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                     );
                   })}
                 </div>
-                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><div className="text-sm leading-6 text-muted-foreground space-y-2 break-words">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div></div>)}
+                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><div className="text-sm leading-6 text-muted-foreground space-y-2 break-words" dangerouslySetInnerHTML={{ __html: currentQuestion.explanation }} />{currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}</div>)}
                 {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{currentQuestion.reference}</p></div>)}
                 {!showAnswer && selectedOption && !answers[currentQuestion.id]?.optionId && (
                   <Button onClick={handleSubmitAnswer} className="w-full" size="lg">{t("submit")}</Button>
@@ -532,7 +538,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             </aside>
           </div>
         </div>
-        <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { if (!open && !submittedRef.current) { setShowSubmitDialog(false); if (mode === "exam" && pageState === "taking") { document.documentElement.requestFullscreen().catch(() => {}); } } else { setShowSubmitDialog(open); } }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
+        <ConfirmDialog open={showSubmitDialog} onOpenChange={(open) => { if (!open && !submittedRef.current) { setShowSubmitDialog(false); document.documentElement.requestFullscreen().catch(() => {}); } else { setShowSubmitDialog(open); } }} title={t("submit")} description={t("submit_confirm")} confirmLabel={t("submit")} cancelLabel={tc("cancel")} variant="default" onConfirm={handleConfirmSubmit} />
         <ConfirmDialog open={showTimeWarning} onOpenChange={setShowTimeWarning} title={t("time_up")} description={t("time_up_desc")} confirmLabel={t("submit")} cancelLabel="" variant="default" onConfirm={handleConfirmSubmit} />
         {lightboxImage && (
           <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>

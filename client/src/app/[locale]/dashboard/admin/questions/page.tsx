@@ -28,6 +28,7 @@ import { questionsApi, examsApi, uploadApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, Check, Eye, BookOpen, Lightbulb, CheckCircle2, XCircle, ImageIcon, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 const EMPTY_OPTIONS = [
   { text: "", isCorrect: false },
@@ -154,7 +155,7 @@ export default function AdminQuestionsPage() {
         explanation: form.explanation,
         reference: form.reference,
         difficulty: form.difficulty,
-        specialtyId: null,
+        specialtyId: form.specialtyId || null,
         topicId: null,
         examIds: form.examIds,
       };
@@ -312,23 +313,18 @@ export default function AdminQuestionsPage() {
           <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("question_text")}</label>
-              <Textarea
-                autoFocus
+              <RichTextEditor
                 value={form.text}
-                onChange={(e) => setForm({ ...form, text: e.target.value })}
-                rows={3}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[100px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                onChange={(v) => setForm({ ...form, text: v })}
                 placeholder={t("question_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("explanation")}</label>
-              <Textarea
+              <RichTextEditor
                 value={form.explanation}
-                onChange={(e) => setForm({ ...form, explanation: e.target.value })}
-                rows={2}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                onChange={(v) => setForm({ ...form, explanation: v })}
                 placeholder={t("explanation_placeholder")}
               />
             </div>

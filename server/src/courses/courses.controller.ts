@@ -60,9 +60,10 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
     @Body("stripePaymentId") stripePaymentId?: string,
+    @Body("locale") locale?: string,
   ) {
     const courseId = await this.coursesService.findIdBySlug(slug);
-    return this.coursesService.enroll(user.id, courseId, stripePaymentId);
+    return this.coursesService.enroll(user.id, courseId, stripePaymentId, locale);
   }
 
   @Get(":slug/progress")
