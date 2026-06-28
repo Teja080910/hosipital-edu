@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { calendarApi } from "@/lib/api/calendar";
 import { toast } from "sonner";
 import {
@@ -34,14 +36,8 @@ import {
   GraduationCap,
   BookOpen,
   User,
+  CalendarDays,
 } from "lucide-react";
-
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const typeIcons: Record<string, any> = {
   exam: GraduationCap,
@@ -50,20 +46,17 @@ const typeIcons: Record<string, any> = {
 };
 
 const typeColors: Record<string, string> = {
-  exam: "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400",
-  study_schedule: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
-  personal: "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
+  exam: "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400 border-red-200 dark:border-red-800",
+  study_schedule: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+  personal: "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400 border-green-200 dark:border-green-800",
 };
-
-function formatTime(date: Date) {
-  const h = date.getHours();
-  const m = date.getMinutes();
-  const ampm = h >= 12 ? "PM" : "AM";
-  return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${ampm}`;
-}
 
 function toDateStr(d: Date) {
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`;
+}
+
+function isoToDateStr(iso: string) {
+  return iso.slice(0, 10);
 }
 
 export default function CalendarPage() {
@@ -79,6 +72,7 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", eventType: "study_schedule", eventDate: "", eventTime: "", isAllDay: false });
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
 
   const startDate = useMemo(() => new Date(currentYear, currentMonth, 1), [currentMonth, currentYear]);
   const endDate = useMemo(() => {
@@ -95,7 +89,7 @@ export default function CalendarPage() {
       });
       setEvents(data || []);
     } catch {
-      toast.error("Failed to load events");
+      toast.error(t("failed_load_events"));
     } finally {
       setLoading(false);
     }
@@ -110,7 +104,7 @@ export default function CalendarPage() {
   const eventsByDate = useMemo(() => {
     const map: Record<string, any[]> = {};
     events.forEach((e: any) => {
-      const key = toDateStr(new Date(e.eventDate));
+      const key = isoToDateStr(e.eventDate);
       if (!map[key]) map[key] = [];
       map[key].push(e);
     });
@@ -122,11 +116,13 @@ export default function CalendarPage() {
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
   const handlePrevMonth = () => {
+    setSelectedWeek(null);
     if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
     else setCurrentMonth(currentMonth - 1);
   };
 
   const handleNextMonth = () => {
+    setSelectedWeek(null);
     if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1); }
     else setCurrentMonth(currentMonth + 1);
   };
@@ -143,7 +139,7 @@ export default function CalendarPage() {
       title: typeof event.title === "object" ? (event.title?.en || "") : event.title || "",
       description: typeof event.description === "object" ? (event.description?.en || "") : event.description || "",
       eventType: event.eventType || "study_schedule",
-      eventDate: toDateStr(new Date(event.eventDate)),
+      eventDate: isoToDateStr(event.eventDate),
       eventTime: event.eventTime || "",
       isAllDay: event.isAllDay || false,
     });
@@ -151,29 +147,29 @@ export default function CalendarPage() {
   };
 
   const handleSave = async () => {
-    if (!form.title.trim()) { toast.error("Title is required"); return; }
+    if (!form.title.trim()) { toast.error(t("title_required")); return; }
     setSaving(true);
     try {
       const body: any = {
         title: { en: form.title, es: form.title },
         description: { en: form.description, es: form.description },
         eventType: form.eventType,
-        eventDate: new Date(form.eventDate).toISOString(),
+        eventDate: new Date(form.eventDate + "T12:00:00").toISOString(),
         eventTime: form.eventTime || null,
         isAllDay: form.isAllDay,
       };
       if (editingEvent) {
         await calendarApi.update(editingEvent.id, body);
-        toast.success("Event updated");
+        toast.success(t("event_updated"));
       } else {
         await calendarApi.create(body);
-        toast.success("Event created");
+        toast.success(t("event_created"));
       }
       setDialogOpen(false);
       setEditingEvent(null);
       fetchEvents();
     } catch {
-      toast.error("Failed to save event");
+      toast.error(t("failed_save_event"));
     } finally {
       setSaving(false);
     }
@@ -182,24 +178,26 @@ export default function CalendarPage() {
   const handleDelete = async (id: string) => {
     try {
       await calendarApi.remove(id);
-      toast.success("Event deleted");
+      toast.success(t("event_deleted"));
       fetchEvents();
     } catch {
-      toast.error("Failed to delete event");
+      toast.error(t("failed_delete_event"));
     }
   };
 
   const dayEvents = selectedDate ? eventsByDate[selectedDate] || [] : [];
+  const monthLabel = t(`month_${currentMonth}`);
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{n("calendar") || "Calendar"}</h1>
-            <p className="text-muted-foreground">{t("subtitle") || "Manage your study schedule"}</p>
+            <h1 className="text-3xl font-bold tracking-tight">{n("calendar")}</h1>
+            <p className="text-muted-foreground">{t("subtitle")}</p>
           </div>
-          <Button onClick={() => openCreateDialog()}><Plus className="h-4 w-4 mr-2" />{t("add_event") || "Add Event"}</Button>
+          <Button onClick={() => openCreateDialog()}><Plus className="h-4 w-4 mr-2" />{t("add_event")}</Button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -207,7 +205,7 @@ export default function CalendarPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <Button variant="ghost" size="icon" onClick={handlePrevMonth}><ChevronLeft className="h-5 w-5" /></Button>
-                <CardTitle className="text-lg">{MONTHS[currentMonth]} {currentYear}</CardTitle>
+                <CardTitle className="text-lg">{monthLabel} {currentYear}</CardTitle>
                 <Button variant="ghost" size="icon" onClick={handleNextMonth}><ChevronRight className="h-5 w-5" /></Button>
               </div>
             </CardHeader>
@@ -217,13 +215,13 @@ export default function CalendarPage() {
               ) : (
                 <>
                   <div className="grid grid-cols-7 mb-2">
-                    {DAYS.map(d => <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>)}
+                    {Array.from({ length: 7 }, (_, i) => i).map(i => <div key={i} className="text-center text-xs font-medium text-muted-foreground py-1">{t(`day_${i}`)}</div>)}
                   </div>
                   <div className="grid grid-cols-7">
                     {days.map((d, i) => {
                       if (d === null) return <div key={`empty-${i}`} className="min-h-[90px] p-1" />;
                       const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`;
-                      const dayEvents = eventsByDate[dateStr] || [];
+                      const dayEvts = eventsByDate[dateStr] || [];
                       const isToday = dateStr === today;
                       const isSelected = dateStr === selectedDate;
                       return (
@@ -240,7 +238,7 @@ export default function CalendarPage() {
                             {d}
                           </span>
                           <div className="space-y-0.5 mt-1">
-                            {dayEvents.slice(0, 3).map((e: any) => (
+                            {dayEvts.slice(0, 3).map((e: any) => (
                               <div
                                 key={e.id}
                                 className={`text-[10px] px-1 py-0.5 rounded truncate ${typeColors[e.eventType] || "bg-muted"}`}
@@ -248,8 +246,8 @@ export default function CalendarPage() {
                                 {typeof e.title === "object" ? (e.title?.en || "") : e.title}
                               </div>
                             ))}
-                            {dayEvents.length > 3 && (
-                              <div className="text-[10px] text-muted-foreground px-1">+{dayEvents.length - 3} more</div>
+                            {dayEvts.length > 3 && (
+                              <div className="text-[10px] text-muted-foreground px-1">{t("more_events", { count: dayEvts.length - 3 })}</div>
                             )}
                           </div>
                         </button>
@@ -263,21 +261,21 @@ export default function CalendarPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base">{t("events") || "Events"}</CardTitle>
+              <CardTitle className="text-base">{t("events")}</CardTitle>
               {selectedDate && (
                 <Button size="sm" variant="outline" onClick={() => openCreateDialog(selectedDate)}>
-                  <Plus className="h-3.5 w-3.5 mr-1" /> {t("add") || "Add"}
+                  <Plus className="h-3.5 w-3.5 mr-1" /> {t("add")}
                 </Button>
               )}
             </CardHeader>
             <CardContent>
               {!selectedDate ? (
-                <p className="text-sm text-muted-foreground text-center py-8">{t("select_day") || "Select a day to view events"}</p>
+                <p className="text-sm text-muted-foreground text-center py-8">{t("select_day")}</p>
               ) : dayEvents.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-muted-foreground">{t("no_events") || "No events on this day"}</p>
+                  <p className="text-sm text-muted-foreground">{t("no_events")}</p>
                   <Button variant="link" size="sm" onClick={() => openCreateDialog(selectedDate)}>
-                    {t("create_first") || "Create your first event"}
+                    {t("create_first")}
                   </Button>
                 </div>
               ) : (
@@ -307,7 +305,7 @@ export default function CalendarPage() {
                             <Clock className="h-3 w-3" /> {e.eventTime}
                           </div>
                         )}
-                        {e.isAllDay && <div className="text-xs text-muted-foreground mt-1">All day</div>}
+                        {e.isAllDay && <div className="text-xs text-muted-foreground mt-1">{t("all_day")}</div>}
                       </div>
                     );
                   })}
@@ -317,56 +315,117 @@ export default function CalendarPage() {
           </Card>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">{t("study_plan_title")}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Array.from({ length: Math.ceil((firstDay + daysInMonth) / 7) }, (_, w) => {
+                const weekStart = new Date(currentYear, currentMonth, 1 + w * 7 - firstDay);
+                const weekEnd = new Date(currentYear, currentMonth, Math.min(7 + w * 7 - firstDay, daysInMonth));
+                if (weekStart.getMonth() !== currentMonth) return null;
+                const weekEvents = events.filter((e: any) => {
+                  const d = new Date(e.eventDate);
+                  return d >= weekStart && d <= weekEnd;
+                });
+                return (
+                  <div key={w} className={`rounded-xl border p-4 transition-colors ${selectedWeek === w ? "ring-2 ring-primary" : "hover:bg-muted/30"}`}>
+                    <button className="w-full text-left" onClick={() => setSelectedWeek(selectedWeek === w ? null : w)}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-sm">
+                          {t("week")} {w + 1}: {weekStart.getDate()} - {weekEnd.getDate()} {monthLabel}
+                        </span>
+                        <Badge variant="secondary" className="text-xs">{weekEvents.length} {t("events")}</Badge>
+                      </div>
+                    </button>
+                    {selectedWeek === w && (
+                      <div className="mt-3 space-y-3 pt-3 border-t">
+                        {weekEvents.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">{t("no_events_week")}</p>
+                        ) : (
+                          weekEvents.map((e: any) => {
+                            const Icon = typeIcons[e.eventType] || Clock;
+                            const title = typeof e.title === "object" ? (e.title?.en || "") : e.title;
+                            return (
+                              <div key={e.id} className={`rounded-lg p-3 border ${typeColors[e.eventType] || ""}`}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Icon className="h-4 w-4" />
+                                    <span className="text-sm font-medium">{title}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button variant="ghost" size="icon-sm" onClick={() => openEditDialog(e)}><Pencil className="h-3 w-3" /></Button>
+                                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(e.id)}><Trash2 className="h-3 w-3 text-red-500" /></Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setTimeout(() => setEditingEvent(null), 100); }}>
+          <DialogContent key={dialogOpen ? "open" : "closed"}>
             <DialogHeader>
-              <DialogTitle>{editingEvent ? (t("edit_event") || "Edit Event") : (t("new_event") || "New Event")}</DialogTitle>
+              <DialogTitle>{editingEvent ? t("edit_event") : t("new_event")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">{t("title") || "Title"}</label>
-                <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Event title" />
+                <label className="text-sm font-medium">{t("title")}</label>
+                <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder={t("event_title_placeholder")} />
               </div>
               <div>
-                <label className="text-sm font-medium">{t("type") || "Type"}</label>
+                <label className="text-sm font-medium">{t("type")}</label>
                 <Select value={form.eventType} onValueChange={v => setForm({ ...form, eventType: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="study_schedule">{t("study_schedule") || "Study Schedule"}</SelectItem>
-                    <SelectItem value="exam">{t("exam") || "Exam"}</SelectItem>
-                    <SelectItem value="personal">{t("personal") || "Personal"}</SelectItem>
+                    <SelectItem value="study_schedule">{t("study_schedule")}</SelectItem>
+                    <SelectItem value="exam">{t("exam")}</SelectItem>
+                    <SelectItem value="personal">{t("personal")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium">{t("date") || "Date"}</label>
+                <label className="text-sm font-medium">{t("date")}</label>
                 <Input type="date" value={form.eventDate} onChange={e => setForm({ ...form, eventDate: e.target.value })} />
               </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="isAllDay" checked={form.isAllDay} onChange={e => setForm({ ...form, isAllDay: e.target.checked })} className="rounded" />
-                <label htmlFor="isAllDay" className="text-sm">{t("all_day") || "All day"}</label>
+                <label htmlFor="isAllDay" className="text-sm">{t("all_day")}</label>
               </div>
               {!form.isAllDay && (
                 <div>
-                  <label className="text-sm font-medium">{t("time") || "Time"}</label>
+                  <label className="text-sm font-medium">{t("time")}</label>
                   <Input type="time" value={form.eventTime} onChange={e => setForm({ ...form, eventTime: e.target.value })} />
                 </div>
               )}
               <div>
-                <label className="text-sm font-medium">{t("description") || "Description"}</label>
-                <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Optional description" rows={3} />
+                <label className="text-sm font-medium">{t("description")}</label>
+                <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder={t("optional_description_placeholder")} rows={3} />
               </div>
             </div>
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>{t("cancel") || "Cancel"}</Button>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>{t("cancel")}</Button>
               <Button onClick={handleSave} disabled={saving}>
                 {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {editingEvent ? (t("save") || "Save") : (t("create") || "Create")}
+                {editingEvent ? t("save") : t("create")}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
     </PageTransition>
+    </AccountTypeGate>
   );
 }

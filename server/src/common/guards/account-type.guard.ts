@@ -1,9 +1,13 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
+import { I18nService } from "../i18n/i18n.service";
 
 @Injectable()
 export class AccountTypeGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private i18n: I18nService,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
     const allowedTypes = this.reflector.getAllAndOverride<string[]>("allowedAccountTypes", [
@@ -13,6 +17,6 @@ export class AccountTypeGuard implements CanActivate {
     if (!allowedTypes) return true;
     const { user } = context.switchToHttp().getRequest();
     if (allowedTypes.includes(user?.accountType)) return true;
-    throw new ForbiddenException("Your account type does not have access to this resource.");
+    throw new ForbiddenException(this.i18n.t("guard.accountTypeDenied"));
   }
 }

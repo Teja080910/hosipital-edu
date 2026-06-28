@@ -11,8 +11,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { coursesApi, certificatesApi } from "@/lib/api";
 import { CourseQuiz } from "@/components/courses/course-quiz";
 import { ChevronRight, Clock, DollarSign, FileQuestion, FileText, Loader2, Play, Award, ClipboardCheck, BarChart3 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function CourseDetailPage() {
@@ -20,6 +20,7 @@ export default function CourseDetailPage() {
   const c = useTranslations("common");
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -34,6 +35,8 @@ export default function CourseDetailPage() {
   const [testResults, setTestResults] = useState<{ pre_test?: any; post_test?: any } | null>(null);
   const [showPreTest, setShowPreTest] = useState(false);
   const [showPostTest, setShowPostTest] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
     coursesApi.get(slug).then(({ data }) => {
@@ -50,20 +53,44 @@ export default function CourseDetailPage() {
   }, [slug, t, user]);
 
   useEffect(() => {
+    if (searchParams.get("enroll") === "success") {
+      setIsEnrolled(true);
+      toast.success(t("enrolled"));
+      const url = new URL(window.location.href);
+      url.searchParams.delete("enroll");
+      url.searchParams.delete("session_id");
+      window.history.replaceState({}, "", url.toString());
+      coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
+      coursesApi.getPreTest(slug).then(({ data }) => setPreTest(data)).catch(() => {});
+      coursesApi.getPostTest(slug).then(({ data }) => setPostTest(data)).catch(() => {});
+      coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
+    }
+  }, [searchParams, slug, t]);
+
+  useEffect(() => {
     if (!isEnrolled || !slug) return;
     coursesApi.getPreTest(slug).then(({ data }) => setPreTest(data)).catch(() => {});
     coursesApi.getPostTest(slug).then(({ data }) => setPostTest(data)).catch(() => {});
     coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
   }, [isEnrolled, slug]);
 
+  const autoGenerateCert = useRef(false);
   useEffect(() => {
-    if (progress && progress.percentage === 100 && course?.hasCertificate) {
+    if (progress && progress.percentage === 100 && course?.hasCertificate && !autoGenerateCert.current) {
+      autoGenerateCert.current = true;
       certificatesApi.list().then(({ data: certs }) => {
         const existing = certs.find((c: any) => c.courseId === course.id);
-        if (existing) setCertificateId(existing.id);
+        if (existing) {
+          setCertificateId(existing.id);
+        } else {
+          certificatesApi.generate(course.id).then(({ data }) => {
+            setCertificateId(data.id);
+            toast.success(t("certificate_generated"));
+          }).catch(() => {});
+        }
       }).catch(() => {});
     }
-  }, [progress, course]);
+  }, [progress, course, t]);
 
   const handleGenerateCertificate = async () => {
     if (!course) return;
@@ -83,7 +110,11 @@ export default function CourseDetailPage() {
     if (!course) return;
     setEnrolling(true);
     try {
-      await coursesApi.enroll(slug);
+      const { data } = await coursesApi.enroll(slug);
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
       setIsEnrolled(true);
       toast.success(t("enrolled"));
       coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
@@ -127,7 +158,7 @@ export default function CourseDetailPage() {
 
   const renderQuizCard = (quiz: any, type: "pre_test" | "post_test") => {
     const result = testResults?.[type];
-    const label = type === "pre_test" ? (t("pre_test") || "Pre-Test") : (t("post_test") || "Post-Test");
+    const label = type === "pre_test" ? t("pre_test") : t("post_test");
     const Icon = type === "pre_test" ? ClipboardCheck : BarChart3;
 
     if (showPreTest && type === "pre_test") {
@@ -137,7 +168,7 @@ export default function CourseDetailPage() {
           onComplete={(passed, score) => {
             setShowPreTest(false);
             coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
-            if (passed) toast.success(t("pre_test_passed") || "Pre-Test passed!");
+            if (passed) toast.success(t("pre_test_passed"));
           }}
         />
       );
@@ -150,7 +181,7 @@ export default function CourseDetailPage() {
           onComplete={(passed, score) => {
             setShowPostTest(false);
             coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
-            if (passed) toast.success(t("post_test_passed") || "Post-Test passed!");
+            if (passed) toast.success(t("post_test_passed"));
           }}
         />
       );
@@ -165,13 +196,13 @@ export default function CourseDetailPage() {
               <p className="font-medium">{label}</p>
               {result ? (
                 <p className="text-sm text-muted-foreground">
-                  {t("score") || "Score"}: {result.score}% — {new Date(result.completedAt).toLocaleDateString()}
+                  {t("score")}: {result.score}% — {new Date(result.completedAt).toLocaleDateString()}
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {type === "pre_test"
-                    ? (t("pre_test_desc") || "Test your knowledge before starting")
-                    : (t("post_test_desc") || "Test your knowledge after completing the course")}
+                    ? t("pre_test_desc")
+                    : t("post_test_desc")}
                 </p>
               )}
             </div>
@@ -183,7 +214,7 @@ export default function CourseDetailPage() {
               else setShowPostTest(true);
             }}
           >
-            {result ? (t("retake") || "Retake") : (t("start") || "Start")}
+            {result ? t("retake") : t("start")}
           </Button>
         </CardContent>
       </Card>
@@ -211,10 +242,72 @@ export default function CourseDetailPage() {
           )}
         </div>
 
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          {showDetails ? <ChevronRight className="h-4 w-4 rotate-90 transition-transform" /> : <ChevronRight className="h-4 w-4 transition-transform" />}
+          {t("course_details")}
+        </button>
+
+        {showDetails && (
+          <Card>
+            <CardContent className="space-y-4 p-4">
+              {course.introduction?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("introduction")}</h3>
+                  <p className="text-sm mt-1">{course.introduction.en}</p>
+                </div>
+              )}
+              {course.objectives?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("objectives")}</h3>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{course.objectives.en}</p>
+                </div>
+              )}
+              {course.targetAudience?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("target_audience")}</h3>
+                  <p className="text-sm mt-1">{course.targetAudience.en}</p>
+                </div>
+              )}
+              {course.prerequisites?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("prerequisites")}</h3>
+                  <p className="text-sm mt-1">{course.prerequisites.en}</p>
+                </div>
+              )}
+              {course.whatYouWillLearn?.en && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("what_you_will_learn")}</h3>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{course.whatYouWillLearn.en}</p>
+                </div>
+              )}
+              {!course.introduction?.en && !course.objectives?.en && !course.targetAudience?.en && !course.prerequisites?.en && !course.whatYouWillLearn?.en && (
+                <p className="text-sm text-muted-foreground">{t("no_details")}</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {course.preExamInstructions?.en && isEnrolled && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-4">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">{t("pre_exam_instructions")}</p>
+            <p className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-wrap">{course.preExamInstructions.en}</p>
+          </div>
+        )}
+
+        {course.postExamInstructions?.en && progressPct === 100 && (
+          <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800 p-4">
+            <p className="text-sm font-semibold text-green-800 dark:text-green-200 mb-1">{t("post_exam_instructions")}</p>
+            <p className="text-sm text-green-700 dark:text-green-300 whitespace-pre-wrap">{course.postExamInstructions.en}</p>
+          </div>
+        )}
+
         {!isEnrolled && (
           <Button size="lg" onClick={handleEnroll} disabled={enrolling}>
             {enrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {parseFloat(course.price) > 0 ? `Enroll - $${course.price}` : t("enroll_free")}
+            {parseFloat(course.price) > 0 ? `${t("enroll")} - $${course.price}` : t("enroll_free")}
           </Button>
         )}
         {isEnrolled && <Badge className="text-sm px-3 py-1">{t("enrolled_badge")}</Badge>}
@@ -255,23 +348,23 @@ export default function CourseDetailPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary" />
-                {t("test_comparison") || "Pre vs Post Test Comparison"}
+                {t("test_comparison")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-6">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">{t("pre_test") || "Pre-Test"}</p>
+                  <p className="text-sm text-muted-foreground">{t("pre_test")}</p>
                   <p className="text-2xl font-bold text-blue-500">{testResults.pre_test.score}%</p>
                 </div>
                 <div className="text-2xl text-muted-foreground">→</div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">{t("post_test") || "Post-Test"}</p>
+                  <p className="text-sm text-muted-foreground">{t("post_test")}</p>
                   <p className="text-2xl font-bold text-green-500">{testResults.post_test.score}%</p>
                 </div>
                 <div className="flex-1" />
                 <div className="text-center p-3 rounded-lg bg-muted">
-                  <p className="text-sm text-muted-foreground">{t("improvement") || "Improvement"}</p>
+                  <p className="text-sm text-muted-foreground">{t("improvement")}</p>
                   <p className="text-xl font-bold text-primary">
                     +{testResults.post_test.score - testResults.pre_test.score}%
                   </p>
@@ -322,7 +415,7 @@ export default function CourseDetailPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{lessonTitle}</p>
                           </div>
-                          {isCompleted && <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-600 border-green-200">Done</Badge>}
+                          {isCompleted && <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-600 border-green-200">{t("done")}</Badge>}
                           {lesson.duration > 0 && (
                             <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                               <Clock className="h-3 w-3" />

@@ -28,6 +28,7 @@ import { questionsApi, examsApi, uploadApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, Check, Eye, BookOpen, Lightbulb, CheckCircle2, XCircle, ImageIcon, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 const EMPTY_OPTIONS = [
   { text: "", isCorrect: false },
@@ -51,6 +52,7 @@ export default function AdminQuestionsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [exams, setExams] = useState<any[]>([]);
+  const [specialties, setSpecialties] = useState<any[]>([]);
   const [form, setForm] = useState({
     text: "",
     explanation: "",
@@ -58,6 +60,7 @@ export default function AdminQuestionsPage() {
     difficulty: "medium",
     specialtyId: "",
     examId: "",
+    examIds: [] as string[],
     options: EMPTY_OPTIONS,
     images: [] as { url: string; section: string; caption?: string; sortOrder: number }[],
   });
@@ -68,7 +71,7 @@ export default function AdminQuestionsPage() {
       const { data } = await questionsApi.list();
       setQuestions(data);
     } catch {
-      toast.error("Failed to load questions");
+      toast.error(t("load_failed_questions"));
     } finally {
       setLoading(false);
     }
@@ -77,9 +80,26 @@ export default function AdminQuestionsPage() {
   useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
   useEffect(() => { examsApi.list().then(({ data }) => setExams(data)).catch(() => {}); }, []);
 
+  useEffect(() => {
+    if (form.examIds.length === 0) {
+      setSpecialties([]);
+      return;
+    }
+    Promise.all(
+      form.examIds.map((examId) =>
+        examsApi.get(examId).then(({ data }) => data.specialties || []).catch(() => [])
+      )
+    ).then((results) => {
+      const merged = results.flat().filter(
+        (s: any, i: number, arr: any[]) => arr.findIndex((x: any) => x.id === s.id) === i
+      );
+      setSpecialties(merged);
+    });
+  }, [form.examIds]);
+
   const openCreate = () => {
     setEditing(null);
-    setForm({ text: "", explanation: "", reference: "", difficulty: "medium", specialtyId: "", examId: "", options: EMPTY_OPTIONS, images: [] });
+    setForm({ text: "", explanation: "", reference: "", difficulty: "medium", specialtyId: "", examId: "", examIds: [], options: EMPTY_OPTIONS, images: [] });
     setDialogOpen(true);
   };
 
@@ -98,12 +118,13 @@ export default function AdminQuestionsPage() {
         difficulty: data.difficulty || "medium",
         specialtyId: data.specialtyId || "",
         examId: data.examId || "",
+        examIds: data.examIds || [],
         options: opts,
         images: (data.images || []).map((i: any) => ({ url: i.url, section: i.section || "title", caption: i.caption, sortOrder: i.sortOrder || 0 })),
       });
       setDialogOpen(true);
     } catch {
-      toast.error("Failed to load question details");
+      toast.error(t("load_failed_question_details"));
     } finally {
       setLoadingEdit(false);
     }
@@ -117,7 +138,7 @@ export default function AdminQuestionsPage() {
       const { data } = await questionsApi.get(q.id);
       setViewQuestion(data);
     } catch {
-      toast.error("Failed to load question");
+      toast.error(t("load_failed_question"));
       setViewOpen(false);
     } finally {
       setViewLoading(false);
@@ -134,23 +155,23 @@ export default function AdminQuestionsPage() {
         explanation: form.explanation,
         reference: form.reference,
         difficulty: form.difficulty,
-        specialtyId: null,
+        specialtyId: form.specialtyId || null,
         topicId: null,
-        examId: !form.examId || form.examId === "__none__" || form.examId === "none" ? null : form.examId,
+        examIds: form.examIds,
       };
       if (opts.length > 0) payload.options = opts;
       if (form.images.length > 0) payload.images = form.images;
       if (editing) {
         await questionsApi.update(editing.id, payload);
-        toast.success("Question updated");
+        toast.success(t("question_updated"));
       } else {
         await questionsApi.create(payload);
-        toast.success("Question created");
+        toast.success(t("question_created"));
       }
       setDialogOpen(false);
       fetchQuestions();
     } catch {
-      toast.error("Failed to save question");
+      toast.error(t("question_save_failed"));
     } finally {
       setSaving(false);
     }
@@ -160,11 +181,11 @@ export default function AdminQuestionsPage() {
     if (!deleteTarget) return;
     try {
       await questionsApi.remove(deleteTarget.id);
-      toast.success("Question deleted");
+      toast.success(t("question_deleted"));
       setDeleteTarget(null);
       fetchQuestions();
     } catch {
-      toast.error("Failed to delete");
+      toast.error(t("question_delete_failed"));
     }
   };
 
@@ -172,12 +193,20 @@ export default function AdminQuestionsPage() {
     setUploadingImage(true);
     try {
       const key = `questions/${Date.now()}-${file.name}`;
-      const { data } = await uploadApi.presignedUrl(key, file.type);
-      await fetch(data.url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      const publicUrl = data.publicUrl || data.url.split("?")[0];
-      setForm((f) => ({ ...f, images: [...f.images, { url: publicUrl, section, sortOrder: f.images.length }] }));
+      const contentType = file.type || "image/png";
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+      });
+      const { data } = await uploadApi.uploadFile(key, base64, contentType);
+      setForm((f) => ({ ...f, images: [...f.images, { url: data.url, section, sortOrder: f.images.length }] }));
     } catch {
-      toast.error("Failed to upload image");
+      toast.error(t("upload_failed"));
     } finally {
       setUploadingImage(false);
     }
@@ -274,50 +303,45 @@ export default function AdminQuestionsPage() {
               </div>
               <div className="text-left">
                 <DialogTitle className="text-xl font-bold tracking-tight">
-                  {editing ? "Edit Question Details" : "Create New Question"}
+                  {editing ? t("edit_question_details") : t("create_new_question")}
                 </DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Fill in the fields to configure the exam question</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("configure_question")}</p>
               </div>
             </div>
           </DialogHeader>
 
           <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Question Text</label>
-              <Textarea
-                autoFocus
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("question_text")}</label>
+              <RichTextEditor
                 value={form.text}
-                onChange={(e) => setForm({ ...form, text: e.target.value })}
-                rows={3}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[100px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Enter the question text here..."
+                onChange={(v) => setForm({ ...form, text: v })}
+                placeholder={t("question_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Explanation</label>
-              <Textarea
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("explanation")}</label>
+              <RichTextEditor
                 value={form.explanation}
-                onChange={(e) => setForm({ ...form, explanation: e.target.value })}
-                rows={2}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Provide a detailed explanation for the correct answer..."
+                onChange={(v) => setForm({ ...form, explanation: v })}
+                placeholder={t("explanation_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Reference</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("reference")}</label>
               <Input
                 value={form.reference}
                 onChange={(e) => setForm({ ...form, reference: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
-                placeholder="Bibliographic reference or source URL..."
+                placeholder={t("reference_placeholder")}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Difficulty</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("difficulty")}</label>
                 <div className="grid grid-cols-3 gap-2 p-1 bg-muted/40 rounded-xl border border-border/60 h-11 items-center">
                   {["easy", "medium", "hard"].map((diff) => {
                     const isActive = form.difficulty === diff;
@@ -345,22 +369,56 @@ export default function AdminQuestionsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Exam</label>
-                <Select value={form.examId || "__none__"} onValueChange={(v) => setForm({ ...form, examId: v })}>
-                  <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4 transition-all duration-300 focus:border-primary/50 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)]">
-                    <SelectValue placeholder="None" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="__none__">None</SelectItem>
-                    {exams.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name?.en || e.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
+                <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-xl border border-border/80 min-h-[44px]">
+                  {form.examIds.length === 0 && (
+                    <span className="text-sm text-muted-foreground/50 px-2 py-1">{t("none")}</span>
+                  )}
+                  {form.examIds.map((eId) => {
+                    const exam = exams.find((e: any) => e.id === eId);
+                    return (
+                      <span key={eId} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium">
+                        {exam?.name?.en || exam?.name || eId}
+                        <button type="button" onClick={() => setForm({ ...form, examIds: form.examIds.filter((id) => id !== eId) })} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {exams.filter((e: any) => !form.examIds.includes(e.id)).map((e: any) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, examIds: [...form.examIds, e.id] })}
+                      className="px-2.5 py-1 rounded-lg border border-border/60 text-xs text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+                    >
+                      + {e.name?.en || e.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
+            {specialties.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("specialty")}</label>
+                <Select value={form.specialtyId || "__none__"} onValueChange={(v) => setForm({ ...form, specialtyId: v === "__none__" ? "" : v })}>
+                  <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4 transition-all duration-300 focus:border-primary/50 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)]">
+                    <SelectValue placeholder={t("none")} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="__none__">{t("none")}</SelectItem>
+                    {specialties.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name?.en || s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Images */}
             <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Images</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("images")}</label>
               <div className="flex gap-2 flex-wrap">
                 {(["title", "explanation", "reference"] as const).map((section) => (
                   <label key={section} className={cn(
@@ -402,14 +460,14 @@ export default function AdminQuestionsPage() {
               )}
               {uploadingImage && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Uploading...
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t("uploading")}
                 </div>
               )}
             </div>
 
             <div className="space-y-3">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 block">
-                Options <span className="text-muted-foreground/50 lowercase font-medium">(select the correct one)</span>
+                {t("options")} <span className="text-muted-foreground/50 lowercase font-medium">({t("select_correct")})</span>
               </label>
               <div className="space-y-3">
                 {form.options.map((opt, i) => {
@@ -446,7 +504,7 @@ export default function AdminQuestionsPage() {
                       <Input
                         value={opt.text}
                         onChange={(e) => setOption(i, "text", e.target.value)}
-                        placeholder={`Option ${i + 1}`}
+                        placeholder={`${t("option")} ${i + 1}`}
                         className={cn(
                           "flex-1 bg-muted/10 hover:bg-muted/20 border border-border/60 focus:border-primary/50 transition-all duration-300 rounded-lg px-4 h-10 text-sm outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.10)] shadow-none",
                           isCorrect && "bg-background focus:border-emerald-500/60 focus:shadow-[0_0_0_3px_rgb(16_185_129_/_0.12)] border-emerald-500/20"
@@ -458,11 +516,11 @@ export default function AdminQuestionsPage() {
               </div>
               <div className="flex gap-2 pt-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, options: [...form.options, { text: "", isCorrect: false }] })}>
-                  + Add Option
+                  + {t("add_option")}
                 </Button>
                 {form.options.length > 2 && (
                   <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setForm({ ...form, options: form.options.slice(0, -1) })}>
-                    Remove Last
+                    {t("remove_last")}
                   </Button>
                 )}
               </div>
@@ -488,8 +546,8 @@ export default function AdminQuestionsPage() {
                 <BookOpen className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <DialogTitle className="text-xl font-bold tracking-tight">Question Details</DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Read-only view of question, options &amp; answer</p>
+                <DialogTitle className="text-xl font-bold tracking-tight">{t("question_details")}</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("readonly_view")}</p>
               </div>
             </div>
           </DialogHeader>
@@ -507,13 +565,13 @@ export default function AdminQuestionsPage() {
                     {viewQuestion.difficulty}
                   </Badge>
                   <Badge variant={viewQuestion.isActive !== false ? "default" : "secondary"} className="text-xs">
-                    {viewQuestion.isActive !== false ? "Active" : "Draft"}
+                    {viewQuestion.isActive !== false ? c("active") : c("draft")}
                   </Badge>
                 </div>
 
                 {/* Question text */}
                 <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Question</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("question_label")}</p>
                   <div className="rounded-xl border border-border/80 bg-muted/20 px-4 py-4 text-sm leading-relaxed">
                     {viewQuestion.text}
                   </div>
@@ -522,7 +580,7 @@ export default function AdminQuestionsPage() {
                 {/* Options */}
                 {viewQuestion.options?.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Answer Options</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("answer_options")}</p>
                     <div className="space-y-2.5">
                       {viewQuestion.options.map((opt: any, i: number) => (
                         <div
@@ -559,7 +617,7 @@ export default function AdminQuestionsPage() {
                 {/* Explanation */}
                 {viewQuestion.explanation && (
                   <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Explanation</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("explanation")}</p>
                     <div className="flex gap-3 rounded-xl border border-amber-200/60 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800/40 px-4 py-4">
                       <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                       <p className="text-sm leading-relaxed text-foreground/80">{viewQuestion.explanation}</p>
@@ -570,7 +628,7 @@ export default function AdminQuestionsPage() {
                 {/* Reference */}
                 {viewQuestion.reference && (
                   <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Reference</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("reference")}</p>
                     <div className="rounded-xl border border-blue-200/60 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-800/40 px-4 py-3 text-sm leading-relaxed text-foreground/80">
                       {viewQuestion.reference}
                     </div>
@@ -580,10 +638,10 @@ export default function AdminQuestionsPage() {
                 {/* Images */}
                 {viewQuestion.images && viewQuestion.images.length > 0 && (
                   <div className="space-y-3">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Images</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("images")}</p>
                     {["title", "explanation", "reference"].filter(s => viewQuestion.images.some((i: any) => i.section === s)).map(section => (
                       <div key={section} className="space-y-1">
-                        <p className="text-xs font-medium text-muted-foreground capitalize">{section} images</p>
+                        <p className="text-xs font-medium text-muted-foreground capitalize">{section} {t("images")}</p>
                         <div className="flex flex-wrap gap-3">
                           {viewQuestion.images.filter((i: any) => i.section === section).map((img: any) => (
                             <a key={img.id} href={img.url} target="_blank" rel="noopener noreferrer">
@@ -608,10 +666,10 @@ export default function AdminQuestionsPage() {
                 if (viewQuestion) openEdit(viewQuestion);
               }}
             >
-              <Pencil className="h-3.5 w-3.5 mr-2" /> Edit Question
+              <Pencil className="h-3.5 w-3.5 mr-2" /> {t("edit_question")}
             </Button>
             <Button variant="outline" onClick={() => setViewOpen(false)} className="rounded-xl h-10 px-5">
-              Close
+              {c("close")}
             </Button>
           </div>
         </DialogContent>
@@ -620,9 +678,9 @@ export default function AdminQuestionsPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Delete Question"
-        description="Are you sure you want to delete this question?"
-        confirmLabel="Delete"
+        title={t("delete_question_title")}
+        description={t("delete_question_confirm")}
+        confirmLabel={c("delete")}
         variant="destructive"
         onConfirm={handleDelete}
       />

@@ -4,9 +4,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 interface SpecialtyChartProps {
   data?: { specialtyId: string; name: Record<string, string>; totalAnswered: number; totalCorrect: number }[];
+  noDataText?: string;
 }
 
-export default function SpecialtyChart({ data = [] }: SpecialtyChartProps) {
+export default function SpecialtyChart({ data = [], noDataText = "No data yet" }: SpecialtyChartProps) {
   const chartData = data
     .filter(d => d.totalAnswered > 0)
     .map(d => ({
@@ -16,7 +17,7 @@ export default function SpecialtyChart({ data = [] }: SpecialtyChartProps) {
     .sort((a, b) => b.accuracy - a.accuracy);
 
   if (!chartData.length) {
-    return <div className="flex items-center justify-center h-full text-muted-foreground">No data yet</div>;
+    return <div className="flex items-center justify-center h-full text-muted-foreground">{noDataText}</div>;
   }
   return (
     <ResponsiveContainer width="100%" height="100%">

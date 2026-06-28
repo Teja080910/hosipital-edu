@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { DRIZZLE } from "../database/database.provider";
 import {
   courses,
@@ -14,14 +15,45 @@ import {
   exams,
 } from "../database/schema";
 import { eq, and, asc, inArray, sql, desc, type SQL } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
+import { STRIPE } from "../subscriptions/stripe.provider";
+import Stripe from "stripe";
 
 @Injectable()
 export class CoursesService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+    private config: ConfigService,
+    @Inject(STRIPE) private stripe: Stripe,
+  ) {}
 
-  async findAll(onlyActive = true) {
+  async findAll(onlyActive = true, userId?: string) {
     const conditions: SQL[] = [];
     if (onlyActive) conditions.push(eq(courses.isActive, true));
+
+    if (userId) {
+      const sub = await this.db
+        .select({ planId: userSubscriptions.planId })
+        .from(userSubscriptions)
+        .where(and(
+          eq(userSubscriptions.userId, userId),
+          eq(userSubscriptions.status, "active"),
+          sql`${userSubscriptions.canceledAt} IS NULL`,
+        ))
+        .limit(1);
+      if (sub.length > 0) {
+        const plan = await this.db
+          .select({ isCourseOnly: subscriptionPlans.isCourseOnly, courseId: subscriptionPlans.courseId })
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, sub[0].planId))
+          .limit(1);
+        if (plan.length > 0 && plan[0].isCourseOnly && plan[0].courseId) {
+          conditions.push(eq(courses.id, plan[0].courseId));
+        }
+      }
+    }
+
     return this.db
       .select({
         id: courses.id,
@@ -52,7 +84,7 @@ export class CoursesService {
       .from(courses)
       .where(eq(courses.slug, slug))
       .limit(1);
-    if (!course || !course.isActive) throw new NotFoundException("Course not found");
+    if (!course || !course.isActive) throw new NotFoundException(this.i18n.t("courses.notFound"));
 
     const mods = await this.db
       .select()
@@ -91,7 +123,7 @@ export class CoursesService {
       .from(courses)
       .where(and(eq(courses.slug, slug), eq(courses.isActive, true)))
       .limit(1);
-    if (!course) throw new NotFoundException("Course not found");
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
     return course.id;
   }
 
@@ -108,7 +140,7 @@ export class CoursesService {
       .set({ ...cleanData, updatedAt: new Date() })
       .where(eq(courses.id, id))
       .returning();
-    if (!course) throw new NotFoundException("Course not found");
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
     return course;
   }
 
@@ -118,17 +150,17 @@ export class CoursesService {
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(courses.id, id))
       .returning();
-    if (!course) throw new NotFoundException("Course not found");
-    return { message: "Course deleted" };
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
+    return { message: this.i18n.t("courses.deleted") };
   }
 
-  async enroll(userId: string, courseId: string, stripePaymentId?: string) {
+  async enroll(userId: string, courseId: string, stripePaymentId?: string, locale?: string) {
     const [course] = await this.db
       .select()
       .from(courses)
       .where(eq(courses.id, courseId))
       .limit(1);
-    if (!course) throw new NotFoundException("Course not found");
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
 
     const [existing] = await this.db
       .select()
@@ -142,20 +174,7 @@ export class CoursesService {
       )
       .limit(1);
 
-    if (existing) throw new BadRequestException("Already enrolled in this course");
-
-    if (parseFloat(course.price) === 0 || stripePaymentId) {
-      const [enrollment] = await this.db
-        .insert(userCourseEnrollments)
-        .values({
-          userId,
-          courseId,
-          stripePaymentId,
-          accessExpiresAt: new Date(Date.now() + course.durationDays * 86400000),
-        })
-        .returning();
-      return enrollment;
-    }
+    if (existing) throw new BadRequestException(this.i18n.t("courses.alreadyEnrolled"));
 
     const [sub] = await this.db
       .select()
@@ -172,19 +191,48 @@ export class CoursesService {
       )
       .limit(1);
 
-    if (sub && !sub.subscription_plans.isCourseOnly) {
+    const isCourseOnly = sub?.subscription_plans?.isCourseOnly;
+    const subCourseId = sub?.subscription_plans?.courseId;
+
+    if (isCourseOnly && subCourseId !== courseId) {
+      throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
+    }
+
+    if (parseFloat(course.price) === 0 || stripePaymentId || (sub && !isCourseOnly) || (isCourseOnly && subCourseId === courseId)) {
       const [enrollment] = await this.db
         .insert(userCourseEnrollments)
         .values({
           userId,
           courseId,
+          stripePaymentId,
           accessExpiresAt: new Date(Date.now() + course.durationDays * 86400000),
         })
         .returning();
       return enrollment;
     }
 
-    throw new BadRequestException("Payment required for this course");
+    if (!stripePaymentId) {
+      const appUrl = this.config.get<string>("APP_URL") || "http://localhost:4175";
+      const session = await this.stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [{
+          price_data: {
+            currency: "usd",
+            product_data: { name: course.title?.en || "Course" },
+            unit_amount: Math.round(parseFloat(course.price) * 100),
+          },
+          quantity: 1,
+        }],
+        client_reference_id: userId,
+        metadata: { courseId, type: "course_enrollment" },
+        success_url: `${appUrl}/${locale || "en"}/dashboard/courses/${course.slug}?enroll=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}/${locale || "en"}/dashboard/courses/${course.slug}`,
+      });
+      return { url: session.url };
+    }
+
+    throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
   }
 
   async getEnrollment(userId: string, courseId: string) {
@@ -217,7 +265,7 @@ export class CoursesService {
       .set(cleanData)
       .where(eq(courseModules.id, moduleId))
       .returning();
-    if (!mod) throw new NotFoundException("Module not found");
+    if (!mod) throw new NotFoundException(this.i18n.t("courses.moduleNotFound"));
     return mod;
   }
 
@@ -226,11 +274,11 @@ export class CoursesService {
       .delete(courseModules)
       .where(eq(courseModules.id, moduleId))
       .returning({ id: courseModules.id });
-    if (!mod) throw new NotFoundException("Module not found");
-    return { message: "Module deleted" };
+    if (!mod) throw new NotFoundException(this.i18n.t("courses.moduleNotFound"));
+    return { message: this.i18n.t("courses.moduleDeleted") };
   }
 
-  async createLesson(moduleId: string, data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
+  async createLesson(moduleId: string, data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; imageUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
     const [lesson] = await this.db
       .insert(courseLessons)
       .values({
@@ -239,6 +287,7 @@ export class CoursesService {
         contentType: data.contentType ?? "video",
         videoUrl: data.videoUrl,
         pdfUrl: data.pdfUrl,
+        imageUrl: data.imageUrl,
         content: data.content,
         duration: data.duration ?? 0,
         sortOrder: data.sortOrder ?? 0,
@@ -248,14 +297,14 @@ export class CoursesService {
     return lesson;
   }
 
-  async updateLesson(lessonId: string, data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
+  async updateLesson(lessonId: string, data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; imageUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean }) {
     const { createdAt, updatedAt, deletedAt, ...cleanData } = data as any;
     const [lesson] = await this.db
       .update(courseLessons)
       .set(cleanData)
       .where(eq(courseLessons.id, lessonId))
       .returning();
-    if (!lesson) throw new NotFoundException("Lesson not found");
+    if (!lesson) throw new NotFoundException(this.i18n.t("courses.lessonNotFound"));
     return lesson;
   }
 
@@ -264,8 +313,8 @@ export class CoursesService {
       .delete(courseLessons)
       .where(eq(courseLessons.id, lessonId))
       .returning({ id: courseLessons.id });
-    if (!lesson) throw new NotFoundException("Lesson not found");
-    return { message: "Lesson deleted" };
+    if (!lesson) throw new NotFoundException(this.i18n.t("courses.lessonNotFound"));
+    return { message: this.i18n.t("courses.lessonDeleted") };
   }
 
   async completeLesson(userId: string, courseId: string, lessonId: string) {
@@ -294,7 +343,7 @@ export class CoursesService {
       .from(courseLessons)
       .where(eq(courseLessons.id, lessonId))
       .limit(1);
-    if (!lesson) throw new NotFoundException("Lesson not found");
+    if (!lesson) throw new NotFoundException(this.i18n.t("courses.lessonNotFound"));
 
     const [progress] = await this.db
       .insert(userCourseProgress)
@@ -331,7 +380,7 @@ export class CoursesService {
       return updated;
     }
 
-    throw new NotFoundException("Progress record not found");
+    throw new NotFoundException(this.i18n.t("courses.progressNotFound"));
   }
 
   async getComments(courseId: string) {
@@ -367,15 +416,15 @@ export class CoursesService {
       .from(courseComments)
       .where(eq(courseComments.id, commentId))
       .limit(1);
-    if (!comment) throw new NotFoundException("Comment not found");
-    if (comment.userId !== userId) throw new ForbiddenException("Not your comment");
+    if (!comment) throw new NotFoundException(this.i18n.t("courses.commentNotFound"));
+    if (comment.userId !== userId) throw new ForbiddenException(this.i18n.t("courses.notYourComment"));
 
     const [deleted] = await this.db
       .update(courseComments)
       .set({ deletedAt: new Date() })
       .where(eq(courseComments.id, commentId))
       .returning();
-    return { message: "Comment deleted" };
+    return { message: this.i18n.t("courses.commentDeleted") };
   }
 
   async getLessonQuiz(lessonId: string) {

@@ -46,7 +46,7 @@ export default function AdminArticlesPage() {
       const { data } = await articlesApi.list({ all: "true" });
       setArticles(data);
     } catch {
-      toast.error("Failed to load articles");
+      toast.error(t("load_failed_articles"));
     } finally {
       setLoading(false);
     }
@@ -84,15 +84,15 @@ export default function AdminArticlesPage() {
       };
       if (editing) {
         await articlesApi.update(editing.id, payload);
-        toast.success("Article updated");
+        toast.success(t("article_updated"));
       } else {
         await articlesApi.create(payload);
-        toast.success("Article created");
+        toast.success(t("article_created"));
       }
       setDialogOpen(false);
       fetchArticles();
     } catch (err: any) {
-      const msg = err?.response?.data?.message?.[0] || err?.response?.data?.message || "Failed to save article";
+      const msg = err?.response?.data?.message?.[0] || err?.response?.data?.message || t("article_save_failed");
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -103,17 +103,17 @@ export default function AdminArticlesPage() {
     if (!deleteTarget) return;
     try {
       await articlesApi.remove(deleteTarget.id);
-      toast.success("Article deleted");
+      toast.success(t("article_deleted"));
       setDeleteTarget(null);
       fetchArticles();
     } catch {
-      toast.error("Failed to delete");
+      toast.error(t("article_delete_failed"));
     }
   };
 
   const columns = [
     { key: "title", header: t("title_col"), sortable: true, render: (row: any) => row.title?.en || row.title },
-    { key: "authorId", header: t("author"), render: (row: any) => row.author?.name || (row.title?.en?.length || 0) > 20 ? "Admin" : "Admin" },
+    { key: "authorId", header: t("author"), render: (row: any) => row.author?.name || t("admin_name") },
     { key: "publishedAt", header: t("published"), render: (row: any) => row.publishedAt ? new Date(row.publishedAt).toLocaleDateString() : "-" },
     { key: "isPublished", header: t("status"), render: (row: any) => <Badge variant={row.isPublished ? "default" : "secondary"}>{row.isPublished ? c("published") : c("draft")}</Badge> },
     {
@@ -165,27 +165,27 @@ export default function AdminArticlesPage() {
               </div>
               <div className="text-left">
                 <DialogTitle className="text-xl font-bold tracking-tight">
-                  {editing ? "Edit Article" : "New Article"}
+                  {editing ? t("edit_article") : t("new_article")}
                 </DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Fill in the fields to configure the article</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("configure_article")}</p>
               </div>
             </div>
           </DialogHeader>
 
           <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Title (English)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("title_english")}</label>
               <Input
                 autoFocus
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Enter article title..."
+                placeholder={t("article_title_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Excerpt</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("excerpt")}</label>
               <Input
                 value={form.excerpt}
                 onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
@@ -195,21 +195,21 @@ export default function AdminArticlesPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Content</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content")}</label>
               <Textarea
                 value={form.content}
                 onChange={(e) => setForm({ ...form, content: e.target.value })}
                 rows={8}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[200px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Write your article content here..."
+                placeholder={t("article_content_placeholder")}
               />
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border/60">
               <Switch checked={form.isPublished} onCheckedChange={(v) => setForm({ ...form, isPublished: v })} />
               <div>
-                <label className="text-sm font-medium">Published</label>
-                <p className="text-xs text-muted-foreground">Make this article visible to users</p>
+                <label className="text-sm font-medium">{t("published_label")}</label>
+                <p className="text-xs text-muted-foreground">{t("published_desc")}</p>
               </div>
             </div>
           </div>
@@ -227,9 +227,9 @@ export default function AdminArticlesPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Delete Article"
-        description="Are you sure you want to delete this article?"
-        confirmLabel="Delete"
+        title={t("delete_article_title")}
+        description={t("delete_article_confirm")}
+        confirmLabel={c("delete")}
         variant="destructive"
         onConfirm={handleDelete}
       />

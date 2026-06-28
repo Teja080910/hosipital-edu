@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronUp, ChevronDown, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface Column<T> {
   key: string;
@@ -42,6 +43,7 @@ export function DataTable<T extends Record<string, any>>({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(0);
+  const t = useTranslations("common");
 
   const filtered = useMemo(() => {
     if (!search || !searchKeys) return data;
@@ -80,7 +82,7 @@ export function DataTable<T extends Record<string, any>>({
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search..."
+            placeholder={t("search_placeholder")}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             className="pl-9"
@@ -118,7 +120,7 @@ export function DataTable<T extends Record<string, any>>({
             {paged.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground px-4">
-                  No results found
+                  {t("no_results")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -143,7 +145,7 @@ export function DataTable<T extends Record<string, any>>({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Page {page + 1} of {totalPages}
+            {t("pagination_page", { page: page + 1, total: totalPages })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -152,7 +154,7 @@ export function DataTable<T extends Record<string, any>>({
               disabled={page === 0}
               onClick={() => setPage((p) => p - 1)}
             >
-              Previous
+              {t("previous")}
             </Button>
             <Button
               variant="outline"
@@ -160,7 +162,7 @@ export function DataTable<T extends Record<string, any>>({
               disabled={page >= totalPages - 1}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next
+              {t("next")}
             </Button>
           </div>
         </div>

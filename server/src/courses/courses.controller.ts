@@ -23,9 +23,11 @@ export class CoursesController {
   constructor(private coursesService: CoursesService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "List courses" })
-  async findAll(@Query("all") all?: string) {
-    return this.coursesService.findAll(all !== "true");
+  async findAll(@Query("all") all?: string, @CurrentUser() user?: any) {
+    return this.coursesService.findAll(all !== "true", user?.id);
   }
 
   @Post()
@@ -58,9 +60,10 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
     @Body("stripePaymentId") stripePaymentId?: string,
+    @Body("locale") locale?: string,
   ) {
     const courseId = await this.coursesService.findIdBySlug(slug);
-    return this.coursesService.enroll(user.id, courseId, stripePaymentId);
+    return this.coursesService.enroll(user.id, courseId, stripePaymentId, locale);
   }
 
   @Get(":slug/progress")
@@ -115,7 +118,7 @@ export class CoursesController {
   @ApiOperation({ summary: "Create lesson (admin)" })
   async createLesson(
     @Param("moduleId", ParseUUIDPipe) moduleId: string,
-    @Body() data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
+    @Body() data: { title: any; contentType?: string; videoUrl?: string; pdfUrl?: string; imageUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
   ) {
     return this.coursesService.createLesson(moduleId, data);
   }
@@ -127,7 +130,7 @@ export class CoursesController {
   @ApiOperation({ summary: "Update lesson (admin)" })
   async updateLesson(
     @Param("lessonId", ParseUUIDPipe) lessonId: string,
-    @Body() data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
+    @Body() data: { title?: any; contentType?: string; videoUrl?: string; pdfUrl?: string; imageUrl?: string; content?: string; duration?: number; sortOrder?: number; isFreePreview?: boolean },
   ) {
     return this.coursesService.updateLesson(lessonId, data);
   }

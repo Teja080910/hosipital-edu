@@ -26,6 +26,7 @@ interface TranslationRow {
 
 export default function AdminTranslationsPage() {
   const t = useTranslations("admin");
+  const c = useTranslations("common");
   const [rows, setRows] = useState<TranslationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -50,7 +51,7 @@ export default function AdminTranslationsPage() {
       setNamespaces(Array.from(ns).sort());
       setRows(Object.values(grouped));
     } catch {
-      toast.error("Failed to load translations");
+      toast.error(t("translations_load_failed"));
     } finally {
       setLoading(false);
     }
@@ -216,35 +217,35 @@ export default function AdminTranslationsPage() {
                 <Plus className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <DialogTitle className="text-xl font-bold tracking-tight">Add Translation</DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Create a new translation key for all locales</p>
+                <DialogTitle className="text-xl font-bold tracking-tight">{t("add_translation")}</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("add_translation_desc")}</p>
               </div>
             </div>
           </DialogHeader>
           <div className="p-6 space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Key</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("key_label")}</label>
               <Input
                 autoFocus
                 value={addForm.key}
                 onChange={(e) => setAddForm({ ...addForm, key: e.target.value })}
-                placeholder="e.g. common.save"
+                placeholder={t("placeholder_key")}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Namespace</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("namespace_label")}</label>
               <Input
                 value={addForm.namespace}
                 onChange={(e) => setAddForm({ ...addForm, namespace: e.target.value })}
-                placeholder="e.g. common, admin, auth"
+                placeholder={t("placeholder_namespace")}
               />
             </div>
           </div>
           <DialogFooter className="p-6 pt-4 border-t border-border/60 flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)} className="rounded-xl px-6 h-10 text-sm font-medium">Cancel</Button>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)} className="rounded-xl px-6 h-10 text-sm font-medium">{c("cancel")}</Button>
             <Button onClick={handleAdd} disabled={adding || !addForm.key.trim()} className="rounded-xl px-6 h-10 text-sm font-medium shadow-md">
               {adding && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add
+              {c("create")}
             </Button>
           </DialogFooter>
         </DialogContent>

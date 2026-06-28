@@ -36,7 +36,7 @@ export default function AdminParametersPage() {
       const { data } = await parametersApi.list();
       setParams(Array.isArray(data) ? data : []);
     } catch {
-      toast.error("Failed to load parameters");
+      toast.error(t("load_failed_params"));
     } finally {
       setLoading(false);
     }
@@ -58,8 +58,8 @@ export default function AdminParametersPage() {
   };
 
   const handleSave = async () => {
-    if (!form.key.trim()) { toast.error("Key is required"); return; }
-    if (!form.value.trim()) { toast.error("Value is required"); return; }
+    if (!form.key.trim()) { toast.error(t("key_required")); return; }
+    if (!form.value.trim()) { toast.error(t("value_required")); return; }
     setSaving(true);
     try {
       let parsedValue: any = form.value;
@@ -67,15 +67,15 @@ export default function AdminParametersPage() {
       const payload = { key: form.key, value: parsedValue, description: form.description };
       if (editing) {
         await parametersApi.update(editing.key, { value: parsedValue, description: form.description });
-        toast.success("Parameter updated");
+        toast.success(t("param_updated"));
       } else {
         await parametersApi.create(payload);
-        toast.success("Parameter created");
+        toast.success(t("param_created"));
       }
       setDialogOpen(false);
       fetchParams();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to save");
+      toast.error(err?.response?.data?.message || t("param_save_failed"));
     } finally {
       setSaving(false);
     }
@@ -85,28 +85,28 @@ export default function AdminParametersPage() {
     if (!deleteTarget) return;
     try {
       await parametersApi.remove(deleteTarget.key);
-      toast.success("Parameter deleted");
+      toast.success(t("param_deleted"));
       setDeleteTarget(null);
       fetchParams();
     } catch {
-      toast.error("Failed to delete");
+      toast.error(t("param_delete_failed"));
     }
   };
 
   const columns = [
-    { key: "key", header: "Key", sortable: true },
+    { key: "key", header: t("key_col"), sortable: true },
     {
       key: "value",
-      header: "Value",
+      header: t("value_col"),
       render: (row: any) => {
         const v = typeof row.value === "object" ? JSON.stringify(row.value) : String(row.value || "");
         return <span className="text-sm text-muted-foreground truncate max-w-[300px] block">{v}</span>;
       },
     },
-    { key: "description", header: "Description", render: (row: any) => row.description || "—" },
+    { key: "description", header: t("description_col"), render: (row: any) => row.description || "—" },
     {
       key: "updatedAt",
-      header: "Updated",
+      header: t("updated_col"),
       render: (row: any) => row.updatedAt ? new Date(row.updatedAt).toLocaleDateString() : "—",
     },
     {
@@ -137,7 +137,7 @@ export default function AdminParametersPage() {
             <h1 className="text-3xl font-bold tracking-tight">{t("parameters_title")}</h1>
             <p className="text-muted-foreground">{t("parameters_subtitle")}</p>
           </div>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Add Parameter</Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> {t("add_parameter")}</Button>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -155,46 +155,46 @@ export default function AdminParametersPage() {
               </div>
               <div className="text-left">
                 <DialogTitle className="text-xl font-bold tracking-tight">
-                  {editing ? "Edit Parameter" : "Add Parameter"}
+                  {editing ? t("edit_parameter") : t("add_parameter")}
                 </DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Configure system parameter</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("configure_parameter")}</p>
               </div>
             </div>
           </DialogHeader>
 
           <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Key</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("key_col")}</label>
               <Input
                 autoFocus
                 value={form.key}
                 onChange={(e) => setForm({ ...form, key: e.target.value })}
                 disabled={!!editing}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
-                placeholder="e.g. terms_of_service, faq_content"
+                placeholder={t("key_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                Value <span className="font-normal lowercase">(JSON or plain text)</span>
+                {t("value_col")} <span className="font-normal lowercase">{t("value_hint")}</span>
               </label>
               <Textarea
                 value={form.value}
                 onChange={(e) => setForm({ ...form, value: e.target.value })}
                 rows={6}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none min-h-[120px]"
-                placeholder='{"en": "...", "es": "..."} or plain text'
+                placeholder={t("value_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Description</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("description")}</label>
               <Input
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
-                placeholder="Brief description..."
+                placeholder={t("brief_description")}
               />
             </div>
           </div>
@@ -212,9 +212,9 @@ export default function AdminParametersPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Delete Parameter"
-        description="Are you sure you want to delete this parameter?"
-        confirmLabel="Delete"
+        title={t("delete_param_title")}
+        description={t("delete_param_confirm")}
+        confirmLabel={c("delete")}
         variant="destructive"
         onConfirm={handleDelete}
       />

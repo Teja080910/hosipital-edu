@@ -9,6 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -20,7 +27,7 @@ import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { coursesApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, BookOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function AdminCoursesPage() {
   const t = useTranslations("admin");
@@ -31,15 +38,21 @@ export default function AdminCoursesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", shortDescription: "", price: "0", durationDays: 30 });
+  const [form, setForm] = useState({
+    title: "", description: "", shortDescription: "",
+    introduction: "", objectives: "", targetAudience: "", prerequisites: "", whatYouWillLearn: "",
+    preExamInstructions: "", postExamInstructions: "", certificateInstructions: "",
+    price: "0", durationDays: 30, hasCertificate: true, coverImage: "",
+  });
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const fetchCourses = useCallback(async () => {
     try {
       const { data } = await coursesApi.list(true);
       setCourses(data);
     } catch {
-      toast.error("Failed to load courses");
+      toast.error(t("load_failed_courses"));
     } finally {
       setLoading(false);
     }
@@ -49,7 +62,7 @@ export default function AdminCoursesPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ title: "", description: "", shortDescription: "", price: "0", durationDays: 30 });
+    setForm({ title: "", description: "", shortDescription: "", introduction: "", objectives: "", targetAudience: "", prerequisites: "", whatYouWillLearn: "", preExamInstructions: "", postExamInstructions: "", certificateInstructions: "", price: "0", durationDays: 30, hasCertificate: true, coverImage: "" });
     setDialogOpen(true);
   };
 
@@ -59,8 +72,18 @@ export default function AdminCoursesPage() {
       title: course.title?.en || "",
       description: course.description?.en || "",
       shortDescription: course.shortDescription?.en || "",
+      introduction: course.introduction?.en || "",
+      objectives: course.objectives?.en || "",
+      targetAudience: course.targetAudience?.en || "",
+      prerequisites: course.prerequisites?.en || "",
+      whatYouWillLearn: course.whatYouWillLearn?.en || "",
+      preExamInstructions: course.preExamInstructions?.en || "",
+      postExamInstructions: course.postExamInstructions?.en || "",
+      certificateInstructions: course.certificateInstructions?.en || "",
       price: course.price || "0",
       durationDays: course.durationDays || 30,
+      hasCertificate: course.hasCertificate ?? true,
+      coverImage: course.coverImage || "",
     });
     setDialogOpen(true);
   };
@@ -73,21 +96,31 @@ export default function AdminCoursesPage() {
         title: { en: form.title },
         description: { en: form.description },
         shortDescription: { en: form.shortDescription },
+        introduction: form.introduction ? { en: form.introduction } : null,
+        objectives: form.objectives ? { en: form.objectives } : null,
+        targetAudience: form.targetAudience ? { en: form.targetAudience } : null,
+        prerequisites: form.prerequisites ? { en: form.prerequisites } : null,
+        whatYouWillLearn: form.whatYouWillLearn ? { en: form.whatYouWillLearn } : null,
+        preExamInstructions: form.preExamInstructions ? { en: form.preExamInstructions } : null,
+        postExamInstructions: form.postExamInstructions ? { en: form.postExamInstructions } : null,
+        certificateInstructions: form.certificateInstructions ? { en: form.certificateInstructions } : null,
         price: form.price,
         durationDays: form.durationDays,
+        hasCertificate: form.hasCertificate,
+        coverImage: form.coverImage || null,
       };
       if (editing) {
         await coursesApi.update(editing.id, payload);
-        toast.success("Course updated");
+        toast.success(t("course_updated"));
       } else {
         payload.slug = form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
         await coursesApi.create(payload);
-        toast.success("Course created");
+        toast.success(t("course_created"));
       }
       setDialogOpen(false);
       fetchCourses();
     } catch {
-      toast.error("Failed to save course");
+      toast.error(t("course_save_failed"));
     } finally {
       setSaving(false);
     }
@@ -97,18 +130,18 @@ export default function AdminCoursesPage() {
     if (!deleteTarget) return;
     try {
       await coursesApi.remove(deleteTarget.id);
-      toast.success("Course deleted");
+      toast.success(t("course_deleted"));
       setDeleteTarget(null);
       fetchCourses();
     } catch {
-      toast.error("Failed to delete");
+      toast.error(t("course_delete_failed"));
     }
   };
 
   const columns = [
     { key: "title", header: t("title_col"), sortable: true, render: (row: any) => row.title?.en || row.title },
     { key: "durationDays", header: t("lessons_col"), render: (row: any) => `${row.durationDays}d` },
-    { key: "price", header: "Price", render: (row: any) => `$${row.price}` },
+    { key: "price", header: t("price"), render: (row: any) => `$${row.price}` },
     { key: "isActive", header: t("status"), render: (row: any) => <Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? c("active") : c("draft")}</Badge> },
     {
       key: "actions",
@@ -157,66 +190,192 @@ export default function AdminCoursesPage() {
               </div>
               <div className="text-left">
                 <DialogTitle className="text-xl font-bold tracking-tight">
-                  {editing ? "Edit Course Details" : "Create New Course"}
+                  {editing ? t("edit_course_details") : t("create_new_course")}
                 </DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Fill in the fields to configure the course</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("configure_course")}</p>
               </div>
             </div>
           </DialogHeader>
 
           <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Title (English)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("title_english")}</label>
               <Input
                 autoFocus
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Enter course title..."
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none"
+                placeholder={t("course_title_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Description</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("description")}</label>
               <Textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={3}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[100px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Enter course description..."
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[100px] resize-none outline-none"
+                placeholder={t("course_description_placeholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Short Description</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("short_description")}</label>
               <Input
                 value={form.shortDescription}
                 onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Brief summary..."
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none"
+                placeholder={t("short_description_placeholder")}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("cover_image")}</label>
+              <Input
+                value={form.coverImage}
+                onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none"
+                placeholder="https://example.com/image.jpg"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Price ($)</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("price")}</label>
                 <Input
                   type="number"
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Duration (days)</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("duration_days")}</label>
                 <Input
                   type="number"
                   value={form.durationDays}
                   onChange={(e) => setForm({ ...form, durationDays: Number(e.target.value) })}
-                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
                 />
               </div>
             </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border/60">
+              <input
+                type="checkbox"
+                checked={form.hasCertificate}
+                onChange={(e) => setForm({ ...form, hasCertificate: e.target.checked })}
+                className="h-4 w-4 rounded border-border"
+              />
+              <div>
+                <label className="text-sm font-medium">{t("has_certificate")}</label>
+                <p className="text-xs text-muted-foreground">{t("has_certificate_desc")}</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/60 text-sm font-medium"
+            >
+              {t("course_details")}
+              {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+
+            {showAdvanced && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("introduction")}</label>
+                  <Textarea
+                    value={form.introduction}
+                    onChange={(e) => setForm({ ...form, introduction: e.target.value })}
+                    rows={3}
+                    className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
+                    placeholder={t("introduction_placeholder")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("objectives")}</label>
+                  <Textarea
+                    value={form.objectives}
+                    onChange={(e) => setForm({ ...form, objectives: e.target.value })}
+                    rows={3}
+                    className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
+                    placeholder={t("objectives_placeholder")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("target_audience")}</label>
+                  <Textarea
+                    value={form.targetAudience}
+                    onChange={(e) => setForm({ ...form, targetAudience: e.target.value })}
+                    rows={2}
+                    className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[60px] resize-none outline-none"
+                    placeholder={t("target_audience_placeholder")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("prerequisites")}</label>
+                  <Textarea
+                    value={form.prerequisites}
+                    onChange={(e) => setForm({ ...form, prerequisites: e.target.value })}
+                    rows={2}
+                    className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[60px] resize-none outline-none"
+                    placeholder={t("prerequisites_placeholder")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("what_you_will_learn")}</label>
+                  <Textarea
+                    value={form.whatYouWillLearn}
+                    onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })}
+                    rows={3}
+                    className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
+                    placeholder={t("what_you_will_learn_placeholder")}
+                  />
+                </div>
+
+                <div className="border-t border-border/60 my-2" />
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("pre_exam_instructions")}</label>
+                  <Textarea
+                    value={form.preExamInstructions}
+                    onChange={(e) => setForm({ ...form, preExamInstructions: e.target.value })}
+                    rows={3}
+                    className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
+                    placeholder={t("pre_exam_instructions_placeholder")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("post_exam_instructions")}</label>
+                  <Textarea
+                    value={form.postExamInstructions}
+                    onChange={(e) => setForm({ ...form, postExamInstructions: e.target.value })}
+                    rows={3}
+                    className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
+                    placeholder={t("post_exam_instructions_placeholder")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("certificate_instructions")}</label>
+                  <Textarea
+                    value={form.certificateInstructions}
+                    onChange={(e) => setForm({ ...form, certificateInstructions: e.target.value })}
+                    rows={3}
+                    className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
+                    placeholder={t("certificate_instructions_placeholder")}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter className="p-6 pt-4 border-t border-border/60 flex justify-end gap-3">
@@ -232,9 +391,9 @@ export default function AdminCoursesPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Delete Course"
-        description="Are you sure you want to delete this course? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t("delete_course_title")}
+        description={t("delete_course_confirm")}
+        confirmLabel={c("delete")}
         variant="destructive"
         onConfirm={handleDelete}
       />

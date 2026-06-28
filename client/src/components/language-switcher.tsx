@@ -1,5 +1,6 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,7 +16,7 @@ const locales = [
 ];
 
 export function LanguageSwitcher() {
-  const currentLocale = typeof window !== "undefined" ? window.location.pathname.split("/")[1] || "en" : "en";
+  const currentLocale = useParams().locale as string;
 
   const switchLocale = (locale: string) => {
     const current = window.location.pathname;

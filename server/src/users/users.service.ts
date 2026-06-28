@@ -4,12 +4,14 @@ import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { users, userSubscriptions, subscriptionPlans } from "../database/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class UsersService {
   constructor(
     @Inject(DRIZZLE) private db: any,
     private config: ConfigService,
+    private i18n: I18nService,
   ) {}
 
   async findAll(page = 1, limit = 1000) {
@@ -33,7 +35,7 @@ export class UsersService {
       .from(users)
       .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .limit(1);
-    if (!user) throw new NotFoundException("User not found");
+    if (!user) throw new NotFoundException(this.i18n.t("users.notFound"));
     return user;
   }
 
@@ -52,7 +54,7 @@ export class UsersService {
       .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .returning();
-    if (!user) throw new NotFoundException("User not found");
+    if (!user) throw new NotFoundException(this.i18n.t("users.notFound"));
     return user;
   }
 
@@ -62,8 +64,8 @@ export class UsersService {
       .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
-    if (!user) throw new NotFoundException("User not found");
-    return { message: "User deleted" };
+    if (!user) throw new NotFoundException(this.i18n.t("users.notFound"));
+    return { message: this.i18n.t("users.deleted") };
   }
 
   async getReferralInfo(userId: string) {
@@ -72,7 +74,7 @@ export class UsersService {
       .from(users)
       .where(and(eq(users.id, userId), isNull(users.deletedAt)))
       .limit(1);
-    if (!user) throw new NotFoundException("User not found");
+    if (!user) throw new NotFoundException(this.i18n.t("users.notFound"));
     const [result] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(users)

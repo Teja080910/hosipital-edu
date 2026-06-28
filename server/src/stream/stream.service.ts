@@ -1,8 +1,9 @@
 import { Injectable, Inject, HttpException, HttpStatus } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { DRIZZLE } from "../database/database.provider";
-import { videoModules, videoLessons } from "../database/schema";
-import { eq, asc } from "drizzle-orm";
+import { videoModules, videoModuleExams, videoLessons } from "../database/schema";
+import { eq, asc, inArray } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class StreamService {
@@ -13,6 +14,7 @@ export class StreamService {
   constructor(
     @Inject(DRIZZLE) private db: any,
     private config: ConfigService,
+    private i18n: I18nService,
   ) {
     this.apiToken = this.config.get<string>("CLOUDFLARE_STREAM_TOKEN") || "";
     this.accountId = this.config.get<string>("CLOUDFLARE_ACCOUNT_ID") || "";
@@ -34,7 +36,7 @@ export class StreamService {
     });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException(json.errors?.[0]?.message || "Failed to generate upload URL", HttpStatus.BAD_GATEWAY);
+      throw new HttpException(json.errors?.[0]?.message || this.i18n.t("stream.failedGenerateUploadUrl"), HttpStatus.BAD_GATEWAY);
     }
     return json.result;
   }
@@ -47,7 +49,7 @@ export class StreamService {
     });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException("Failed to list videos", HttpStatus.BAD_GATEWAY);
+      throw new HttpException(this.i18n.t("stream.failedListVideos"), HttpStatus.BAD_GATEWAY);
     }
     return json.result;
   }
@@ -56,7 +58,7 @@ export class StreamService {
     const res = await fetch(`${this.baseUrl}/${uid}`, { headers: this.headers });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException("Video not found", HttpStatus.NOT_FOUND);
+      throw new HttpException(this.i18n.t("stream.videoNotFound"), HttpStatus.NOT_FOUND);
     }
     return json.result;
   }
@@ -68,7 +70,7 @@ export class StreamService {
     });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException("Failed to delete video", HttpStatus.BAD_GATEWAY);
+      throw new HttpException(this.i18n.t("stream.failedDeleteVideo"), HttpStatus.BAD_GATEWAY);
     }
     return json;
   }
@@ -81,7 +83,7 @@ export class StreamService {
     });
     const json = await res.json();
     if (!json.success) {
-      throw new HttpException("Failed to generate token", HttpStatus.BAD_GATEWAY);
+      throw new HttpException(this.i18n.t("stream.failedGenerateToken"), HttpStatus.BAD_GATEWAY);
     }
     return json.result;
   }
@@ -99,7 +101,11 @@ export class StreamService {
         .from(videoLessons)
         .where(eq(videoLessons.moduleId, mod.id))
         .orderBy(asc(videoLessons.sortOrder));
-      result.push({ ...mod, lessons });
+      const examLinks = await this.db
+        .select()
+        .from(videoModuleExams)
+        .where(eq(videoModuleExams.moduleId, mod.id));
+      result.push({ ...mod, lessons, examIds: examLinks.map((l: any) => l.examId) });
     }
     return result;
   }
@@ -116,29 +122,50 @@ export class StreamService {
       .from(videoLessons)
       .where(eq(videoLessons.moduleId, id))
       .orderBy(asc(videoLessons.sortOrder));
-    return { ...mod, lessons };
+    const examLinks = await this.db
+      .select()
+      .from(videoModuleExams)
+      .where(eq(videoModuleExams.moduleId, id));
+    return { ...mod, lessons, examIds: examLinks.map((l: any) => l.examId) };
   }
 
-  async createModule(data: { title: any; description: any; examId?: string; sortOrder?: number }) {
+  async createModule(data: { title: any; description: any; examIds?: string[]; sortOrder?: number }) {
+    const { examIds, ...moduleData } = data;
     const [mod] = await this.db
       .insert(videoModules)
       .values({
-        title: data.title,
-        description: data.description,
-        examId: data.examId || null,
+        ...moduleData,
+        examId: null,
         sortOrder: data.sortOrder || 0,
       })
       .returning();
+    if (examIds?.length) {
+      await this.db
+        .insert(videoModuleExams)
+        .values(examIds.map((eId: string) => ({ moduleId: mod.id, examId: eId })));
+    }
     return mod;
   }
 
-  async updateModule(id: string, data: { title?: any; description?: any; examId?: string; sortOrder?: number; isActive?: boolean }) {
-    const { createdAt, updatedAt, deletedAt, ...cleanData } = data as any;
+  async updateModule(id: string, data: { title?: any; description?: any; examIds?: string[]; sortOrder?: number; isActive?: boolean }) {
+    const { examIds, createdAt, updatedAt, deletedAt, ...cleanData } = data as any;
     const [mod] = await this.db
       .update(videoModules)
       .set(cleanData)
       .where(eq(videoModules.id, id))
       .returning();
+
+    if (examIds) {
+      await this.db
+        .delete(videoModuleExams)
+        .where(eq(videoModuleExams.moduleId, id));
+      if (examIds.length > 0) {
+        await this.db
+          .insert(videoModuleExams)
+          .values(examIds.map((eId: string) => ({ moduleId: id, examId: eId })));
+      }
+    }
+
     return mod;
   }
 

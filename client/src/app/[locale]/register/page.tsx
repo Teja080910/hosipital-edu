@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, Suspense } from "react";
+import { useRef, useState, useEffect, Suspense } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, Link } from "@/routing";
 import { useSearchParams } from "next/navigation";
@@ -8,11 +8,14 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Sparkles, Eye, EyeOff, Check, X, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { examsApi } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export default function RegisterPageWrapper() {
   return (
@@ -31,6 +34,9 @@ function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const COURSES_OPTION = "courses";
+  const [targetExamId, setTargetExamId] = useState(COURSES_OPTION);
+  const [exams, setExams] = useState<{ id: string; name: Record<string, string>; slug: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -39,6 +45,12 @@ function RegisterPage() {
   const submittingRef = useRef(false);
 
   const referralCode = searchParams.get("ref") || undefined;
+
+  useEffect(() => {
+    examsApi.list().then(({ data }) => {
+      if (Array.isArray(data)) setExams(data);
+    }).catch(() => {});
+  }, []);
 
   const passwordChecks = {
     length: password.length >= 8,
@@ -60,7 +72,7 @@ function RegisterPage() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      await register(name, email, password, referralCode);
+      await register(name, email, password, referralCode, targetExamId === COURSES_OPTION ? undefined : targetExamId || undefined, targetExamId === COURSES_OPTION ? "course_only" : undefined);
       toast.success(t("account_created"));
       setLoading(false);
       router.push("/dashboard");
@@ -101,9 +113,7 @@ function RegisterPage() {
               transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
               className="flex justify-center mb-5"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/25">
-                <GraduationCap className="h-7 w-7 text-white" />
-              </div>
+              <Image src="/logo.png" alt="MD Exam" width={72} height={72} className="rounded-xl bg-white p-1.5" />
             </motion.div>
             <CardTitle className="text-2xl font-bold tracking-tight">{t("register_title")}</CardTitle>
             <CardDescription className="text-sm mt-1.5">{t("register_subtitle")}</CardDescription>
@@ -162,6 +172,38 @@ function RegisterPage() {
                     )}
                   />
                 </div>
+              </motion.div>
+
+              <motion.div
+                className="space-y-2"
+                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, x: -20 }}
+                transition={{ delay: 0.225 }}
+              >
+                <Label htmlFor="exam" className={cn("text-sm font-medium transition-colors duration-200", focusedField === "exam" ? "text-primary" : "text-foreground/80")}>
+                  {t("target_exam")}
+                </Label>
+                <Select value={targetExamId} onValueChange={setTargetExamId}>
+                  <SelectTrigger
+                    id="exam"
+                    onFocus={() => setFocusedField("exam")}
+                    onBlur={() => setFocusedField(null)}
+                    className={cn(
+                      "h-11 transition-all duration-200 bg-background/50",
+                      focusedField === "exam" && "ring-2 ring-primary/20 border-primary shadow-sm shadow-primary/5"
+                    )}
+                  >
+                    <SelectValue placeholder={t("select_exam")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={COURSES_OPTION}>📚 {t("courses_only")}</SelectItem>
+                    {exams.map((exam) => (
+                      <SelectItem key={exam.id} value={exam.id}>
+                        {exam.name?.en || exam.slug}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </motion.div>
 
               <motion.div

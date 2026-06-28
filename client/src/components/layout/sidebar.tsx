@@ -32,6 +32,7 @@ import {
   Crown,
   Sparkles,
   SlidersHorizontal,
+  Star,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { subscriptionsApi } from "@/lib/api";
@@ -39,12 +40,12 @@ import { useAuth } from "@/hooks/use-auth";
 
 const allNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "dashboard" },
-  { href: "/dashboard/questions", icon: FileQuestion, label: "questions", accountTypes: ["full"] },
+  // { href: "/dashboard/questions", icon: FileQuestion, label: "questions", accountTypes: ["full"] },
   { href: "/dashboard/flashcards", icon: Library, label: "flashcards", accountTypes: ["full"] },
   { href: "/dashboard/exams", icon: GraduationCap, label: "exams", accountTypes: ["full"] },
   { href: "/dashboard/courses", icon: BookOpen, label: "courses" },
-  { href: "/dashboard/calendar", icon: Calendar, label: "calendar" },
-  { href: "/dashboard/progress", icon: BarChart3, label: "progress" },
+  { href: "/dashboard/calendar", icon: Calendar, label: "calendar", accountTypes: ["full"] },
+  { href: "/dashboard/progress", icon: BarChart3, label: "progress", accountTypes: ["full"] },
   { href: "/dashboard/videos", icon: Video, label: "videos", accountTypes: ["full"] },
 ];
 
@@ -52,6 +53,8 @@ const adminItems = [
   { href: "/dashboard/admin", icon: BarChart, label: "dashboard_title" },
   { href: "/dashboard/admin/courses", icon: BookOpenCheck, label: "course_mgmt_title" },
   { href: "/dashboard/admin/questions", icon: FileQuestion, label: "question_mgmt_title" },
+  { href: "/dashboard/admin/flashcards", icon: Library, label: "flashcards_title" },
+  { href: "/dashboard/admin/specialties", icon: BookOpen, label: "specialties_title" },
   { href: "/dashboard/admin/articles", icon: FileText, label: "articles_title" },
   { href: "/dashboard/admin/videos", icon: Video, label: "videos_title" },
   { href: "/dashboard/admin/users", icon: Users, label: "user_mgmt_title" },
@@ -59,6 +62,7 @@ const adminItems = [
   { href: "/dashboard/admin/parameters", icon: SlidersHorizontal, label: "parameters_title" },
   { href: "/dashboard/admin/translations", icon: Languages, label: "translations_title" },
   { href: "/dashboard/admin/analytics", icon: BarChart, label: "analytics_title" },
+  { href: "/dashboard/admin/testimonials", icon: Star, label: "testimonials_title" },
 ];
 
 interface SidebarProps {
@@ -76,14 +80,18 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const { user } = useAuth();
   const pathname = usePathname();
   const [adminOpen, setAdminOpen] = useState(true);
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const navItems = allNavItems.filter(item => {
     if (!item.accountTypes) return true;
+    if (user?.accountType === "course_only") {
+      return item.label === "courses" || item.label === "dashboard";
+    }
     return item.accountTypes.includes(user?.accountType || "full");
   });
   const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
+    if (user && !isAdmin) {
       subscriptionsApi.mySubscription().then(({ data }) => {
         if (data) {
           subscriptionsApi.plans().then(({ data: plans }) => {
@@ -120,7 +128,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
         isCollapsed ? "justify-center px-0" : "px-5"
       )}>
         <Link href="/" className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-          <Image src="/logo.png" alt="MD Exams" width={32} height={32} className="rounded-lg" />
+          <Image src="/logo.png" alt={sb("brand")} width={40} height={40} className="rounded-lg bg-white p-1" />
           {!isCollapsed && (
             <span className="text-lg font-bold bg-gradient-to-r from-foreground via-blue-500 to-foreground dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent">
               {sb("brand")}
@@ -159,7 +167,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
 
         <Separator className="my-4 bg-border/50" />
 
-        {user?.role === "admin" && !isCollapsed && (
+        {isAdmin && !isCollapsed && (
           <button
             onClick={() => setAdminOpen(!adminOpen)}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
@@ -170,7 +178,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
           </button>
         )}
 
-        {user?.role === "admin" && isCollapsed && (
+        {isAdmin && isCollapsed && (
           <Link href="/dashboard/admin">
             <span className="flex items-center justify-center rounded-xl px-3 py-2.5 text-muted-foreground hover:text-foreground hover:bg-accent/50">
               <Shield className="h-4.5 w-4.5" />
@@ -178,7 +186,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
           </Link>
         )}
 
-        {user?.role === "admin" && adminOpen && (
+        {isAdmin && adminOpen && (
           <nav className="flex flex-col gap-1 mt-1">
             {adminItems.map((item) => {
               const active = isActive(item.href);

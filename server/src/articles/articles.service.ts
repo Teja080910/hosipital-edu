@@ -8,10 +8,14 @@ import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { articles, articleTagsMapping } from "../database/schema";
 import { eq, and, isNull, desc, asc } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class ArticlesService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findAll(filters: { categoryId?: string; page?: number; limit?: number; publishedOnly?: boolean }) {
     const { categoryId, page = 1, limit = 20, publishedOnly = true } = filters;
@@ -35,7 +39,7 @@ export class ArticlesService {
       .from(articles)
       .where(and(eq(articles.slug, slug), isNull(articles.deletedAt)))
       .limit(1);
-    if (!article) throw new NotFoundException("Article not found");
+    if (!article) throw new NotFoundException(this.i18n.t("articles.notFound"));
     return article;
   }
 
@@ -45,7 +49,7 @@ export class ArticlesService {
       .from(articles)
       .where(and(eq(articles.slug, data.slug), isNull(articles.deletedAt)))
       .limit(1);
-    if (existing.length) throw new ConflictException("An article with this slug already exists");
+    if (existing.length) throw new ConflictException(this.i18n.t("articles.slugExists"));
     const [article] = await this.db.insert(articles).values(stripTimestamps(data)).returning();
     return article;
   }
@@ -56,7 +60,7 @@ export class ArticlesService {
       .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(eq(articles.id, id))
       .returning();
-    if (!article) throw new NotFoundException("Article not found");
+    if (!article) throw new NotFoundException(this.i18n.t("articles.notFound"));
     return article;
   }
 
@@ -66,7 +70,7 @@ export class ArticlesService {
       .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(eq(articles.id, id))
       .returning();
-    if (!article) throw new NotFoundException("Article not found");
-    return { message: "Article deleted" };
+    if (!article) throw new NotFoundException(this.i18n.t("articles.notFound"));
+    return { message: this.i18n.t("articles.deleted") };
   }
 }

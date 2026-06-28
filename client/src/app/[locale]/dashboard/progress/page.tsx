@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { TrendingUp, Target, Clock, BookOpen, Zap } from "lucide-react";
 import { analyticsApi } from "@/lib/api/analytics";
 
@@ -23,6 +24,7 @@ interface ProgressData {
 
 export default function ProgressPage() {
   const t = useTranslations("progress");
+  const tc = useTranslations("calendar");
   const [data, setData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,11 +35,12 @@ export default function ProgressPage() {
   const overallStats = data ? [
     { key: "questions_answered" as const, value: data.totalAnswered.toLocaleString(), icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
     { key: "overall_accuracy" as const, value: `${data.accuracy}%`, icon: Target, color: "text-green-500", bg: "bg-green-500/10" },
-    { key: "study_streak" as const, value: `${data.streak} days`, icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
+    { key: "study_streak" as const, value: `${data.streak} ${t("days")}`, icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
     { key: "total_hours" as const, value: `${data.totalHours}h`, icon: Clock, color: "text-purple-500", bg: "bg-purple-500/10" },
   ] : [];
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="space-y-6">
         <div>
@@ -46,7 +49,7 @@ export default function ProgressPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12 text-muted-foreground">Loading...</div>
+          <div className="flex justify-center py-12 text-muted-foreground">{t("loading")}</div>
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -72,7 +75,7 @@ export default function ProgressPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
-                    <WeeklyChart data={data?.weeklyData} />
+                    <WeeklyChart data={data?.weeklyData} dayNames={[tc("day_0"), tc("day_1"), tc("day_2"), tc("day_3"), tc("day_4"), tc("day_5"), tc("day_6")]} noDataText={t("no_data")} />
                   </div>
                 </CardContent>
               </Card>
@@ -83,7 +86,7 @@ export default function ProgressPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
-                    <SpecialtyChart data={data?.specialtyData} />
+                    <SpecialtyChart data={data?.specialtyData} noDataText={t("no_data")} />
                   </div>
                 </CardContent>
               </Card>
@@ -116,5 +119,6 @@ export default function ProgressPage() {
         )}
       </div>
     </PageTransition>
+    </AccountTypeGate>
   );
 }

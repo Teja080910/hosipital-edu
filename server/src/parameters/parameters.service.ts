@@ -3,10 +3,14 @@ import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { systemParameters } from "../database/schema";
 import { eq } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class ParametersService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findAll() {
     return this.db.select().from(systemParameters).orderBy(systemParameters.key);
@@ -18,7 +22,7 @@ export class ParametersService {
       .from(systemParameters)
       .where(eq(systemParameters.key, key))
       .limit(1);
-    if (!param) throw new NotFoundException("Parameter not found");
+    if (!param) throw new NotFoundException(this.i18n.t("parameters.notFound"));
     return param;
   }
 
@@ -33,7 +37,7 @@ export class ParametersService {
       .set({ ...stripTimestamps(data), updatedAt: new Date() })
       .where(eq(systemParameters.key, key))
       .returning();
-    if (!param) throw new NotFoundException("Parameter not found");
+    if (!param) throw new NotFoundException(this.i18n.t("parameters.notFound"));
     return param;
   }
 
@@ -42,7 +46,7 @@ export class ParametersService {
       .delete(systemParameters)
       .where(eq(systemParameters.key, key))
       .returning();
-    if (!param) throw new NotFoundException("Parameter not found");
-    return { message: "Parameter deleted" };
+    if (!param) throw new NotFoundException(this.i18n.t("parameters.notFound"));
+    return { message: this.i18n.t("parameters.deleted") };
   }
 }

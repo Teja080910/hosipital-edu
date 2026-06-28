@@ -3,18 +3,27 @@
 import { usePathname } from "@/routing";
 import { Link } from "@/routing";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import { useAuth } from "@/hooks/use-auth";
 import { LayoutDashboard, FileQuestion, Library, GraduationCap, BarChart3 } from "lucide-react";
-
-const items = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Home" },
-  { href: "/dashboard/questions", icon: FileQuestion, label: "Questions" },
-  { href: "/dashboard/flashcards", icon: Library, label: "Cards" },
-  { href: "/dashboard/exams", icon: GraduationCap, label: "Exams" },
-  { href: "/dashboard/progress", icon: BarChart3, label: "Progress" },
-];
 
 export function MobileNav() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
+  const { user } = useAuth();
+
+  const allItems = [
+    { href: "/dashboard", icon: LayoutDashboard, label: t("dashboard") },
+    // { href: "/dashboard/questions", icon: FileQuestion, label: t("questions") },
+    { href: "/dashboard/flashcards", icon: Library, label: t("flashcards"), accountTypes: ["full"] },
+    { href: "/dashboard/exams", icon: GraduationCap, label: t("exams"), accountTypes: ["full"] },
+    { href: "/dashboard/progress", icon: BarChart3, label: t("progress"), accountTypes: ["full"] },
+  ];
+
+  const items = allItems.filter(item => {
+    if (!item.accountTypes) return true;
+    return item.accountTypes.includes(user?.accountType || "full");
+  });
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";

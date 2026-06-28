@@ -4,6 +4,12 @@ import { sql, eq, and } from "drizzle-orm";
 import * as schema from "../src/database/schema";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
+
+const UUID_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+function firebaseIdToUuid(firebaseId: string): string {
+  return crypto.createHash("md5").update(UUID_NAMESPACE + firebaseId).digest("hex").replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
+}
 
 const pool = new Pool({
   connectionString:
@@ -12,7 +18,24 @@ const pool = new Pool({
 });
 const db = drizzle(pool, { schema });
 
-const DATA_DIR = path.join(__dirname, "firebase-data");
+const DATA_DIR = path.join(__dirname, "../exports");
+
+// Safe timestamp converter — handles string, number, Firestore object, null
+function toDate(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  if (typeof val === "string" || typeof val === "number") return new Date(val);
+  if (typeof val._seconds === "number") return new Date(val._seconds * 1000 + (val._nanoseconds || 0) / 1e6);
+  return null;
+}
+
+function getFlashcardBack(f: any): string {
+  if (f.answers && f.answers.length) {
+    const correct = f.answers.find((a: any) => a.isCorrect);
+    return (correct?.title || f.answers[0].title) ?? "";
+  }
+  return f.explanation || "";
+}
 
 // Progress tracking
 let totalUsers = 0;
@@ -25,45 +48,92 @@ let totalModules = 0;
 let totalLessons = 0;
 let totalPayments = 0;
 let totalTranslations = 0;
+let totalUserSubscriptions = 0;
+let totalExamAttempts = 0;
+let totalExamAnswers = 0;
+let totalUserQuestionProgress = 0;
+let totalFlashcardReviews = 0;
 
-// ─── Firestore field parsers ────────────────────────────────────────────────
+function getDocId(doc: any): string {
+  return doc._id || "";
+}
 
-function parseFields(
-  fields: Record<string, any>,
-): Record<string, any> {
-  const r: Record<string, any> = {};
-  for (const [k, v] of Object.entries(fields)) {
-    if (v.stringValue !== undefined) r[k] = v.stringValue;
-    else if (v.integerValue !== undefined) r[k] = Number(v.integerValue);
-    else if (v.doubleValue !== undefined) r[k] = v.doubleValue;
-    else if (v.booleanValue !== undefined) r[k] = v.booleanValue;
-    else if (v.timestampValue !== undefined)
-      r[k] = new Date(v.timestampValue);
-    else if (v.mapValue) r[k] = parseMap(v.mapValue);
-    else if (v.arrayValue) r[k] = parseArr(v.arrayValue);
+// ─── Exam / Category helpers ─────────────────────────────────────────────────
+
+const EXAMS = [
+  { slug: "enarm", name: { en: "ENARM", es: "ENARM" }, description: { en: "Examen Nacional de Aspirantes a Residencias Médicas - Mexico", es: "Examen Nacional de Aspirantes a Residencias Médicas - México" }, group: "residency", sortOrder: 0 },
+  { slug: "enurm", name: { en: "ENURM", es: "ENURM" }, description: { en: "Examen Nacional Único de Residencias Médicas (Dominican Republic)", es: "Examen Nacional Único de Residencias Médicas (República Dominicana)" }, group: "residency", sortOrder: 1 },
+  { slug: "mir", name: { en: "MIR", es: "MIR" }, description: { en: "Médico Interno Residente - Spain", es: "Médico Interno Residente - España" }, group: "residency", sortOrder: 2 },
+  { slug: "usmle-step-1", name: { en: "USMLE Step 1", es: "USMLE Step 1" }, description: { en: "United States Medical Licensing Examination - Step 1", es: "United States Medical Licensing Examination - Step 1" }, group: "usmle", sortOrder: 3 },
+];
+
+const EXAM_TYPE_TO_SLUG: Record<string, string> = {
+  ENARM: "enarm", ENURM: "enurm", MIR: "mir", USMLE: "usmle-step-1",
+};
+
+function toSlug(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "unknown";
+}
+
+function getCatIdFromDoc(doc: any): string | null {
+  const parts = (doc._id || "").split("_I_");
+  if (parts.length === 2 && parts[0].startsWith("C_")) return parts[0].slice(2);
+  return null;
+}
+
+function detectExamSlug(catTitle: string): string {
+  const upper = catTitle.toUpperCase();
+  if (upper.startsWith("ENARM -") || upper.includes("- ENARM")) return "enarm";
+  if (upper.startsWith("ENURM -")) return "enurm";
+  if (upper.startsWith("USMLE")) return "usmle-step-1";
+  return "mir";
+}
+
+async function ensureExams(): Promise<Record<string, string>> {
+  console.log("\n=== Ensuring Exams ===");
+  const slugToId: Record<string, string> = {};
+  for (const ex of EXAMS) {
+    const { rows } = await pool.query("SELECT id FROM exams WHERE slug = $1", [ex.slug]);
+    if (rows.length) {
+      slugToId[ex.slug] = rows[0].id;
+      console.log(`  Exam exists: ${ex.slug}`);
+    } else {
+      const r = await pool.query(
+        "INSERT INTO exams (slug, name, description, group, sort_order, is_active) VALUES ($1, $2, $3, $4, $5, true) RETURNING id",
+        [ex.slug, JSON.stringify(ex.name), JSON.stringify(ex.description), ex.group, ex.sortOrder],
+      );
+      slugToId[ex.slug] = r.rows[0].id;
+      console.log(`  Created exam: ${ex.slug}`);
+    }
   }
-  return r;
+  return slugToId;
 }
 
-function parseMap(map: any): Record<string, any> {
-  return map.fields ? parseFields(map.fields) : {};
-}
+async function getOrCreateSpecialtyTopic(
+  examId: string, catTitle: string,
+): Promise<{ specialtyId: string; topicId: string }> {
+  const slug = toSlug(catTitle);
+  let { rows: specs } = await pool.query(
+    "SELECT id FROM specialties WHERE exam_id = $1 AND slug = $2", [examId, slug],
+  );
+  const specialtyId = specs.length
+    ? specs[0].id
+    : (await pool.query(
+        "INSERT INTO specialties (exam_id, name, slug, sort_order) VALUES ($1, $2, $3, 0) RETURNING id",
+        [examId, JSON.stringify({ en: catTitle, es: catTitle }), slug],
+      )).rows[0].id;
 
-function parseArr(arr: any): any[] {
-  if (!arr.values) return [];
-  return arr.values.map((v: any) => {
-    if (v.stringValue !== undefined) return v.stringValue;
-    if (v.integerValue !== undefined) return Number(v.integerValue);
-    if (v.doubleValue !== undefined) return v.doubleValue;
-    if (v.booleanValue !== undefined) return v.booleanValue;
-    if (v.mapValue) return parseMap(v.mapValue);
-    if (v.arrayValue) return parseArr(v.arrayValue);
-    return null;
-  });
-}
+  let { rows: topics } = await pool.query(
+    "SELECT id FROM topics WHERE specialty_id = $1 AND slug = $2", [specialtyId, slug],
+  );
+  const topicId = topics.length
+    ? topics[0].id
+    : (await pool.query(
+        "INSERT INTO topics (specialty_id, name, slug, sort_order) VALUES ($1, $2, $3, 0) RETURNING id",
+        [specialtyId, JSON.stringify({ en: catTitle, es: catTitle }), slug],
+      )).rows[0].id;
 
-function getDocId(name: string): string {
-  return name.split("/").pop() || "";
+  return { specialtyId, topicId };
 }
 
 function readDocs(file: string): any[] {
@@ -83,7 +153,7 @@ async function migrateUsers(docs: any[]) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const email = (f.username || "").toLowerCase().trim();
       if (!email) continue;
 
@@ -99,7 +169,7 @@ async function migrateUsers(docs: any[]) {
 
       const fullName = [f.name, f.lastName].filter(Boolean).join(" ").trim();
 
-      const [user] = await db
+      const [user] = (await db
         .insert(schema.users)
         .values({
           email,
@@ -109,11 +179,11 @@ async function migrateUsers(docs: any[]) {
           zipCode: f.zipCode || null,
           role: f.isAdministrator ? "admin" : "student",
           emailVerifiedAt: new Date(),
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
           updatedAt: new Date(),
           deletedAt: f.enabled === false ? new Date() : null,
         })
-        .returning();
+        .returning()) as any[];
 
       if (!adminId) adminId = user.id;
       totalUsers++;
@@ -124,7 +194,7 @@ async function migrateUsers(docs: any[]) {
 
   // If no admin found, create default
   if (!adminId) {
-    const [admin] = await db
+    const [admin] = (await db
       .insert(schema.users)
       .values({
         email: "admin@mdexam.com",
@@ -132,7 +202,7 @@ async function migrateUsers(docs: any[]) {
         role: "admin",
         emailVerifiedAt: new Date(),
       })
-      .returning();
+      .returning()) as any[];
     adminId = admin.id;
   }
 
@@ -145,7 +215,7 @@ async function migrateMemberships(docs: any[], adminId: string) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const title = f.title || "Untitled Plan";
 
       const existing = await db
@@ -180,7 +250,7 @@ async function migrateMemberships(docs: any[], adminId: string) {
           isVisible: f.isVisible ?? true,
           sortOrder: f.order ?? 0,
           isActive: true,
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
           updatedAt: new Date(),
         });
 
@@ -192,14 +262,22 @@ async function migrateMemberships(docs: any[], adminId: string) {
   console.log(`  Plans imported: ${totalPlans}`);
 }
 
-async function migrateQuestions(docs: any[], adminId: string) {
+async function migrateQuestions(docs: any[], adminId: string, examSlugToId: Record<string, string>) {
   console.log("\n=== Questions (questions → questions + options + images) ===");
+
+  const catDocs = readDocs("categorys.json");
+  const catMap: Record<string, string> = {};
+  for (const c of catDocs) catMap[c.id] = c.title;
+
+  const specTopicCache: Record<string, { specialtyId: string; topicId: string }> = {};
+  let linked = 0;
+  let skipped = 0;
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const text = (f.title || "").trim();
-      if (!text) continue;
+      if (!text) { skipped++; continue; }
 
       const existing = await db
         .select()
@@ -208,110 +286,173 @@ async function migrateQuestions(docs: any[], adminId: string) {
         .limit(1);
       if (existing.length) {
         totalQuestions++;
-        continue;
+        // Still try to link
+      } else {
+        const answers: any[] = (f.answers || []).filter(
+          (a: any) => a.title && a.title.trim(),
+        );
+        if (answers.length === 0) { skipped++; continue; }
+
+        const [question] = (await db
+          .insert(schema.questions)
+          .values({
+            text,
+            explanation: f.explanation || "",
+            reference: f.reference || null,
+            difficulty: "medium",
+            isActive: f.isEnabled !== false,
+            createdBy: adminId,
+            createdAt: toDate(f.creationTime) || new Date(),
+            updatedAt: new Date(),
+          })
+          .returning()) as any[];
+
+        totalQuestions++;
+
+        if (answers.length) {
+          await db.insert(schema.questionOptions).values(
+            answers.map((a: any, i: number) => ({
+              questionId: question.id,
+              text: a.title || "",
+              isCorrect: a.isCorrect === true,
+              sortOrder: i,
+            })),
+          );
+          totalOptions += answers.length;
+        }
+
+        const imgFields = [
+          { url: f.urlTitle01, sort: 0 },
+          { url: f.urlTitle02, sort: 1 },
+          { url: f.urlTitle03, sort: 2 },
+          { url: f.urlExplanation01, sort: 3 },
+          { url: f.urlExplanation02, sort: 4 },
+          { url: f.urlExplanation03, sort: 5 },
+          { url: f.urlReference01, sort: 6 },
+          { url: f.urlReference02, sort: 7 },
+          { url: f.urlReference03, sort: 8 },
+        ].filter((x) => x.url && x.url.trim());
+
+        if (imgFields.length) {
+          await db.insert(schema.questionImages).values(
+            imgFields.map((x) => ({
+              questionId: question.id,
+              url: x.url!,
+              sortOrder: x.sort,
+            })),
+          );
+          totalImages += imgFields.length;
+        }
       }
 
-      const answers: any[] = (f.answers || []).filter(
-        (a: any) => a.title && a.title.trim(),
+      // Link to exam / specialty / topic
+      const catId = getCatIdFromDoc(doc);
+      const catTitle = catMap[catId || ""];
+      if (!catTitle) { continue; }
+
+      let examSlug = EXAM_TYPE_TO_SLUG[f.examType];
+      if (!examSlug) {
+        examSlug = detectExamSlug(catTitle);
+      }
+      const examId = examSlugToId[examSlug];
+      if (!examId) { continue; }
+
+      const cacheKey = `${examSlug}::${catTitle}`;
+      if (!specTopicCache[cacheKey]) {
+        specTopicCache[cacheKey] = await getOrCreateSpecialtyTopic(examId, catTitle);
+      }
+      const { specialtyId, topicId } = specTopicCache[cacheKey];
+
+      const { rows: qs } = await pool.query(
+        "SELECT id FROM questions WHERE text = $1 LIMIT 1", [text],
       );
-      if (answers.length === 0) continue;
-
-      const [question] = await db
-        .insert(schema.questions)
-        .values({
-          text,
-          explanation: f.explanation || "",
-          reference: f.reference || null,
-          difficulty: "medium",
-          isActive: f.isEnabled !== false,
-          createdBy: adminId,
-          createdAt: f.creationTime || new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      totalQuestions++;
-
-      // Options
-      if (answers.length) {
-        await db.insert(schema.questionOptions).values(
-          answers.map((a: any, i: number) => ({
-            questionId: question.id,
-            text: a.title || "",
-            isCorrect: a.isCorrect === true,
-            sortOrder: i,
-          })),
+      if (qs.length) {
+        await pool.query(
+          "UPDATE questions SET exam_id = $1, specialty_id = $2, topic_id = $3 WHERE id = $4",
+          [examId, specialtyId, topicId, qs[0].id],
         );
-        totalOptions += answers.length;
-      }
-
-      // Images from URL fields
-      const imgFields = [
-        { url: f.urlTitle01, sort: 0 },
-        { url: f.urlTitle02, sort: 1 },
-        { url: f.urlTitle03, sort: 2 },
-        { url: f.urlExplanation01, sort: 3 },
-        { url: f.urlExplanation02, sort: 4 },
-        { url: f.urlExplanation03, sort: 5 },
-        { url: f.urlReference01, sort: 6 },
-        { url: f.urlReference02, sort: 7 },
-        { url: f.urlReference03, sort: 8 },
-      ].filter((x) => x.url && x.url.trim());
-
-      if (imgFields.length) {
-        await db.insert(schema.questionImages).values(
-          imgFields.map((x) => ({
-            questionId: question.id,
-            url: x.url!,
-            sortOrder: x.sort,
-          })),
-        );
-        totalImages += imgFields.length;
+        linked++;
       }
     } catch (err: any) {
       console.error(`  Error migrating question: ${err.message}`);
     }
   }
-  console.log(`  Questions: ${totalQuestions}, Options: ${totalOptions}, Images: ${totalImages}`);
+  console.log(`  Questions: ${totalQuestions}, Options: ${totalOptions}, Images: ${totalImages}, linked to exam: ${linked}, skipped: ${skipped}`);
 }
 
-async function migrateFlashcards(docs: any[], adminId: string) {
+async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Record<string, string>) {
   console.log("\n=== Flashcards (flashcardquestions → flashcards) ===");
+
+  const catDocs = readDocs("flashcardcategorys.json");
+  const catMap: Record<string, string> = {};
+  for (const c of catDocs) catMap[c.id] = c.title;
+
+  const specTopicCache: Record<string, { specialtyId: string; topicId: string }> = {};
+  let linked = 0;
+  let skipped = 0;
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const front = (f.title || "").trim();
-      if (!front) continue;
+      if (!front) { skipped++; continue; }
 
       const existing = await db
         .select()
         .from(schema.flashcards)
         .where(eq(schema.flashcards.front, front))
         .limit(1);
-      if (existing.length) {
+      if (!existing.length) {
+        await db
+          .insert(schema.flashcards)
+          .values({
+            front,
+            back: getFlashcardBack(f),
+            reference: f.reference || null,
+            isActive: f.isEnabled !== false,
+            createdBy: adminId,
+            createdAt: toDate(f.creationTime) || new Date(),
+            updatedAt: new Date(),
+          });
         totalFlashcards++;
-        continue;
+      } else {
+        await db
+          .update(schema.flashcards)
+          .set({ back: getFlashcardBack(f), updatedAt: new Date() })
+          .where(eq(schema.flashcards.id, existing[0].id));
+        totalFlashcards++;
       }
 
-      await db
-        .insert(schema.flashcards)
-        .values({
-          front,
-          back: f.explanation || "",
-          reference: f.reference || null,
-          isActive: f.isEnabled !== false,
-          createdBy: adminId,
-          createdAt: f.creationTime || new Date(),
-          updatedAt: new Date(),
-        });
+      // Link to exam / specialty / topic
+      const catId = getCatIdFromDoc(doc);
+      const catTitle = catMap[catId || ""];
+      if (!catTitle) { continue; }
 
-      totalFlashcards++;
+      const examSlug = detectExamSlug(catTitle);
+      const examId = examSlugToId[examSlug];
+      if (!examId) { continue; }
+
+      const cacheKey = `${examSlug}::${catTitle}`;
+      if (!specTopicCache[cacheKey]) {
+        specTopicCache[cacheKey] = await getOrCreateSpecialtyTopic(examId, catTitle);
+      }
+      const { specialtyId, topicId } = specTopicCache[cacheKey];
+
+      const { rows: fc } = await pool.query(
+        "SELECT id FROM flashcards WHERE front = $1 AND is_active = true LIMIT 1", [front],
+      );
+      if (fc.length) {
+        await pool.query(
+          "UPDATE flashcards SET exam_id = $1, specialty_id = $2, topic_id = $3 WHERE id = $4",
+          [examId, specialtyId, topicId, fc[0].id],
+        );
+        linked++;
+      }
     } catch (err: any) {
-      console.error(`  Error migrating flashcard: ${err.message}`);
+      console.error(`  Error migrating flashcard [${doc._id || "?"}]: ${err.message}`);
     }
   }
-  console.log(`  Flashcards: ${totalFlashcards}`);
+  console.log(`  Flashcards: ${totalFlashcards}, linked to exam: ${linked}, skipped: ${skipped}`);
 }
 
 async function migrateVideoCategories(docs: any[]) {
@@ -319,7 +460,7 @@ async function migrateVideoCategories(docs: any[]) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const title = (f.title || "").trim();
       if (!title) continue;
 
@@ -343,7 +484,7 @@ async function migrateVideoCategories(docs: any[]) {
           maxWatching: f.maxWatching ?? null,
           isActive: true,
           sortOrder: 0,
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
         });
 
       totalModules++;
@@ -359,7 +500,7 @@ async function migrateVideos(docs: any[]) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const title = (f.title || "").trim();
       if (!title) continue;
 
@@ -378,14 +519,14 @@ async function migrateVideos(docs: any[]) {
 
       if (!moduleId) {
         // Create a default module
-        const [mod] = await db
+        const [mod] = (await db
           .insert(schema.videoModules)
           .values({
             title: { en: title, es: title },
             description: { en: "", es: "" },
             isActive: true,
           })
-          .returning();
+          .returning()) as any[];
         moduleId = mod.id;
       }
 
@@ -394,7 +535,7 @@ async function migrateVideos(docs: any[]) {
         .from(schema.videoLessons)
         .where(
           and(
-            eq(schema.videoLessons.moduleId, moduleId),
+            eq(schema.videoLessons.moduleId, moduleId!),
             sql`${schema.videoLessons.title}->>'en' = ${title}`,
           ),
         )
@@ -407,14 +548,14 @@ async function migrateVideos(docs: any[]) {
       await db
         .insert(schema.videoLessons)
         .values({
-          moduleId,
+moduleId: moduleId!,
           title: { en: title, es: title },
           description: { en: "", es: "" },
           videoUrl: f.url || "",
           isActive: f.isEnabled !== false,
           duration: 0,
           sortOrder: 0,
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
         });
 
       totalLessons++;
@@ -430,8 +571,8 @@ async function migratePayments(docs: any[], adminId: string) {
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
-      const paymentNumber = f.paymentNumber || getDocId(doc.name);
+      const f = doc;
+      const paymentNumber = f.paymentNumber || getDocId(doc);
 
       const existing = await db
         .select()
@@ -469,7 +610,7 @@ async function migratePayments(docs: any[], adminId: string) {
           currency: "USD",
           status: "succeeded",
           description: `Membership purchase: ${toMembership.title || ""}`,
-          createdAt: f.creationTime || new Date(),
+          createdAt: toDate(f.creationTime) || new Date(),
         });
 
       totalPayments++;
@@ -480,12 +621,303 @@ async function migratePayments(docs: any[], adminId: string) {
   console.log(`  Payments: ${totalPayments}`);
 }
 
+async function migrateUserSubscriptions(docs: any[], adminId: string) {
+  console.log("\n=== User Subscriptions (appusermembershippurchases → user_subscriptions) ===");
+
+  const plans = await db
+    .select({ id: schema.subscriptionPlans.id, name: schema.subscriptionPlans.name })
+    .from(schema.subscriptionPlans);
+  const users = await db
+    .select({ id: schema.users.id, email: schema.users.email })
+    .from(schema.users);
+  const userByEmail: Record<string, string> = {};
+  for (const u of users) userByEmail[u.email.toLowerCase()] = u.id;
+
+  for (const doc of docs) {
+    try {
+      const f = doc;
+      const email = (f.username || "").toLowerCase().trim();
+      if (!email) continue;
+
+      const userId = userByEmail[email];
+      if (!userId) continue;
+
+      const toMembership = f.toMembership || {};
+      const planTitle = (toMembership.title || "").trim();
+      if (!planTitle) continue;
+
+      const plan = plans.find(
+        (p) => (p.name as any)?.en === planTitle || (p.name as any)?.es === planTitle,
+      );
+      if (!plan) continue;
+
+      const existing = await db
+        .select()
+        .from(schema.userSubscriptions)
+        .where(
+          and(
+            eq(schema.userSubscriptions.userId, userId),
+            eq(schema.userSubscriptions.planId, plan.id),
+          ),
+        )
+        .limit(1);
+      if (existing.length) {
+        totalUserSubscriptions++;
+        continue;
+      }
+
+      const now = new Date();
+      const maxDays = toMembership.maxDays || 30;
+      const periodEnd = new Date(now.getTime() + maxDays * 24 * 60 * 60 * 1000);
+
+      await db
+        .insert(schema.userSubscriptions)
+        .values({
+          userId,
+          planId: plan.id,
+          status: "active",
+          currentPeriodStart: toDate(f.creationTime) || now,
+          currentPeriodEnd: periodEnd,
+          remainingExamAttempts: toMembership.maxQuestions ?? null,
+          remainingFlashcardAttempts: toMembership.maxFlashcards ?? null,
+          remainingUses: toMembership.maxUses ?? null,
+          createdAt: toDate(f.creationTime) || now,
+          updatedAt: now,
+        });
+
+      totalUserSubscriptions++;
+    } catch (err: any) {
+      console.error(`  Error migrating user subscription: ${err.message}`);
+    }
+  }
+  console.log(`  User subscriptions imported: ${totalUserSubscriptions}`);
+}
+
+async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Record<string, string>) {
+  console.log("\n=== Exam History (appuserexams → exam_attempts + exam_answers + user_question_progress) ===");
+
+  const users = await db
+    .select({ id: schema.users.id, email: schema.users.email })
+    .from(schema.users);
+  const userByEmail: Record<string, string> = {};
+  for (const u of users) userByEmail[u.email.toLowerCase()] = u.id;
+
+  const questions = await db
+    .select({ id: schema.questions.id, text: schema.questions.text })
+    .from(schema.questions);
+  const questionByText: Record<string, string> = {};
+  for (const q of questions) questionByText[q.text] = q.id;
+
+  const options = await db
+    .select({
+      id: schema.questionOptions.id,
+      questionId: schema.questionOptions.questionId,
+      text: schema.questionOptions.text,
+    })
+    .from(schema.questionOptions);
+  const optionByQText: Record<string, Record<string, string>> = {};
+  for (const o of options) {
+    if (!optionByQText[o.questionId]) optionByQText[o.questionId] = {};
+    optionByQText[o.questionId][o.text] = o.id;
+  }
+
+  for (const doc of docs) {
+    try {
+      const f = doc;
+      const email = (f.username || "").toLowerCase().trim();
+      if (!email) continue;
+      const userId = userByEmail[email];
+      if (!userId) continue;
+
+      const firebaseId = f.id || getDocId(doc);
+      if (!firebaseId) continue;
+      const attemptId = firebaseIdToUuid(firebaseId);
+
+      const existing = await db
+        .select()
+        .from(schema.examAttempts)
+        .where(eq(schema.examAttempts.id, attemptId))
+        .limit(1);
+      if (existing.length) {
+        totalExamAttempts++;
+        continue;
+      }
+
+      // Detect exam from category titles
+      const cats = f.categorys || [];
+      const catTitle = cats.length > 0 ? (cats[0].title || "") : "";
+      const examSlug = detectExamSlug(catTitle);
+      const examId = examSlugToId[examSlug] || adminId;
+
+      const qas = f.questionAnswers || [];
+      const totalQ = qas.length;
+      const answeredQ = qas.filter((qa: any) => qa.answer).length;
+      const correctQ = qas.filter((qa: any) => qa.answer?.isCorrect).length;
+      const startTime = toDate(f.creationTime) || new Date();
+      const endTime = toDate(f.endTime);
+      const timeSpent = endTime ? Math.round((endTime.getTime() - startTime.getTime()) / 1000) : 0;
+
+      await db
+        .insert(schema.examAttempts)
+        .values({
+          id: attemptId,
+          userId,
+          examId,
+          mode: f.isOpen ? "practice" : "exam",
+          status: "completed",
+          customTitle: f.customTitle || null,
+          isShowTimeCounter: f.isShowTimeCounter || false,
+          questionCount: totalQ,
+          answeredCount: answeredQ,
+          correctCount: correctQ,
+          timeLimit: f.maxTime || null,
+          timeSpent,
+          startedAt: startTime,
+          completedAt: endTime,
+          createdAt: startTime,
+        });
+
+      totalExamAttempts++;
+
+      for (const qa of qas) {
+        const answer = qa.answer;
+        if (!answer) continue;
+
+        const qText = (qa.question?.title || "").trim();
+        const questionId = questionByText[qText];
+        if (!questionId) continue;
+
+        const answerText = (answer.title || "").trim();
+        const optionId = optionByQText[questionId]?.[answerText] || null;
+
+        await db
+          .insert(schema.examAnswers)
+          .values({
+            attemptId,
+            questionId,
+            selectedOptionId: optionId,
+            isCorrect: answer.isCorrect === true,
+            timeSpent: 0,
+            answeredAt: startTime,
+          })
+          .onConflictDoNothing();
+
+        totalExamAnswers++;
+
+        const existingProgress = await db
+          .select()
+          .from(schema.userQuestionProgress)
+          .where(
+            and(
+              eq(schema.userQuestionProgress.userId, userId),
+              eq(schema.userQuestionProgress.questionId, questionId),
+            ),
+          )
+          .limit(1);
+
+        if (existingProgress.length) {
+          await db
+            .update(schema.userQuestionProgress)
+            .set({
+              timesAnswered: existingProgress[0].timesAnswered + 1,
+              timesCorrect: existingProgress[0].timesCorrect + (answer.isCorrect ? 1 : 0),
+              lastAnsweredAt: startTime,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.userQuestionProgress.id, existingProgress[0].id));
+        } else {
+          await db
+            .insert(schema.userQuestionProgress)
+            .values({
+              userId,
+              questionId,
+              timesAnswered: 1,
+              timesCorrect: answer.isCorrect ? 1 : 0,
+              lastAnsweredAt: startTime,
+            });
+        }
+        totalUserQuestionProgress++;
+      }
+    } catch (err: any) {
+      console.error(`  Error migrating exam: ${err.message}`);
+    }
+  }
+  console.log(`  Exam attempts: ${totalExamAttempts}, Answers: ${totalExamAnswers}, Question progress: ${totalUserQuestionProgress}`);
+}
+
+async function migrateFlashcardReviews(docs: any[]) {
+  console.log("\n=== Flashcard Reviews (flashcard_sr → user_flashcard_reviews) ===");
+
+  const users = await db
+    .select({ id: schema.users.id, email: schema.users.email })
+    .from(schema.users);
+  const userByEmail: Record<string, string> = {};
+  for (const u of users) userByEmail[u.email.toLowerCase()] = u.id;
+
+  const flashcards = await db
+    .select({ id: schema.flashcards.id, front: schema.flashcards.front })
+    .from(schema.flashcards);
+  const flashcardByFront: Record<string, string> = {};
+  for (const f of flashcards) flashcardByFront[f.front] = f.id;
+
+  for (const doc of docs) {
+    try {
+      const f = doc;
+      const email = (f.username || "").toLowerCase().trim();
+      if (!email) continue;
+      const userId = userByEmail[email];
+      if (!userId) continue;
+
+      const flashcardTitle = (f.flashcardTitle || "").trim();
+      const flashcardId = flashcardByFront[flashcardTitle];
+      if (!flashcardId) continue;
+
+      const existing = await db
+        .select()
+        .from(schema.userFlashcardReviews)
+        .where(
+          and(
+            eq(schema.userFlashcardReviews.userId, userId),
+            eq(schema.userFlashcardReviews.flashcardId, flashcardId),
+          ),
+        )
+        .limit(1);
+      if (existing.length) {
+        totalFlashcardReviews++;
+        continue;
+      }
+
+      const lastReview = toDate(f.lastReviewDate) || new Date();
+      const nextReview = toDate(f.nextReviewDate) || new Date();
+
+      await db
+        .insert(schema.userFlashcardReviews)
+        .values({
+          userId,
+          flashcardId,
+          easeFactor: Math.round((f.easeFactor || 2.5) * 100),
+          interval: f.intervalDays || 0,
+          repetitions: f.repetitions || 0,
+          nextReviewAt: nextReview,
+          lastReviewedAt: lastReview,
+          createdAt: lastReview,
+          updatedAt: lastReview,
+        });
+
+      totalFlashcardReviews++;
+    } catch (err: any) {
+      console.error(`  Error migrating flashcard review: ${err.message}`);
+    }
+  }
+  console.log(`  Flashcard reviews imported: ${totalFlashcardReviews}`);
+}
+
 async function migrateParameters(docs: any[]) {
   console.log("\n=== Parameters (parameters → translations) ===");
 
   for (const doc of docs) {
     try {
-      const f = parseFields(doc.fields);
+      const f = doc;
       const key = f.key2 || "";
       if (!key) continue;
 
@@ -595,17 +1027,22 @@ async function main() {
 
   await seedEnums();
 
-  const adminId = await migrateUsers(readDocs("appusers.json"));
+  const adminId = (await migrateUsers(readDocs("appusers.json")))!;
+
+  const examSlugToId = await ensureExams();
 
   await migrateMemberships(readDocs("memberships.json"), adminId);
   await migrateParameters(readDocs("parameters.json"));
   await migrateVideoCategories(readDocs("videocategorys.json"));
   await migrateVideos(readDocs("videos.json"));
-  await migrateFlashcards(readDocs("flashcardquestions.json"), adminId);
+  await migrateFlashcards(readDocs("flashcardquestions.json"), adminId, examSlugToId);
   await migratePayments(readDocs("appusermembershippurchases.json"), adminId);
+  await migrateUserSubscriptions(readDocs("appusermembershippurchases.json"), adminId);
+  await migrateExamHistory(readDocs("appuserexams.json"), adminId, examSlugToId);
+  await migrateFlashcardReviews(readDocs("flashcard_sr.json"));
 
   // Questions — largest file, process last
-  await migrateQuestions(readDocs("questions.json"), adminId);
+  await migrateQuestions(readDocs("questions.json"), adminId, examSlugToId);
 
   console.log("\n=== Migration Complete ===");
   console.log(`  Users:        ${totalUsers}`);
@@ -617,6 +1054,11 @@ async function main() {
   console.log(`  Video Mods:   ${totalModules}`);
   console.log(`  Video Less:   ${totalLessons}`);
   console.log(`  Payments:     ${totalPayments}`);
+  console.log(`  User Subs:   ${totalUserSubscriptions}`);
+  console.log(`  Exam Att:    ${totalExamAttempts}`);
+  console.log(`  Exam Ans:    ${totalExamAnswers}`);
+  console.log(`  Q Progress:  ${totalUserQuestionProgress}`);
+  console.log(`  FC Reviews:  ${totalFlashcardReviews}`);
   console.log(`  Transl:       ${totalTranslations}`);
 
   await pool.end();

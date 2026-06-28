@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -23,6 +24,7 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, enrolled, onEnroll, isEnrolling }: CourseCardProps) {
+  const t = useTranslations("courses");
   return (
     <Card className="overflow-hidden">
       <Link href={`/dashboard/courses/${course.slug || course.id}`}>
@@ -46,17 +48,17 @@ export function CourseCard({ course, enrolled, onEnroll, isEnrolling }: CourseCa
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" /> {course.duration}
           </span>
-          {course.lessons > 0 && <span>{course.lessons} lessons</span>}
-          {course.progress > 0 && <span>{course.progress}% complete</span>}
+          {course.lessons > 0 && <span>{course.lessons} {t("lessons")}</span>}
+          {course.progress > 0 && <span>{course.progress}% {t("complete")}</span>}
         </div>
         {enrolled ? (
           <Button className="w-full" size="sm" variant="secondary" disabled>
-            <CheckCircle className="h-4 w-4 mr-2" /> Enrolled
+            <CheckCircle className="h-4 w-4 mr-2" /> {t("enrolled_badge")}
           </Button>
         ) : onEnroll && (
           <Button className="w-full" size="sm" onClick={onEnroll} disabled={isEnrolling}>
             {isEnrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Enroll Now
+            {t("enroll_now")}
           </Button>
         )}
       </CardContent>

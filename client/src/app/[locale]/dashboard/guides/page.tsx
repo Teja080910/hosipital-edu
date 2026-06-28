@@ -47,11 +47,11 @@ export default function GuidesPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-sm px-3 py-1 capitalize">
-            {role.replace("_", " ")}
+          <Badge variant="outline" className="text-sm px-3 py-1">
+            {t("role_" + role)}
           </Badge>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">{t("role_" + role)}</span>
+          <span className="text-sm text-muted-foreground">{t("role_" + role + "_desc")}</span>
         </div>
 
 {role === "student" && (

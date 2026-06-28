@@ -14,7 +14,7 @@ export function emailLayout({ content, appUrl = "https://md-exams.com" }: Layout
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
-  <title>MD Exams</title>
+  <title>MD Exam</title>
   <style>
     @media only screen and (max-width: 600px) {
       .email-container { padding: 24px 16px !important; }
@@ -41,8 +41,8 @@ export function emailLayout({ content, appUrl = "https://md-exams.com" }: Layout
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <img src="${LOGO_URL}" alt="MD Exams" width="80" height="80" class="email-logo" style="display:block;margin:0 auto 10px;border-radius:14px;">
-                    <span class="email-logo-text" style="font-size:20px;font-weight:700;color:#0b1120;letter-spacing:-0.3px;">MD Exams</span>
+                    <img src="${LOGO_URL}" alt="MD Exam" width="80" height="80" class="email-logo" style="display:block;margin:0 auto 10px;border-radius:14px;">
+                    <span class="email-logo-text" style="font-size:20px;font-weight:700;color:#0b1120;letter-spacing:-0.3px;">MD Exam</span>
                   </td>
                 </tr>
               </table>
@@ -62,8 +62,8 @@ export function emailLayout({ content, appUrl = "https://md-exams.com" }: Layout
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="font-size:13px;color:#94a3b8;line-height:1.6;">
-                    <p style="margin:0 0 4px;">&copy; 2024 MD Exams. All rights reserved.</p>
-                    <p style="margin:0;">MD Exams &mdash; Master Medical Education</p>
+                    <p style="margin:0 0 4px;">&copy; 2024 MD Exam. All rights reserved.</p>
+                    <p style="margin:0;">MD Exam &mdash; Master Medical Education</p>
                     <p style="margin:8px 0 0;">
                       <a href="${appUrl}" style="color:#2563eb;text-decoration:none;font-weight:500;">${appUrl}</a>
                     </p>

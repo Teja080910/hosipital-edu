@@ -11,12 +11,17 @@ import {
   paymentFailedTemplate,
   SubscriptionPlanDetails,
 } from "./templates";
+import { t } from "./templates/mail-messages";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class MailService {
   private resend: Resend | null = null;
 
-  constructor(private config: ConfigService) {
+  constructor(
+    private config: ConfigService,
+    private i18n: I18nService,
+  ) {
     const apiKey = this.config.get<string>("RESEND_API_KEY");
     if (apiKey && apiKey !== "re_placeholder") {
       this.resend = new Resend(apiKey);
@@ -28,12 +33,12 @@ export class MailService {
   }
 
   private get from(): string {
-    return this.config.get<string>("MAIL_FROM", "MD Exams <noreply@mail.agrinp.cloud>");
+    return this.config.get<string>("MAIL_FROM", "MD Exam <noreply@mail.agrinp.cloud>");
   }
 
   async sendEmail(to: string, subject: string, html: string) {
     if (!this.resend) {
-      return { message: "Mail not configured - skipping send", to, subject };
+      return { message: this.i18n.t("common.mailNotConfigured"), to, subject };
     }
     try {
       const result = await this.resend.emails.send({
@@ -50,62 +55,66 @@ export class MailService {
     }
   }
 
-  async sendVerificationEmail(to: string, name: string, token: string) {
+  async sendVerificationEmail(to: string, name: string, token: string, locale: string = "en") {
     const url = `${this.appUrl}/verify-email?token=${token}`;
     return this.sendEmail(
       to,
-      "Verify your email address",
-      verifyEmailTemplate(name, url, this.appUrl),
+      t(locale, "verifyEmail.subject"),
+      verifyEmailTemplate(name, url, this.appUrl, locale),
     );
   }
 
-  async sendWelcome(to: string, name: string) {
+  async sendWelcome(to: string, name: string, locale: string = "en") {
     const url = `${this.appUrl}/dashboard`;
     return this.sendEmail(
       to,
-      "Welcome to MD Exams!",
-      welcomeTemplate(name, url, this.appUrl),
+      t(locale, "welcome.subject"),
+      welcomeTemplate(name, url, this.appUrl, locale),
     );
   }
 
-  async sendPasswordReset(to: string, name: string, token: string) {
+  async sendPasswordReset(to: string, name: string, token: string, locale: string = "en") {
     const url = `${this.appUrl}/reset-password?token=${token}`;
     return this.sendEmail(
       to,
-      "Reset your password",
-      passwordResetTemplate(name, url, this.appUrl),
+      t(locale, "passwordReset.subject"),
+      passwordResetTemplate(name, url, this.appUrl, locale),
     );
   }
 
-  async sendPasswordChanged(to: string, name: string) {
+  async sendPasswordChanged(to: string, name: string, locale: string = "en") {
     return this.sendEmail(
       to,
-      "Your password has been changed",
-      passwordChangedTemplate(name, this.appUrl),
+      t(locale, "passwordChanged.subject"),
+      passwordChangedTemplate(name, this.appUrl, locale),
     );
   }
 
-  async sendSubscriptionConfirmed(to: string, name: string, plan: SubscriptionPlanDetails) {
+  async sendSubscriptionConfirmed(to: string, name: string, plan: SubscriptionPlanDetails, locale: string = "en") {
     return this.sendEmail(
       to,
-      "Subscription confirmed",
-      subscriptionConfirmedTemplate(name, plan, this.appUrl),
+      t(locale, "subscriptionConfirmed.subject"),
+      subscriptionConfirmedTemplate(name, plan, this.appUrl, locale),
     );
   }
 
-  async sendSubscriptionCancelled(to: string, name: string) {
+  async sendSubscriptionCancelled(to: string, name: string, locale: string = "en") {
     return this.sendEmail(
       to,
-      "Subscription cancelled",
-      subscriptionCancelledTemplate(name, this.appUrl),
+      t(locale, "subscriptionCancelled.subject"),
+      subscriptionCancelledTemplate(name, this.appUrl, locale),
     );
   }
 
-  async sendPaymentFailed(to: string, name: string) {
+  async sendPaymentFailed(to: string, name: string, locale: string = "en") {
     return this.sendEmail(
       to,
-      "Payment failed",
-      paymentFailedTemplate(name, this.appUrl),
+      t(locale, "paymentFailed.subject"),
+      paymentFailedTemplate(name, this.appUrl, locale),
     );
+  }
+
+  private resolveLocalized(locale: string, key: string): string {
+    return t(locale, key);
   }
 }

@@ -1,89 +1,60 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useTranslations } from "next-intl";
-import { useTheme } from "next-themes";
-import { motion } from "framer-motion";
+import { TypewriterText } from "@/components/typewriter-text";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
-import { usePathname, Link } from "@/routing";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
-import { subscriptionsApi } from "@/lib/api";
-import { TypewriterText } from "@/components/typewriter-text";
-import Image from "next/image";
-import {
-  BookOpen,
-  Brain,
-  Video,
-  Library,
-  BarChart3,
-  Calendar,
-  ChevronDown,
-  Star,
-  Check,
-  ArrowRight,
-  Sparkles,
-  Shield,
-  TrendingUp,
-  Moon,
-  Sun,
-  Languages,
-  Target,
-  Clock,
-  Crown,
-  Facebook,
-  Twitter,
-  Instagram,
-  Youtube,
-} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const features = [
-  { icon: BookOpen, title: "Question Bank", desc: "Thousands of exam-style questions with detailed explanations and clinical pearls" },
-  { icon: Brain, title: "Smart Flashcards", desc: "Spaced repetition flashcards optimized for long-term retention" },
-  { icon: Video, title: "Video Classes", desc: "Expert-led video lectures on high-yield medical topics" },
-  { icon: Library, title: "Structured Courses", desc: "Comprehensive courses designed by board-certified physicians" },
-  { icon: BarChart3, title: "Performance Analytics", desc: "Track your progress with detailed stats and insights" },
-  { icon: Calendar, title: "Study Planner", desc: "AI-powered study plans tailored to your exam date" },
-];
-
-const testimonials = [
-  { name: "Dr. Maria Garcia", role: "Resident Physician", text: "MD Exams transformed my board preparation. The question bank is unmatched in quality and depth." },
-  { name: "Dr. James Wilson", role: "Medical Student", text: "The spaced repetition flashcards helped me memorize complex topics effortlessly. Game-changer." },
-  { name: "Dr. Sarah Chen", role: "Internal Medicine", text: "Best ENARM prep platform I've used. The analytics helped me identify and fix my weak areas." },
-];
-
-const planFeatures: Record<string, string[]> = {
-  monthly: ["Full question bank access", "Basic performance analytics", "Community discussion forum", "Mobile app access"],
-  quarterly: ["Everything in Monthly", "Advanced analytics & insights", "Priority email support", "Study planner integration", "Mock exam simulations"],
-  annual: ["Everything in Quarterly", "1-on-1 tutoring session", "Certificate of completion", "Early access to new features", "Lifetime question bank updates"],
-};
-
-const faqs = [
-  { q: "How does the question bank work?", a: "Our question bank contains thousands of exam-style questions organized by specialty and topic. You can study in Study Mode with instant feedback and explanations, or Exam Mode for timed simulation." },
-  { q: "What is spaced repetition and how does it help?", a: "Spaced repetition is a scientifically proven learning technique that schedules reviews at optimal intervals. Our SM-2 algorithm ensures you review cards right when you're about to forget them, maximizing retention." },
-  { q: "Can I access content on mobile?", a: "Yes! Our platform is fully responsive and works seamlessly on all devices. Mobile app coming soon." },
-  { q: "Is there a money-back guarantee?", a: "Absolutely. We offer a 14-day money-back guarantee on all plans. If you're not satisfied, we'll refund your purchase — no questions asked." },
-];
+import { useAuth } from "@/hooks/use-auth";
+import { subscriptionsApi } from "@/lib/api";
+import { testimonialsApi } from "@/lib/api/testimonials";
+import { cn } from "@/lib/utils";
+import { Link, usePathname } from "@/routing";
+import { motion } from "framer-motion";
+import {
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  Brain,
+  Calendar,
+  Check,
+  ChevronDown,
+  Crown,
+  Facebook,
+  Instagram,
+  Languages,
+  Library,
+  Menu,
+  Moon,
+  Sparkles,
+  Star,
+  Sun,
+  Twitter,
+  Video,
+  Youtube
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useTheme } from "next-themes";
+import Image from "next/image";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -103,11 +74,52 @@ const sb = useTranslations("subscribe");
   const a = useTranslations("auth");
   const n = useTranslations("nav");
   const c = useTranslations("common");
+
+  const features = Array.from({ length: 6 }, (_, i) => ({
+    icon: [BookOpen, Brain, Video, Library, BarChart3, Calendar][i],
+    title: t(`feature_${i}_title`),
+    desc: t(`feature_${i}_desc`),
+  }));
+
+  const [testimonialsData, setTestimonialsData] = useState<any[]>([]);
+
+  useEffect(() => {
+    testimonialsApi.getAll().then(({ data }) => {
+      if (Array.isArray(data)) setTestimonialsData(data);
+    }).catch(() => {});
+  }, []);
+
+  const currentLocale = useParams().locale as string;
+  const testimonials = testimonialsData.length > 0
+    ? testimonialsData.map((item) => ({
+        name: item.name?.[currentLocale] || item.name?.en || "",
+        role: item.role?.[currentLocale] || item.role?.en || "",
+        text: item.text?.[currentLocale] || item.text?.en || "",
+        rating: item.rating ?? 5,
+      }))
+    : Array.from({ length: 3 }, (_, i) => ({
+        name: t(`testimonial_${i}_name`),
+        role: t(`testimonial_${i}_role`),
+        text: t(`testimonial_${i}_text`),
+        rating: 5,
+      }));
+
+  const planFeatures: Record<string, string[]> = {
+    monthly: Array.from({ length: 4 }, (_, i) => t(`plan_monthly_${i}`)),
+    quarterly: Array.from({ length: 5 }, (_, i) => t(`plan_quarterly_${i}`)),
+    annual: Array.from({ length: 5 }, (_, i) => t(`plan_annual_${i}`)),
+  };
+
+  const faqs = Array.from({ length: 4 }, (_, i) => ({
+    q: t(`faq_${i}_q`),
+    a: t(`faq_${i}_a`),
+  }));
+
   const { theme, setTheme, resolvedTheme } = useTheme();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const currentLocale = pathname.split("/")[1] || "en";
+
   const { user, isLoading, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const handleLogout = useCallback(async () => {
@@ -115,6 +127,15 @@ const sb = useTranslations("subscribe");
     await logout();
   }, [logout]);
   const [subData, setSubData] = useState<{ planSortOrder: number } | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
   const [plans, setPlans] = useState<any[]>([]);
 
   useEffect(() => {
@@ -126,7 +147,7 @@ const sb = useTranslations("subscribe");
   }, []);
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
+    if (user && user.role !== "admin" && user.role !== "super_admin") {
       subscriptionsApi.mySubscription().then(({ data }) => {
         if (data?.plan?.sortOrder !== undefined && data?.plan?.sortOrder !== null) {
           setSubData({ planSortOrder: data.plan.sortOrder });
@@ -186,60 +207,107 @@ const sb = useTranslations("subscribe");
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-transparent bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="MD Exams" width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-bold tracking-tight">MD Exams</span>
+            <Image src="/logo.png" alt={t("brand")} width={40} height={40} className="rounded-lg bg-white p-1" />
           </Link>
           <div className="flex items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
-                  <Languages className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[130px] rounded-xl border-border/50 shadow-lg">
-                <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
-                  🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">active</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
-                  🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">active</span>}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {mounted && (resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />)}
-            </Button>
-
-            <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-3">
-              {isLoading ? null : user ? (
-                <>
-                <Link href="/dashboard">
-                  <Button size="sm" className="text-sm shadow-subtle">
-                    Dashboard
-                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={handleLogout} disabled={loggingOut} className="text-sm text-muted-foreground">
-                  {loggingOut ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /> : a("logout")}
-                </Button>
-                </>
-              ) : (
-                <><Link href="/login">
-                  <Button variant="ghost" size="sm" className="text-sm">{a("login_submit")}</Button>
-                </Link>
-                  <Link href="/register">
-                    <Button size="sm" className="text-sm shadow-subtle">
-                      {t("get_started")}
-                      <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            {!isMobile ? (
+              /* Desktop nav */
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+                      <Languages className="h-4 w-4" />
                     </Button>
-                  </Link></>
-              )}
-            </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[130px] rounded-xl border-border/50 shadow-lg">
+                    <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
+                      🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
+                      🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  {mounted && (resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />)}
+                </Button>
+
+                <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-3">
+                  {isLoading ? null : user ? (
+                    <>
+                    <Link href="/dashboard">
+                      <Button size="sm" className="text-sm shadow-subtle">
+                        {n("dashboard")}
+                        <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                    <Button variant="ghost" size="sm" onClick={handleLogout} disabled={loggingOut} className="text-sm text-muted-foreground">
+                      {loggingOut ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /> : a("logout")}
+                    </Button>
+                    </>
+                  ) : (
+                    <><Link href="/login">
+                      <Button variant="ghost" size="sm" className="text-sm">{a("login_submit")}</Button>
+                    </Link>
+                      <Link href="/register">
+                        <Button size="sm" className="text-sm shadow-subtle">
+                          {t("get_started")}
+                          <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                        </Button>
+                      </Link></>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Mobile hamburger */
+              <DropdownMenu open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/50 shadow-lg">
+                  <DropdownMenuItem onSelect={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} className="rounded-lg">
+                    {mounted && (resolvedTheme === "dark" ? <><Sun className="h-4 w-4 mr-2" /> Light mode</> : <><Moon className="h-4 w-4 mr-2" /> Dark mode</>)}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
+                    🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => switchLocale("es")} className="rounded-lg" disabled={currentLocale === "es"}>
+                    🇪🇸 {c("es")} {currentLocale === "es" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
+                  </DropdownMenuItem>
+                  {isLoading ? null : user ? (
+                    <>
+                      <DropdownMenuItem asChild className="rounded-lg">
+                        <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                          {n("dashboard")}
+                          <ArrowRight className="ml-auto h-3.5 w-3.5" />
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={handleLogout} disabled={loggingOut} className="rounded-lg text-destructive">
+                        {loggingOut ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-destructive border-t-transparent mr-2" /> : null}
+                        {a("logout")}
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem asChild className="rounded-lg">
+                        <Link href="/login" onClick={() => setMobileMenuOpen(false)}>{a("login_submit")}</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="rounded-lg">
+                        <Link href="/register" onClick={() => setMobileMenuOpen(false)}>{t("get_started")}</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </nav>
@@ -261,6 +329,14 @@ const sb = useTranslations("subscribe");
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-32 lg:py-40">
           <div className="text-center max-w-4xl mx-auto">
             <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const }}
+              className="mb-8"
+            >
+              <Image src="/logo.png" alt={t("brand")} width={140} height={140} className="mx-auto rounded-3xl shadow-2xl bg-white p-3" />
+            </motion.div>
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const }}
@@ -271,18 +347,17 @@ const sb = useTranslations("subscribe");
               </Badge>
             </motion.div>
 
-            <div className="h-[7rem] sm:h-[9rem] md:h-[11rem] lg:h-[14rem] flex items-center justify-center">
+            <div className="min-h-[5rem] sm:min-h-[7rem] flex items-center justify-center">
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] as const }}
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-normal mb-6"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-6 min-h-[3.5rem] sm:min-h-[4.5rem] md:min-h-[5rem] lg:min-h-[6rem]"
               >
                 <TypewriterText
                   parts={[
-                    { text: t("hero_heading_1") + " " },
-                    { text: t("hero_heading_2"), className: "bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent" },
-                    { text: " " + t("hero_heading_3") },
+                    { text: t("hero_heading_1"), className: "bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent" },
+                    { text: " " + t("hero_heading_2") + " " + t("hero_heading_3") + " " + t("hero_heading_4") },
                   ]}
                   speed={60}
                   deleteSpeed={25}
@@ -326,7 +401,7 @@ const sb = useTranslations("subscribe");
               transition={{ duration: 0.8, delay: 0.5 }}
               className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
             >
-              {["ENARM", "MIR", "USMLE Step 1", "USMLE Step 2 CK", "ENURM"].map((exam) => (
+              {["ENURM", "ENARM", "MIR", "CURSOS"].map((exam) => (
                 <div key={exam} className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-primary" />
                   <span>{exam}</span>
@@ -356,7 +431,7 @@ const sb = useTranslations("subscribe");
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <Image
               src="/hero-3.jpg"
-              alt="MD Exams Study Interface"
+              alt="MD Exam Study Interface"
               width={800}
               height={534}
               className="w-full h-auto rounded-xl border border-border/50 shadow-lg group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-500 relative"
@@ -400,8 +475,8 @@ const sb = useTranslations("subscribe");
       </section>
 
       {/* Testimonials */}
-      <section className="relative py-24 lg:py-32 overflow-hidden">
-        <Image src="/hero-3.jpg" alt="" fill className="object-cover" />
+      <section className="relative py-24 lg:py-32 overflow-hidden min-h-[50vh]">
+        <Image src="/hero-3.jpg" alt="" fill className="object-cover object-center" sizes="100vw" />
         <div className="absolute inset-0 bg-background/65 backdrop-blur-[2px]" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div {...fadeUp} className="text-center mb-16">
@@ -421,7 +496,7 @@ const sb = useTranslations("subscribe");
                   <CardContent className="pt-8">
                     <div className="flex gap-1 mb-5">
                       {[...Array(5)].map((_, j) => (
-                        <Star key={j} className="h-4 w-4 fill-primary text-primary" />
+                        <Star key={j} className={`h-4 w-4 ${j < (item.rating ?? 5) ? "fill-primary text-primary" : "text-muted-foreground"}`} />
                       ))}
                     </div>
                     <p className="text-muted-foreground leading-relaxed mb-6 italic">
@@ -429,7 +504,7 @@ const sb = useTranslations("subscribe");
                     </p>
                     <div className="flex items-center gap-3 pt-2 border-t border-border/50">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
-                        {item.name.split(" ").map(n => n[0]).join("")}
+                        {item.name.split(" ").map((n: string) => n[0]).join("")}
                       </div>
                       <div>
                         <p className="font-semibold text-sm">{item.name}</p>
@@ -462,7 +537,7 @@ const sb = useTranslations("subscribe");
             {plans.map((plan, i) => {
               const pName = plan.name?.en || plan.name;
               const pPopular = plan.sortOrder === 1;
-              const pPeriod = plan.interval === "year" ? "/year" : plan.interval === "quarter" ? "/quarter" : "/month";
+              const pPeriod = plan.interval === "year" ? t("period_year") : plan.interval === "quarter" ? t("period_quarter") : t("period_month");
               const features = planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"];
               return (
               <motion.div key={plan.id || pName} {...stagger(i)}>
@@ -509,7 +584,7 @@ const sb = useTranslations("subscribe");
           <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
             <div>
               <motion.div {...fadeUp} className="text-center lg:text-left mb-16">
-                <Badge variant="secondary" className="mb-4">FAQ</Badge>
+                <Badge variant="secondary" className="mb-4">{t("faq")}</Badge>
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
                   {t("faq_title")}
                 </h2>
@@ -549,7 +624,7 @@ const sb = useTranslations("subscribe");
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <Image
                   src="/hero-2.jpg"
-                  alt="MD Exams Mobile View"
+                  alt="MD Exam Mobile View"
                   width={900}
                   height={1280}
                   className="w-[450px] max-w-[450px] h-[550px] rounded-xl border border-border/50 shadow-lg group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-500 relative mx-auto"
@@ -580,11 +655,11 @@ const sb = useTranslations("subscribe");
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="#features">
+              <a href="mailto:info@md-exam.com">
                 <Button variant="outline" size="xl" className="text-base hover:shadow-subtle transition-all duration-200">
                   {t("talk_to_sales")}
                 </Button>
-              </Link>
+              </a>
             </div>
           </motion.div>
         </div>
@@ -595,32 +670,32 @@ const sb = useTranslations("subscribe");
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt="MD Exams" width={28} height={28} className="rounded-lg" />
-              <span className="font-semibold">MD Exams</span>
+              <Image src="/logo.png" alt={t("brand")} width={36} height={36} className="rounded-lg bg-white p-1" />
+              <span className="font-semibold">{t("brand")}</span>
             </Link>
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
+            <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground sm:flex-row sm:gap-6">
+              <Link href="/blog" className="hover:text-foreground transition-colors">{t("blog")}</Link>
               <Link href="/content/terms" className="hover:text-foreground transition-colors">{t("terms")}</Link>
               <Link href="/content/privacy" className="hover:text-foreground transition-colors">{t("privacy")}</Link>
               <Link href="/content/faq" className="hover:text-foreground transition-colors">{t("faq_title")}</Link>
             </div>
             <div className="flex items-center gap-4">
-              <a href="https://facebook.com/mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="https://www.facebook.com/mdexamedu" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="https://twitter.com/mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="https://instagram.com/mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="https://www.instagram.com/md_exam/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="https://youtube.com/@mdexams" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="https://www.youtube.com/@MD-exam" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Youtube className="h-5 w-5" />
+              </a>
+              <a href="mailto:info@md-exam.com" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
+                info@md-exam.com
               </a>
             </div>
           </div>
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            {t("copyright")}
+            {t("all_rights_reserved")}
           </div>
         </div>
       </footer>

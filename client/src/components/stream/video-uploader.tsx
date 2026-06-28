@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { streamApi } from "@/lib/api";
+import { streamApi, uploadApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -15,36 +16,35 @@ interface VideoUploaderProps {
 }
 
 export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUploaderProps) {
+  const t = useTranslations("videos");
   const [uploading, setUploading] = useState(false);
   const [polling, setPolling] = useState(false);
-  const [videoUid, setVideoUid] = useState<string | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 200 * 1024 * 1024) {
-      toast.error("File too large. Max 200MB.");
+      toast.error(t("file_too_large"));
       return;
     }
 
     setUploading(true);
     try {
-      const { data: uploadData } = await streamApi.getUploadUrl();
-      const { uploadURL, uid } = uploadData;
-
-      const uploadRes = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1] || "");
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
 
-      if (!uploadRes.ok) {
-        throw new Error("Upload failed");
-      }
-
-      setVideoUid(uid);
-      toast.success("Uploading video...");
+      const { data: result } = await uploadApi.uploadVideo("direct", base64, file.type);
+      const uid = result.uid;
+      if (!uid) throw new Error("No UID returned");
+      toast.success(t("uploading_video"));
 
       setPolling(true);
       const poll = setInterval(async () => {
@@ -55,7 +55,7 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
             setPolling(false);
             onUploadComplete({ uid, thumbnail: video.thumbnail, duration: video.duration });
             onOpenChange(false);
-            toast.success("Video ready!");
+            toast.success(t("video_ready"));
           }
         } catch {
           clearInterval(poll);
@@ -68,7 +68,7 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
         setPolling(false);
       }, 60000);
     } catch (err: any) {
-      toast.error(err?.message || "Upload failed");
+      toast.error(err?.message || t("upload_failed"));
     } finally {
       setUploading(false);
     }
@@ -78,14 +78,14 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Upload Video</DialogTitle>
+          <DialogTitle>{t("upload_video")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           {uploading || polling ? (
             <div className="flex flex-col items-center gap-2 py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
-                {polling ? "Processing video..." : "Uploading..."}
+                {polling ? t("processing_video") : t("uploading")}
               </p>
             </div>
           ) : (
@@ -94,7 +94,7 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={uploading || polling}>
-            Cancel
+            {t("cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>

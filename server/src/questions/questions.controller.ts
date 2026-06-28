@@ -24,7 +24,7 @@ export class QuestionsController {
 
   @Get()
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full")
+  @AllowedAccountTypes("full", "course_only")
   @ApiBearerAuth()
   @ApiOperation({ summary: "List questions with filters" })
   @ApiQuery({ name: "examId", required: false })
@@ -44,14 +44,15 @@ export class QuestionsController {
     @Query("page") page?: number,
     @Query("limit") limit?: number,
     @Query("search") search?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.questionsService.findAll({ examId, specialtyId, topicId, subtopicId, difficulty, page, limit, search });
+    return this.questionsService.findAll({ examId, specialtyId, topicId, subtopicId, difficulty, page, limit, search }, user);
   }
 
   @Get(":id")
   @ApiOperation({ summary: "Get question with options" })
-  async findOne(@Param("id") id: string) {
-    return this.questionsService.findById(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user?: any) {
+    return this.questionsService.findById(id, user);
   }
 
   @Post()

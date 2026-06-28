@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
+import { AccountTypeGate } from "@/components/account-type-gate";
 import { attemptsApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, XCircle, Clock } from "lucide-react";
@@ -36,27 +37,32 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
 
   if (answers.length === 0) {
     return (
+      <AccountTypeGate>
       <PageTransition>
         <div className="max-w-3xl mx-auto space-y-4">
           <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
           <Card><CardContent className="text-center py-8 text-muted-foreground">{t("no_questions")}</CardContent></Card>
         </div>
       </PageTransition>
+      </AccountTypeGate>
     );
   }
 
   if (!question) {
     return (
+      <AccountTypeGate>
       <PageTransition>
         <div className="max-w-3xl mx-auto space-y-4">
           <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
           <Card><CardContent className="text-center py-8 text-muted-foreground">{t("no_questions")}</CardContent></Card>
         </div>
       </PageTransition>
+      </AccountTypeGate>
     );
   }
 
   return (
+    <AccountTypeGate>
     <PageTransition>
       <div className="max-w-3xl mx-auto space-y-4 pb-12">
         <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
@@ -78,7 +84,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p className="text-lg font-medium">{question.text}</p>
+                <p className="text-lg font-medium break-words" dangerouslySetInnerHTML={{ __html: question.text }} />
                 <div className="space-y-3">
                   {question.options.map((option: any) => {
                     const isSelected = currentAnswer.selectedOptionId === option.id;
@@ -92,7 +98,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                           <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isCorrectOption ? "border-green-500 bg-green-500" : isSelected ? "border-destructive bg-destructive" : "border-muted-foreground"}`}>
                             {isCorrectOption && <CheckCircle2 className="h-3 w-3 text-white" />}{isSelected && !isCorrectOption && <XCircle className="h-3 w-3 text-white" />}
                           </div>
-                          <span className={isSelected && !isCorrectOption ? "line-through text-muted-foreground" : ""}>{option.text}</span>
+                           <span className={`${isSelected && !isCorrectOption ? "line-through text-muted-foreground" : ""} break-words`}>{option.text}</span>
                           {isSelected && <span className="text-xs text-muted-foreground ml-auto">{t("your_answer")}</span>}
                         </div>
                       </div>
@@ -100,7 +106,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                   })}
                 </div>
                 {currentAnswer.timeSpent > 0 && <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{currentAnswer.timeSpent}s {t("spent")}</span></div>}
-                <div className="rounded-lg bg-muted p-4"><p className="text-sm font-medium mb-1">{t("explanation")}</p><p className="text-sm text-muted-foreground">{question.explanation}</p></div>
+                <div className="rounded-lg bg-muted p-4"><p className="text-sm font-medium mb-1">{t("explanation")}</p><p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: question.explanation }} /></div>
               </CardContent>
             </Card>
 
@@ -117,5 +123,6 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
           </>
         </div>
       </PageTransition>
+      </AccountTypeGate>
     );
   }

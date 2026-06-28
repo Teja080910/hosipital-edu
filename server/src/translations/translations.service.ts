@@ -3,10 +3,14 @@ import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { translations } from "../database/schema";
 import { eq, and, type SQL } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class TranslationsService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findAll(filters: { locale?: string; namespace?: string }) {
     const conditions: SQL[] = [];
@@ -21,7 +25,7 @@ export class TranslationsService {
       .from(translations)
       .where(and(eq(translations.key, data.key), eq(translations.locale, data.locale)))
       .limit(1);
-    if (existing) throw new ConflictException("A translation with this key and locale already exists");
+    if (existing) throw new ConflictException(this.i18n.t("translations.duplicateKey"));
     const [t] = await this.db.insert(translations).values(stripTimestamps(data)).returning();
     return t;
   }
@@ -71,6 +75,6 @@ export class TranslationsService {
         });
       }
     }
-    return { message: `Auto-translate from ${sourceLocale} to ${targetLocale} complete` };
+    return { message: this.i18n.t("translations.autoTranslateDone", { source: sourceLocale, target: targetLocale }) };
   }
 }

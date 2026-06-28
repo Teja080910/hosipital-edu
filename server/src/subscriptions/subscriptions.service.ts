@@ -6,12 +6,15 @@ import {
   userSubscriptions,
   payments,
   users,
+  userCourseEnrollments,
+  courses,
 } from "../database/schema";
 import { eq, and, gt, sql, isNull } from "drizzle-orm";
 import { STRIPE } from "./stripe.provider";
 import Stripe from "stripe";
 import { MailService } from "../mail/mail.service";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class SubscriptionsService {
@@ -20,6 +23,7 @@ export class SubscriptionsService {
     @Inject(STRIPE) private stripe: Stripe,
     private config: ConfigService,
     private mailService: MailService,
+    private i18n: I18nService,
   ) {}
 
   async findPlans(visibleOnly = true) {
@@ -122,7 +126,7 @@ export class SubscriptionsService {
 
   async createCheckoutSession(userId: string, planId: string, locale: string = "en") {
     const plan = await this.findPlanById(planId);
-    if (!plan) throw new HttpException("Plan not found", HttpStatus.NOT_FOUND);
+    if (!plan) throw new HttpException(this.i18n.t("subscriptions.planNotFound"), HttpStatus.NOT_FOUND);
 
     let stripePriceId = plan.stripePriceId;
     if (!stripePriceId) {
@@ -195,7 +199,7 @@ export class SubscriptionsService {
       amount: parseFloat(plan.price),
       currency: plan.currency || "USD",
       status: "pending",
-      description: `${plan.name?.en || "Subscription"} - ${plan.interval}`,
+      description: this.i18n.t("subscriptions.descriptionTemplate", { name: plan.name?.en || "Subscription", interval: plan.interval }),
     });
 
     return { url: session.url };
@@ -223,7 +227,7 @@ export class SubscriptionsService {
     stripeCustomerId: string;
   }) {
     const plan = await this.findPlanById(data.planId);
-    if (!plan) throw new Error("Plan not found");
+    if (!plan) throw new Error(this.i18n.t("subscriptions.planNotFound"));
 
     await this.db
       .update(userSubscriptions)
@@ -310,7 +314,7 @@ export class SubscriptionsService {
       )
       .limit(1);
 
-    if (!sub) throw new HttpException("No active subscription", HttpStatus.NOT_FOUND);
+    if (!sub) throw new HttpException(this.i18n.t("subscriptions.noActiveSubscription"), HttpStatus.NOT_FOUND);
 
     if (sub.stripeSubscriptionId) {
       await this.stripe.subscriptions.update(sub.stripeSubscriptionId, {
@@ -351,7 +355,24 @@ async handleWebhook(event: any) {
           .set({ status: "completed", stripePaymentIntentId: paymentIntent })
           .where(eq(payments.stripePaymentIntentId, session.id));
 
-        if (planId && userId && stripeSubscriptionId) {
+        if (session.metadata?.type === "course_enrollment") {
+          const courseId = session.metadata?.courseId;
+          if (userId && courseId) {
+            const [course] = await this.db
+              .select()
+              .from(courses)
+              .where(eq(courses.id, courseId))
+              .limit(1);
+            if (course) {
+              await this.db.insert(userCourseEnrollments).values({
+                userId,
+                courseId,
+                stripePaymentId: session.id,
+                accessExpiresAt: new Date(Date.now() + (course.durationDays || 365) * 86400000),
+              });
+            }
+          }
+        } else if (planId && userId && stripeSubscriptionId) {
           await this.activateSubscription({
             userId,
             planId,

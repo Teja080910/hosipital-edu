@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { streamApi, videosApi } from "@/lib/api";
 
 interface StreamVideoPlayerProps {
@@ -10,6 +11,7 @@ interface StreamVideoPlayerProps {
 }
 
 export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlayerProps) {
+  const t = useTranslations("videos");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const savedRef = useRef<number>(0);
 
@@ -29,7 +31,7 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
 
       if (cancelled) return;
 
-      let src = `https://customer-${process.env.NEXT_PUBLIC_CLOUDFLARE_CUSTOMER_CODE}.cloudflarestream.com/${uid}/iframe`;
+      let src = `https://iframe.cloudflarestream.com/${uid}`;
       try {
         const { data } = await streamApi.getSignedToken(uid);
         src += `?token=${data.token}`;
@@ -77,7 +79,7 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
         className="absolute inset-0 w-full h-full"
         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
         allowFullScreen
-        title="Video player"
+        title={t("video_player")}
       />
     </div>
   );

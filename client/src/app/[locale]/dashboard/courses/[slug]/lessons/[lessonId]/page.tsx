@@ -22,9 +22,20 @@ export default function LessonPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [quiz, setQuiz] = useState<any>(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   useEffect(() => {
     if (!slug || !lessonId) return;
+    coursesApi.checkEnrollment(slug).then(({ data }) => {
+      if (!data.enrolled) {
+        router.push(`/dashboard/courses/${slug}`);
+        return;
+      }
+      setIsEnrolled(true);
+    }).catch(() => {
+      router.push(`/dashboard/courses/${slug}`);
+      return;
+    });
     coursesApi.get(slug).then(({ data }) => {
       const found: any[] = [];
       data.modules?.forEach((m: any) => {
@@ -110,22 +121,62 @@ export default function LessonPage() {
         <Separator />
 
         <div className="min-h-[400px]">
-          {lesson.contentType === "video" && lesson.videoUrl && (
-            <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-              {lesson.videoUrl.includes("cloudflare.com") || lesson.videoUrl.includes("stream") ? (
-                <iframe src={lesson.videoUrl} className="w-full h-full rounded-lg" allowFullScreen />
-              ) : lesson.videoUrl.includes("drive.google.com") ? (
-                <iframe src={lesson.videoUrl.replace("/view?usp=sharing", "/preview").replace("/view?", "/preview?")} className="w-full h-full rounded-lg" allowFullScreen />
-              ) : (
-                <video src={lesson.videoUrl} controls className="w-full h-full rounded-lg" />
-              )}
-            </div>
-          )}
+          {lesson.contentType === "video" && lesson.videoUrl && (() => {
+            const url = lesson.videoUrl;
+            const gdriveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+            const gdriveId = gdriveMatch ? gdriveMatch[1] : null;
+
+            if (gdriveId) {
+              return (
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                  <iframe
+                    src={`https://drive.google.com/file/d/${gdriveId}/preview`}
+                    className="w-full h-full rounded-lg"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            }
+
+            if (url.includes("youtube.com") || url.includes("youtu.be")) {
+              const ytMatch = url.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/)([^&?/]+)/);
+              const ytId = ytMatch ? ytMatch[1] : null;
+              return (
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                  {ytId ? (
+                    <iframe src={`https://www.youtube.com/embed/${ytId}`} className="w-full h-full rounded-lg" allowFullScreen />
+                  ) : (
+                    <video src={url} controls className="w-full h-full rounded-lg" />
+                  )}
+                </div>
+              );
+            }
+
+            if (url.includes("cloudflarestream.com") && !url.includes("drive.google.com")) {
+              return (
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                  <iframe src={url} className="w-full h-full rounded-lg" allowFullScreen />
+                </div>
+              );
+            }
+
+            return (
+              <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                <video src={url} controls className="w-full h-full rounded-lg" />
+              </div>
+            );
+          })()}
 
           {lesson.contentType === "pdf" && lesson.pdfUrl && (
             <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
               <FileText className="h-16 w-16 text-muted-foreground" />
               <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-primary underline">{t("open_pdf")}</a>
+            </div>
+          )}
+
+          {lesson.contentType === "image" && lesson.imageUrl && (
+            <div className="bg-muted rounded-lg flex items-center justify-center p-4">
+              <img src={lesson.imageUrl} alt={lessonTitle} className="max-w-full max-h-[600px] rounded-lg object-contain" />
             </div>
           )}
 

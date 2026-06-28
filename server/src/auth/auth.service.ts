@@ -4,10 +4,11 @@ import { ConfigService } from "@nestjs/config";
 import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
 import { DRIZZLE } from "../database/database.provider";
-import { users, userQuestionProgress } from "../database/schema";
+import { users, userSubscriptions, subscriptionPlans } from "../database/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { RegisterDto } from "./dto/register.dto";
 import { MailService } from "../mail/mail.service";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
     private jwtService: JwtService,
     private config: ConfigService,
     private mailService: MailService,
+    private i18n: I18nService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -25,7 +27,7 @@ export class AuthService {
       .where(and(eq(users.email, dto.email), isNull(users.deletedAt)))
       .limit(1);
 
-    if (existing.length) throw new ConflictException("Email already in use");
+    if (existing.length) throw new ConflictException(this.i18n.t("auth.emailInUse"));
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const referralCode = crypto.randomBytes(4).toString("hex").toUpperCase();
@@ -49,6 +51,7 @@ export class AuthService {
         referralCode,
         referredBy,
         accountType: dto.accountType || "full",
+        targetExamId: dto.targetExamId || null,
       })
       .returning();
 
@@ -59,6 +62,23 @@ export class AuthService {
     await this.mailService.sendVerificationEmail(user.email, user.name, token);
 
     const tokens = await this.generateTokens(user);
+
+    const [defaultPlan] = await this.db
+      .select()
+      .from(subscriptionPlans)
+      .where(and(eq(subscriptionPlans.isDefault, true), eq(subscriptionPlans.isActive, true)))
+      .limit(1);
+
+    if (defaultPlan) {
+      await this.db.insert(userSubscriptions).values({
+        userId: user.id,
+        planId: defaultPlan.id,
+        status: "active",
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + (defaultPlan.maxDays || 1) * 86400000),
+      });
+    }
+
     return { user: this.sanitizeUser(user), ...tokens };
   }
 
@@ -68,7 +88,7 @@ export class AuthService {
       .from(users)
       .where(and(eq(users.email, email), isNull(users.deletedAt)))
       .limit(1);
-    if (!user) throw new UnauthorizedException("Email not found");
+    if (!user) throw new UnauthorizedException(this.i18n.t("auth.emailNotFound"));
     if (!user.passwordHash) {
       const autoReset = this.config.get<string>("AUTO_SEND_RESET_ON_MIGRATED", "false") === "true";
       if (autoReset) {
@@ -78,10 +98,10 @@ export class AuthService {
         );
         await this.mailService.sendPasswordReset(user.email, user.name, token);
       }
-      throw new UnauthorizedException("Your account was migrated. Please check your email to set a new password.");
+      throw new UnauthorizedException(this.i18n.t("auth.accountMigrated"));
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) throw new UnauthorizedException("Incorrect password");
+    if (!valid) throw new UnauthorizedException(this.i18n.t("auth.incorrectPassword"));
     const tokens = await this.generateTokens(user);
     return { user: this.sanitizeUser(user), ...tokens };
   }
@@ -107,33 +127,33 @@ export class AuthService {
         .from(users)
         .where(and(eq(users.id, payload.sub), isNull(users.deletedAt)))
         .limit(1);
-      if (!user) throw new UnauthorizedException("User not found");
+      if (!user) throw new UnauthorizedException(this.i18n.t("auth.userNotFound"));
       return this.generateTokens(user);
     } catch {
-      throw new UnauthorizedException("Invalid refresh token");
+      throw new UnauthorizedException(this.i18n.t("auth.tokenExpired"));
     }
   }
 
   async verifyEmail(token: string) {
     try {
       const payload = this.jwtService.verify(token);
-      if (payload.purpose !== "email-verify") throw new BadRequestException("Invalid token");
+      if (payload.purpose !== "email-verify") throw new BadRequestException(this.i18n.t("auth.invalidToken"));
       const [user] = await this.db
         .select()
         .from(users)
         .where(and(eq(users.id, payload.sub), isNull(users.deletedAt)))
         .limit(1);
-      if (!user) throw new BadRequestException("User not found");
-      if (user.emailVerifiedAt) throw new BadRequestException("Email already verified");
+      if (!user) throw new BadRequestException(this.i18n.t("auth.userNotFound"));
+      if (user.emailVerifiedAt) throw new BadRequestException(this.i18n.t("auth.emailAlreadyVerified"));
       await this.db
         .update(users)
         .set({ emailVerifiedAt: new Date() })
         .where(eq(users.id, user.id));
       await this.mailService.sendWelcome(user.email, user.name);
-      return { message: "Email verified successfully" };
+      return { message: this.i18n.t("auth.emailVerified") };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
-      throw new BadRequestException("Invalid or expired token");
+      throw new BadRequestException(this.i18n.t("auth.tokenExpired"));
     }
   }
 
@@ -143,14 +163,14 @@ export class AuthService {
       .from(users)
       .where(and(eq(users.email, email), isNull(users.deletedAt)))
       .limit(1);
-    if (!user) return { message: "If the email exists, a verification link has been sent" };
-    if (user.emailVerifiedAt) throw new BadRequestException("Email already verified");
+    if (!user) return { message: this.i18n.t("auth.ifEmailExists") };
+    if (user.emailVerifiedAt) throw new BadRequestException(this.i18n.t("auth.emailAlreadyVerified"));
     const token = this.jwtService.sign(
       { sub: user.id, purpose: "email-verify" },
       { expiresIn: "24h" },
     );
     await this.mailService.sendVerificationEmail(user.email, user.name, token);
-    return { message: "Verification email sent" };
+    return { message: this.i18n.t("auth.verificationSent") };
   }
 
   async forgotPassword(email: string) {
@@ -160,41 +180,41 @@ export class AuthService {
       .where(and(eq(users.email, email), isNull(users.deletedAt)))
       .limit(1);
     if (!user) {
-      return { message: "If the email exists, a reset link has been sent" };
+      return { message: this.i18n.t("auth.ifEmailExistsReset") };
     }
     const token = this.jwtService.sign(
       { sub: user.id, purpose: "password-reset" },
       { expiresIn: "1h" },
     );
     await this.mailService.sendPasswordReset(user.email, user.name, token);
-    return { message: "Password reset email sent" };
+    return { message: this.i18n.t("auth.passwordResetSent") };
   }
 
   async resetPassword(token: string, newPassword: string) {
     try {
       const payload = this.jwtService.verify(token);
-      if (payload.purpose !== "password-reset") throw new BadRequestException("Invalid token");
+      if (payload.purpose !== "password-reset") throw new BadRequestException(this.i18n.t("auth.invalidToken"));
       const [user] = await this.db
         .select()
         .from(users)
         .where(and(eq(users.id, payload.sub), isNull(users.deletedAt)))
         .limit(1);
-      if (!user) throw new BadRequestException("User not found");
+      if (!user) throw new BadRequestException(this.i18n.t("auth.userNotFound"));
       const passwordHash = await bcrypt.hash(newPassword, 12);
       await this.db
         .update(users)
         .set({ passwordHash })
         .where(eq(users.id, user.id));
       await this.mailService.sendPasswordChanged(user.email, user.name);
-      return { message: "Password reset successfully" };
+      return { message: this.i18n.t("auth.passwordResetSuccess") };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
-      throw new BadRequestException("Invalid or expired token");
+      throw new BadRequestException(this.i18n.t("auth.tokenExpired"));
     }
   }
 
   async generateTokens(user: any) {
-    const payload = { sub: user.id, email: user.email, role: user.role, accountType: user.accountType || "full" };
+    const payload = { sub: user.id, email: user.email, role: user.role, accountType: user.accountType || "full", targetExamId: user.targetExamId || null };
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, {
@@ -207,5 +227,15 @@ export class AuthService {
   sanitizeUser(user: any) {
     const { passwordHash, ...rest } = user;
     return rest;
+  }
+
+  async getMe(userId: string) {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+      .limit(1);
+    if (!user) throw new UnauthorizedException();
+    return this.sanitizeUser(user);
   }
 }

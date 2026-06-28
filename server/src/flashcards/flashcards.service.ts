@@ -3,15 +3,23 @@ import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import {
   flashcards,
+  flashcardExams,
   userFlashcardReviews,
   users,
   userSubscriptions,
+  subscriptionPlans,
+  specialties,
+  topics,
 } from "../database/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, isNull, or, count, sql, lte, type SQL } from "drizzle-orm";
+import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class FlashcardsService {
-  constructor(@Inject(DRIZZLE) private db: any) {}
+  constructor(
+    @Inject(DRIZZLE) private db: any,
+    private i18n: I18nService,
+  ) {}
 
   async findAll(filters: {
     examId?: string;
@@ -19,52 +27,171 @@ export class FlashcardsService {
     topicId?: string;
     page?: number;
     limit?: number;
-  }) {
+  }, user?: any) {
     const { examId, specialtyId, topicId, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
     const conditions = [eq(flashcards.isActive, true)];
 
-    if (examId) conditions.push(eq(flashcards.examId, examId));
+    const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+
+    if (!isAdmin) {
+      let subExamId: string | null = null;
+      if (user) {
+        subExamId = await this.getSubscriptionExamId(user.id);
+      }
+
+      if (subExamId) {
+        const subFIds = await this.db
+          .select({ flashcardId: flashcardExams.flashcardId })
+          .from(flashcardExams)
+          .where(eq(flashcardExams.examId, subExamId));
+        const subIds = subFIds.map((r: any) => r.flashcardId);
+        conditions.push(inArray(flashcards.id, subIds));
+        if (examId && examId !== subExamId) {
+          return { data: [], total: 0, page, limit };
+        }
+      } else if (examId) {
+        const examFIds = await this.db
+          .select({ flashcardId: flashcardExams.flashcardId })
+          .from(flashcardExams)
+          .where(eq(flashcardExams.examId, examId));
+        const eIds = examFIds.map((r: any) => r.flashcardId);
+        conditions.push(inArray(flashcards.id, eIds));
+      }
+    } else if (examId) {
+      const examFIds = await this.db
+        .select({ flashcardId: flashcardExams.flashcardId })
+        .from(flashcardExams)
+        .where(eq(flashcardExams.examId, examId));
+      const eIds = examFIds.map((r: any) => r.flashcardId);
+      conditions.push(inArray(flashcards.id, eIds));
+    }
+
     if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
     if (topicId) conditions.push(eq(flashcards.topicId, topicId));
 
-    return this.db
-      .select()
+    const where = and(...conditions);
+
+    const [totalResult] = await this.db
+      .select({ total: count() })
       .from(flashcards)
-      .where(and(...conditions))
+      .where(where);
+
+    const rows = await this.db
+      .select({
+        id: flashcards.id,
+        front: flashcards.front,
+        back: flashcards.back,
+        reference: flashcards.reference,
+        examId: flashcards.examId,
+        specialtyId: flashcards.specialtyId,
+        topicId: flashcards.topicId,
+        isActive: flashcards.isActive,
+        createdBy: flashcards.createdBy,
+        createdAt: flashcards.createdAt,
+        updatedAt: flashcards.updatedAt,
+        specialty: specialties.name,
+        topic: topics.name,
+      })
+      .from(flashcards)
+      .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+      .leftJoin(topics, eq(flashcards.topicId, topics.id))
+      .where(where)
       .limit(limit)
       .offset(offset);
+
+    const fIds = rows.map((r: any) => r.id);
+    const allExamLinks = fIds.length
+      ? await this.db
+          .select()
+          .from(flashcardExams)
+          .where(inArray(flashcardExams.flashcardId, fIds))
+      : [];
+
+    const examIdsByF = new Map<string, string[]>();
+    for (const link of allExamLinks) {
+      if (!examIdsByF.has(link.flashcardId)) examIdsByF.set(link.flashcardId, []);
+      examIdsByF.get(link.flashcardId)!.push(link.examId);
+    }
+
+    return {
+      data: rows.map((r: any) => ({ ...r, examIds: examIdsByF.get(r.id) || [] })),
+      total: totalResult?.total ?? 0,
+      page,
+      limit,
+    };
   }
 
   async findDue(userId: string, limit = 20) {
+    const subExamId = await this.getSubscriptionExamId(userId);
+    const now = new Date();
+    const conditions = [
+      eq(userFlashcardReviews.userId, userId),
+      eq(flashcards.isActive, true),
+      lte(userFlashcardReviews.nextReviewAt, now),
+    ];
+    if (subExamId) {
+      const subFIds = await this.db
+        .select({ flashcardId: flashcardExams.flashcardId })
+        .from(flashcardExams)
+        .where(eq(flashcardExams.examId, subExamId));
+      const subIds = subFIds.map((r: any) => r.flashcardId);
+      conditions.push(inArray(flashcards.id, subIds));
+    }
+
     return this.db
-      .select()
+      .select({
+        id: flashcards.id,
+        front: flashcards.front,
+        back: flashcards.back,
+        reference: flashcards.reference,
+        specialtyId: flashcards.specialtyId,
+        topicId: flashcards.topicId,
+        specialty: specialties.name,
+        topic: topics.name,
+      })
       .from(userFlashcardReviews)
       .innerJoin(
         flashcards,
         eq(flashcards.id, userFlashcardReviews.flashcardId),
       )
-      .where(
-        and(
-          eq(userFlashcardReviews.userId, userId),
-          eq(flashcards.isActive, true),
-        ),
-      )
+      .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+      .leftJoin(topics, eq(flashcards.topicId, topics.id))
+      .where(and(...conditions))
       .limit(limit);
   }
 
   async create(data: any) {
-    const [card] = await this.db.insert(flashcards).values(stripTimestamps(data)).returning();
+    const { examIds, ...cardData } = data;
+    const [card] = await this.db.insert(flashcards).values(stripTimestamps(cardData)).returning();
+    if (examIds?.length) {
+      await this.db
+        .insert(flashcardExams)
+        .values(examIds.map((eId: string) => ({ flashcardId: card.id, examId: eId })));
+    }
     return card;
   }
 
   async update(id: string, data: any) {
+    const { examIds, ...cardData } = data;
     const [card] = await this.db
       .update(flashcards)
-      .set({ ...stripTimestamps(data), updatedAt: new Date() })
+      .set({ ...stripTimestamps(cardData), updatedAt: new Date() })
       .where(eq(flashcards.id, id))
       .returning();
-    if (!card) throw new NotFoundException("Flashcard not found");
+    if (!card) throw new NotFoundException(this.i18n.t("flashcards.notFound"));
+
+    if (examIds) {
+      await this.db
+        .delete(flashcardExams)
+        .where(eq(flashcardExams.flashcardId, id));
+      if (examIds.length > 0) {
+        await this.db
+          .insert(flashcardExams)
+          .values(examIds.map((eId: string) => ({ flashcardId: id, examId: eId })));
+      }
+    }
+
     return card;
   }
 
@@ -74,8 +201,8 @@ export class FlashcardsService {
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(flashcards.id, id))
       .returning();
-    if (!card) throw new NotFoundException("Flashcard not found");
-    return { message: "Flashcard deleted" };
+    if (!card) throw new NotFoundException(this.i18n.t("flashcards.notFound"));
+    return { message: this.i18n.t("flashcards.deleted") };
   }
 
   async submitReview(data: {
@@ -106,11 +233,28 @@ export class FlashcardsService {
         .limit(1);
 
       if (!sub) {
-        throw new HttpException("No active subscription found.", HttpStatus.FORBIDDEN);
+        throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
+      }
+
+      const [plan] = await this.db
+        .select({ examId: subscriptionPlans.examId })
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, sub.planId))
+        .limit(1);
+
+      if (plan?.examId) {
+        const [link] = await this.db
+          .select()
+          .from(flashcardExams)
+          .where(and(eq(flashcardExams.flashcardId, flashcardId), eq(flashcardExams.examId, plan.examId)))
+          .limit(1);
+        if (!link) {
+          throw new HttpException("Flashcard not found for your subscription.", HttpStatus.FORBIDDEN);
+        }
       }
 
       if (sub.remainingFlashcardAttempts != null && sub.remainingFlashcardAttempts < 1) {
-        throw new HttpException("No remaining flashcard attempts. Please upgrade your plan.", HttpStatus.FORBIDDEN);
+        throw new HttpException(this.i18n.t("flashcards.noRemainingAttempts"), HttpStatus.FORBIDDEN);
       }
 
       await this.db
@@ -197,5 +341,36 @@ export class FlashcardsService {
     if (newEF < 130) newEF = 130;
 
     return { easeFactor: Math.round(newEF), interval: newInterval, repetitions: newReps };
+  }
+
+  async getSpecialties(userId: string) {
+    const subExamId = await this.getSubscriptionExamId(userId);
+
+    let query = this.db
+      .select({
+        id: specialties.id,
+        name: specialties.name,
+      })
+      .from(specialties);
+
+    if (subExamId) {
+      query = query.where(eq(specialties.examId, subExamId));
+    }
+
+    const rows = await query;
+
+    rows.sort((a, b) => (a.name?.en ?? "").localeCompare(b.name?.en ?? ""));
+
+    return rows;
+  }
+
+  private async getSubscriptionExamId(userId: string): Promise<string | null> {
+    const [sub] = await this.db
+      .select({ examId: subscriptionPlans.examId })
+      .from(userSubscriptions)
+      .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+      .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+      .limit(1);
+    return sub?.examId || null;
   }
 }

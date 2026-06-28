@@ -65,6 +65,7 @@ export const users = pgTable("users", {
   zipCode: text("zip_code"),
   role: text("role").default("student").notNull(),
   accountType: text("account_type").default("full").notNull(),
+  targetExamId: uuid("target_exam_id").references(() => exams.id, { onDelete: "set null" }),
   avatarUrl: text("avatar_url"),
   emailVerifiedAt: timestamp("email_verified_at"),
   googleId: text("google_id").unique(),
@@ -81,6 +82,7 @@ export const exams = pgTable("exams", {
   slug: text("slug").notNull().unique(),
   name: jsonb("name").notNull(),
   description: jsonb("description").notNull(),
+  group: text("group").notNull().default("residency"),
   isActive: boolean("is_active").default(true).notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -144,6 +146,36 @@ export const questions = pgTable("questions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const questionExams = pgTable(
+  "question_exams",
+  {
+    questionId: uuid("question_id")
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    examId: uuid("exam_id")
+      .notNull()
+      .references(() => exams.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.questionId, table.examId] }),
+  }),
+);
+
+export const flashcardExams = pgTable(
+  "flashcard_exams",
+  {
+    flashcardId: uuid("flashcard_id")
+      .notNull()
+      .references(() => flashcards.id, { onDelete: "cascade" }),
+    examId: uuid("exam_id")
+      .notNull()
+      .references(() => exams.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.flashcardId, table.examId] }),
+  }),
+);
+
 export const questionOptions = pgTable("question_options", {
   id: uuid("id").defaultRandom().primaryKey(),
   questionId: uuid("question_id")
@@ -177,6 +209,7 @@ export const examAttempts = pgTable("exam_attempts", {
   mode: text("mode").notNull().default("practice"),
   status: text("status").notNull().default("in_progress"),
   customTitle: text("custom_title"),
+  isShowTimeCounter: boolean("is_show_time_counter").default(false),
   questionCount: integer("question_count").notNull().default(0),
   answeredCount: integer("answered_count").notNull().default(0),
   correctCount: integer("correct_count").notNull().default(0),
@@ -286,6 +319,21 @@ export const videoModules = pgTable("video_modules", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const videoModuleExams = pgTable(
+  "video_module_exams",
+  {
+    moduleId: uuid("module_id")
+      .notNull()
+      .references(() => videoModules.id, { onDelete: "cascade" }),
+    examId: uuid("exam_id")
+      .notNull()
+      .references(() => exams.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.moduleId, table.examId] }),
+  }),
+);
+
 export const videoLessons = pgTable("video_lessons", {
   id: uuid("id").defaultRandom().primaryKey(),
   moduleId: uuid("module_id")
@@ -332,14 +380,27 @@ export const courses = pgTable("courses", {
   description: jsonb("description").notNull(),
   shortDescription: jsonb("short_description"),
   coverImage: text("cover_image"),
+  introduction: jsonb("introduction"),
+  objectives: jsonb("objectives"),
+  targetAudience: jsonb("target_audience"),
+  prerequisites: jsonb("prerequisites"),
+  whatYouWillLearn: jsonb("what_you_will_learn"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0"),
   stripePriceId: text("stripe_price_id"),
   durationDays: integer("duration_days").notNull().default(0),
+  isCourseOnly: boolean("is_course_only").default(false),
+  hasPreTest: boolean("has_pre_test").default(false),
+  hasPostTest: boolean("has_post_test").default(false),
+  preTestQuestionCount: integer("pre_test_question_count").default(0),
+  postTestQuestionCount: integer("post_test_question_count").default(0),
   hasCertificate: boolean("has_certificate").default(true).notNull(),
   certificateTemplateId: uuid("certificate_template_id").references(
     () => certificateTemplates.id,
     { onDelete: "set null" },
   ),
+  preExamInstructions: jsonb("pre_exam_instructions"),
+  postExamInstructions: jsonb("post_exam_instructions"),
+  certificateInstructions: jsonb("certificate_instructions"),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdBy: uuid("created_by")
@@ -369,6 +430,7 @@ export const courseLessons = pgTable("course_lessons", {
   contentType: text("content_type").notNull().default("video"),
   videoUrl: text("video_url"),
   pdfUrl: text("pdf_url"),
+  imageUrl: text("image_url"),
   content: text("content"),
   duration: integer("duration").notNull().default(0),
   sortOrder: integer("sort_order").default(0).notNull(),
@@ -515,6 +577,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxUses: integer("max_uses"),
   isDefault: boolean("is_default").default(false),
   isCourseOnly: boolean("is_course_only").default(false),
+  courseId: uuid("course_id").references(() => courses.id, { onDelete: "set null" }),
   isVisible: boolean("is_visible").default(true).notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
@@ -685,4 +748,16 @@ export const auditLogs = pgTable("audit_logs", {
   entityId: text("entity_id").notNull(),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const testimonials = pgTable("testimonials", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: jsonb("name").notNull(),
+  role: jsonb("role").notNull(),
+  text: jsonb("text").notNull(),
+  rating: integer("rating").default(5).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

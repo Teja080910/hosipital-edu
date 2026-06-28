@@ -29,7 +29,7 @@ export default function ResetPasswordPage({ searchParams }: { searchParams: { to
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) {
-      setErrorMsg("Invalid or missing reset token");
+      setErrorMsg(t("invalid_reset_token"));
       return;
     }
     if (password !== confirmPassword) {
@@ -47,7 +47,7 @@ export default function ResetPasswordPage({ searchParams }: { searchParams: { to
       toast.success(t("password_reset_success"));
       setSuccess(true);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "Something went wrong";
+      const msg = err?.response?.data?.message || err?.message || t("something_went_wrong");
       setErrorMsg(msg);
     } finally {
       setLoading(false);
@@ -65,12 +65,12 @@ export default function ResetPasswordPage({ searchParams }: { searchParams: { to
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 p-4">
         <Card className="relative w-full max-w-md border-border/50 bg-card/80 backdrop-blur-xl shadow-xl">
           <CardHeader className="text-center pt-10 pb-6">
-            <CardTitle className="text-2xl font-bold">Invalid Link</CardTitle>
-            <CardDescription className="text-sm mt-1.5">This password reset link is invalid or has expired.</CardDescription>
+            <CardTitle className="text-2xl font-bold">{t("invalid_link")}</CardTitle>
+            <CardDescription className="text-sm mt-1.5">{t("invalid_link_desc")}</CardDescription>
           </CardHeader>
           <CardContent className="pb-8 px-7 text-center">
             <Link href="/forgot-password">
-              <Button className="w-full h-11">Request a new reset link</Button>
+              <Button className="w-full h-11">{t("request_new_link")}</Button>
             </Link>
           </CardContent>
         </Card>

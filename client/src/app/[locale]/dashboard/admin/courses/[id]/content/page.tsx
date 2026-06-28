@@ -9,13 +9,16 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { coursesApi } from "@/lib/api";
-import { ChevronLeft, FileText, Film, FolderOpen, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { coursesApi, uploadApi } from "@/lib/api";
+import { ChevronLeft, FileText, Film, FolderOpen, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function AdminCourseContentPage() {
+  const t = useTranslations("admin");
+  const c = useTranslations("common");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [course, setCourse] = useState<any>(null);
@@ -29,8 +32,25 @@ export default function AdminCourseContentPage() {
   const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<any | null>(null);
   const [lessonModuleId, setLessonModuleId] = useState<string | null>(null);
-  const [lessonForm, setLessonForm] = useState({ title: "", contentType: "video", content: "", videoUrl: "", pdfUrl: "", duration: "0" });
+  const [lessonForm, setLessonForm] = useState({ title: "", contentType: "video", content: "", videoUrl: "", pdfUrl: "", imageUrl: "", duration: "0" });
   const [savingLesson, setSavingLesson] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+
+  const uploadFileToR2 = async (file: File, field: "pdfUrl" | "videoUrl" | "imageUrl") => {
+    setUploadingFile(file.name);
+    try {
+      const key = `courses/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { data } = await uploadApi.presignedUrl(key, file.type);
+      const { url, publicUrl } = data;
+      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      setLessonForm((p) => ({ ...p, [field]: publicUrl }));
+      toast.success(`${file.name} uploaded`);
+    } catch {
+      toast.error(t("upload_failed"));
+    } finally {
+      setUploadingFile(null);
+    }
+  };
 
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [deleteType, setDeleteType] = useState<"module" | "lesson">("module");
@@ -46,10 +66,10 @@ export default function AdminCourseContentPage() {
         const { data } = await coursesApi.get(found.slug);
         setCourse(data);
       } else {
-        toast.error("Course not found");
+        toast.error(t("course_not_found"));
       }
     } catch {
-      toast.error("Failed to load course");
+      toast.error(t("load_failed_course"));
     } finally {
       setLoading(false);
     }
@@ -78,15 +98,15 @@ export default function AdminCourseContentPage() {
       const payload = { title: { en: moduleForm.title }, description: { en: moduleForm.description } };
       if (editingModule) {
         await coursesApi.updateModule(editingModule.id, payload);
-        toast.success("Module updated");
+        toast.success(t("module_updated"));
       } else {
         await coursesApi.createModule(id, payload);
-        toast.success("Module created");
+        toast.success(t("module_created"));
       }
       setModuleDialogOpen(false);
       fetchCourse();
     } catch {
-      toast.error("Failed to save module");
+      toast.error(t("module_save_failed"));
     } finally {
       setSavingModule(false);
     }
@@ -96,11 +116,11 @@ export default function AdminCourseContentPage() {
     if (!deleteTarget) return;
     try {
       await coursesApi.deleteModule(deleteTarget.id);
-      toast.success("Module deleted");
+      toast.success(t("module_deleted"));
       setDeleteTarget(null);
       fetchCourse();
     } catch {
-      toast.error("Failed to delete module");
+      toast.error(t("module_delete_failed"));
     }
   };
 
@@ -108,18 +128,18 @@ export default function AdminCourseContentPage() {
     if (!deleteTarget) return;
     try {
       await coursesApi.deleteLesson(deleteTarget.id);
-      toast.success("Lesson deleted");
+      toast.success(t("lesson_deleted"));
       setDeleteTarget(null);
       fetchCourse();
     } catch {
-      toast.error("Failed to delete lesson");
+      toast.error(t("lesson_delete_failed"));
     }
   };
 
   const openCreateLesson = (moduleId: string) => {
     setLessonModuleId(moduleId);
     setEditingLesson(null);
-    setLessonForm({ title: "", contentType: "video", content: "", videoUrl: "", pdfUrl: "", duration: "0" });
+    setLessonForm({ title: "", contentType: "video", content: "", videoUrl: "", pdfUrl: "", imageUrl: "", duration: "0" });
     setLessonDialogOpen(true);
   };
 
@@ -132,6 +152,7 @@ export default function AdminCourseContentPage() {
       content: lesson.content || "",
       videoUrl: lesson.videoUrl || "",
       pdfUrl: lesson.pdfUrl || "",
+      imageUrl: lesson.imageUrl || "",
       duration: String(lesson.duration || 0),
     });
     setLessonDialogOpen(true);
@@ -147,19 +168,20 @@ export default function AdminCourseContentPage() {
       };
       if (lessonForm.contentType === "video") payload.videoUrl = lessonForm.videoUrl;
       if (lessonForm.contentType === "pdf") payload.pdfUrl = lessonForm.pdfUrl;
+      if (lessonForm.contentType === "image") payload.imageUrl = lessonForm.imageUrl;
       if (lessonForm.contentType === "text") payload.content = lessonForm.content;
 
       if (editingLesson) {
         await coursesApi.updateLesson(editingLesson.id, payload);
-        toast.success("Lesson updated");
+        toast.success(t("lesson_updated"));
       } else {
         await coursesApi.createLesson(lessonModuleId!, payload);
-        toast.success("Lesson created");
+        toast.success(t("lesson_created"));
       }
       setLessonDialogOpen(false);
       fetchCourse();
     } catch {
-      toast.error("Failed to save lesson");
+      toast.error(t("lesson_save_failed"));
     } finally {
       setSavingLesson(false);
     }
@@ -177,8 +199,8 @@ export default function AdminCourseContentPage() {
     return (
       <PageTransition>
         <div className="text-center py-12">
-          <h2 className="text-xl font-semibold">Course not found</h2>
-          <Button variant="link" onClick={() => router.push("/dashboard/admin/courses")}>Go back</Button>
+          <h2 className="text-xl font-semibold">{t("course_not_found")}</h2>
+          <Button variant="link" onClick={() => router.push("/dashboard/admin/courses")}>{c("back")}</Button>
         </div>
       </PageTransition>
     );
@@ -195,10 +217,10 @@ export default function AdminCourseContentPage() {
           </Button>
           <div className="flex-1">
             <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-            <p className="text-muted-foreground text-sm">Manage modules and lessons</p>
+            <p className="text-muted-foreground text-sm">{t("manage_modules_lessons")}</p>
           </div>
           <Button onClick={openCreateModule}>
-            <Plus className="mr-2 h-4 w-4" /> New Module
+            <Plus className="mr-2 h-4 w-4" /> {t("new_module")}
           </Button>
         </div>
 
@@ -207,7 +229,7 @@ export default function AdminCourseContentPage() {
             <Card>
               <CardContent className="py-12 text-center">
                 <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
-                <p className="text-muted-foreground">No modules yet. Create your first module to start adding content.</p>
+                <p className="text-muted-foreground">{t("no_modules_yet")}</p>
               </CardContent>
             </Card>
           )}
@@ -218,7 +240,7 @@ export default function AdminCourseContentPage() {
                 <CardHeader className="pb-3 flex flex-row items-start justify-between">
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <span className="text-muted-foreground text-sm font-normal">Module {mi + 1}</span>
+                      <span className="text-muted-foreground text-sm font-normal">{t("module_label")} {mi + 1}</span>
                       {modTitle}
                     </CardTitle>
                     {mod.description?.en && (
@@ -236,13 +258,13 @@ export default function AdminCourseContentPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-muted-foreground">{mod.lessons?.length || 0} lessons</span>
+                    <span className="text-sm text-muted-foreground">{mod.lessons?.length || 0} {t("lessons_count")}</span>
                     <Button size="sm" variant="outline" onClick={() => openCreateLesson(mod.id)}>
-                      <Plus className="mr-1 h-4 w-4" /> Add Lesson
+                      <Plus className="mr-1 h-4 w-4" /> {t("add_lesson")}
                     </Button>
                   </div>
                   {mod.lessons?.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg">No lessons in this module</p>
+                    <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg">{t("no_lessons_in_module")}</p>
                   ) : (
                     <div className="space-y-2">
                       {mod.lessons?.map((lesson: any) => {
@@ -280,22 +302,22 @@ export default function AdminCourseContentPage() {
 
       <Dialog open={moduleDialogOpen} onOpenChange={setModuleDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editingModule ? "Edit Module" : "New Module"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingModule ? t("edit_module") : t("new_module")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium">Title (English)</label>
+              <label className="text-sm font-medium">{t("title_english")}</label>
               <Input value={moduleForm.title} onChange={(e) => setModuleForm((p) => ({ ...p, title: e.target.value }))} />
             </div>
             <div>
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-sm font-medium">{t("description")}</label>
               <Textarea value={moduleForm.description} onChange={(e) => setModuleForm((p) => ({ ...p, description: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModuleDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setModuleDialogOpen(false)}>{c("cancel")}</Button>
             <Button onClick={saveModule} disabled={savingModule || !moduleForm.title}>
               {savingModule && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editingModule ? "Update" : "Create"}
+              {editingModule ? c("save") : c("create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -303,52 +325,98 @@ export default function AdminCourseContentPage() {
 
       <Dialog open={lessonDialogOpen} onOpenChange={setLessonDialogOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingLesson ? "Edit Lesson" : "New Lesson"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingLesson ? t("edit_lesson") : t("new_lesson")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium">Title (English)</label>
+              <label className="text-sm font-medium">{t("title_english")}</label>
               <Input value={lessonForm.title} onChange={(e) => setLessonForm((p) => ({ ...p, title: e.target.value }))} />
             </div>
             <div>
-              <label className="text-sm font-medium">Content Type</label>
+              <label className="text-sm font-medium">{t("content_type")}</label>
               <Select value={lessonForm.contentType} onValueChange={(v) => setLessonForm((p) => ({ ...p, contentType: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="video">Video</SelectItem>
-                  <SelectItem value="text">Text / Article</SelectItem>
-                  <SelectItem value="pdf">PDF</SelectItem>
-                  <SelectItem value="quiz">Quiz</SelectItem>
+                  <SelectItem value="video">{t("content_type_video")}</SelectItem>
+                  <SelectItem value="text">{t("content_type_text")}</SelectItem>
+                  <SelectItem value="pdf">{t("content_type_pdf")}</SelectItem>
+                  <SelectItem value="quiz">{t("content_type_quiz")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {lessonForm.contentType === "video" && (
               <div>
-                <label className="text-sm font-medium">Video URL</label>
-                <Input value={lessonForm.videoUrl} onChange={(e) => setLessonForm((p) => ({ ...p, videoUrl: e.target.value }))} placeholder="Cloudflare Stream UID or URL" />
+                <label className="text-sm font-medium">{t("video_url")}</label>
+                <Input value={lessonForm.videoUrl} onChange={(e) => setLessonForm((p) => ({ ...p, videoUrl: e.target.value }))} placeholder={t("video_url_placeholder")} />
               </div>
             )}
             {lessonForm.contentType === "pdf" && (
               <div>
-                <label className="text-sm font-medium">PDF URL</label>
-                <Input value={lessonForm.pdfUrl} onChange={(e) => setLessonForm((p) => ({ ...p, pdfUrl: e.target.value }))} placeholder="PDF file URL" />
+                <label className="text-sm font-medium">{t("pdf_file")}</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    disabled={uploadingFile !== null}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadFileToR2(file, "pdfUrl");
+                    }}
+                  />
+                  {uploadingFile && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
+                </div>
+                {lessonForm.pdfUrl && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate flex-1">{lessonForm.pdfUrl.split("/").pop()}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setLessonForm((p) => ({ ...p, pdfUrl: "" }))}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+            {lessonForm.contentType === "image" && (
+              <div>
+                <label className="text-sm font-medium">{t("image_file")}</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingFile !== null}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadFileToR2(file, "imageUrl");
+                    }}
+                  />
+                  {uploadingFile && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
+                </div>
+                {lessonForm.imageUrl && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate flex-1">{lessonForm.imageUrl.split("/").pop()}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setLessonForm((p) => ({ ...p, imageUrl: "" }))}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
             {lessonForm.contentType === "text" && (
               <div>
-                <label className="text-sm font-medium">Content (HTML or Markdown)</label>
+                <label className="text-sm font-medium">{t("content_html")}</label>
                 <Textarea value={lessonForm.content} onChange={(e) => setLessonForm((p) => ({ ...p, content: e.target.value }))} rows={6} />
               </div>
             )}
             <div>
-              <label className="text-sm font-medium">Duration (seconds)</label>
+              <label className="text-sm font-medium">{t("duration_seconds")}</label>
               <Input type="number" value={lessonForm.duration} onChange={(e) => setLessonForm((p) => ({ ...p, duration: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLessonDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setLessonDialogOpen(false)}>{c("cancel")}</Button>
             <Button onClick={saveLesson} disabled={savingLesson || !lessonForm.title}>
               {savingLesson && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editingLesson ? "Update" : "Create"}
+              {editingLesson ? c("save") : c("create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -358,8 +426,9 @@ export default function AdminCourseContentPage() {
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
         onConfirm={deleteType === "module" ? deleteModule : deleteLesson}
-        title={`Delete ${deleteType}`}
-        description={`Are you sure you want to delete this ${deleteType}? This action cannot be undone.`}
+        title={deleteType === "module" ? t("delete_module") : t("delete_lesson")}
+        description={deleteType === "module" ? t("delete_module_confirm") : t("delete_lesson_confirm")}
+        confirmLabel={c("delete")}
       />
     </PageTransition>
   );

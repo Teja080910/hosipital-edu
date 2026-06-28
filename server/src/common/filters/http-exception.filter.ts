@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from "@nestjs/common";
+import { I18nService } from "../i18n/i18n.service";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -17,7 +18,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const reply = response as { status: (code: number) => { send: (body: Record<string, unknown>) => void } };
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = "Internal server error";
+    const locale = I18nService.storage.getStore()?.locale ?? "en";
+    const fallbackMsg = locale === "es" ? "Error interno del servidor" : "Internal server error";
+    let message: string | string[] = fallbackMsg;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();

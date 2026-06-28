@@ -9,7 +9,7 @@ import "../globals.css";
 export async function generateMetadata({ params: { locale } }: { params: { locale: string } }) {
   const t = await getTranslations({ locale, namespace: "landing" });
   return {
-    title: "MD Exams",
+    title: "MD Exam",
     description: t("hero_subtitle"),
     icons: {
       icon: "/favicon.ico",
@@ -30,7 +30,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <ThemeProvider>
             <AuthProvider>
               <QueryProvider>

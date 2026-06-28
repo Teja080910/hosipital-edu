@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useState, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,6 +38,7 @@ interface TopbarProps {
 export function Topbar({ onMenuClick }: TopbarProps) {
   const tb = useTranslations("topbar");
   const c = useTranslations("common");
+  const sb = useTranslations("sidebar");
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -48,7 +50,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const pathname = usePathname();
   const [searchFocused, setSearchFocused] = useState(false);
 
-const currentLocale = typeof window !== "undefined" ? window.location.pathname.split("/")[1] || "en" : "en";
+const currentLocale = useParams().locale as string;
 
   const switchLocale = (locale: string) => {
     window.location.assign(window.location.pathname.replace(/^\/(en|es)/, `/${locale}`));
@@ -61,7 +63,7 @@ const currentLocale = typeof window !== "undefined" ? window.location.pathname.s
           <Menu className="h-5 w-5" />
         </Button>
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
-          <span className="text-[10px] font-bold text-white">HE</span>
+          <span className="text-[10px] font-bold text-white">{sb("brand_initials")}</span>
         </div>
       </div>
 
@@ -123,7 +125,7 @@ const currentLocale = typeof window !== "undefined" ? window.location.pathname.s
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="gap-2.5 px-2.5 ml-2 hover:bg-accent/50 rounded-xl">
               <Avatar className="h-7 w-7 ring-2 ring-border/50">
-                <AvatarImage src={user?.avatar} />
+                <AvatarImage src={user?.avatarUrl || user?.avatar} />
                 <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-600 dark:text-blue-400 font-semibold">
                   {user?.name?.charAt(0)?.toUpperCase() || "U"}
                 </AvatarFallback>

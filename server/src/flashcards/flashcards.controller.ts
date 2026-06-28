@@ -33,8 +33,18 @@ export class FlashcardsController {
     @Query("topicId") topicId?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.flashcardsService.findAll({ examId, specialtyId, topicId, page, limit });
+    return this.flashcardsService.findAll({ examId, specialtyId, topicId, page, limit }, user);
+  }
+
+  @Get("specialties")
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get flashcard specialties" })
+  async getSpecialties(@CurrentUser() user: any) {
+    return this.flashcardsService.getSpecialties(user.id);
   }
 
   @Get("due")
