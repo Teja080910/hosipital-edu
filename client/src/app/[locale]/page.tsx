@@ -400,7 +400,7 @@ const sb = useTranslations("subscribe");
               transition={{ duration: 0.8, delay: 0.5 }}
               className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
             >
-              {["ENURM", "ENARM", "MIR", "USMLE Step 1", "USMLE Step 2 CK", "CURSOS"].map((exam) => (
+              {["ENURM", "ENARM", "MIR", "CURSOS"].map((exam) => (
                 <div key={exam} className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-primary" />
                   <span>{exam}</span>
