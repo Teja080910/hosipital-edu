@@ -55,9 +55,9 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
     if (!ctx) return;
     const p = currentPath.current;
     if (p.length < 2) return;
-    const color = tool === "highlighter" ? "rgba(253, 224, 71, 0.35)" : "#ef4444";
+    const color = tool === "highlighter" ? "rgba(253, 224, 71, 0.2)" : "#ef4444";
     ctx.strokeStyle = color;
-    ctx.lineWidth = tool === "highlighter" ? 24 : 3;
+    ctx.lineWidth = tool === "highlighter" ? 28 : 3;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(p[p.length - 2].x, p[p.length - 2].y);
@@ -69,7 +69,7 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
     if (!drawing.current) return;
     drawing.current = false;
     if (currentPath.current.length > 0) {
-      const color = tool === "highlighter" ? "rgba(253, 224, 71, 0.35)" : "#ef4444";
+      const color = tool === "highlighter" ? "rgba(253, 224, 71, 0.2)" : "#ef4444";
       paths.current.push([[...currentPath.current], color]);
       drawings.set(questionId, paths.current);
     }
