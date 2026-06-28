@@ -33,6 +33,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { isAxiosError } from "axios";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -132,9 +133,15 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       }
     };
     loadExams()
-      .catch(() => toast.error(t("load_failed")))
+      .catch((error) => {
+        if (isAxiosError(error) && error.response?.status === 403) {
+          router.replace("/dashboard/exams");
+          return;
+        }
+        toast.error(t("load_failed"));
+      })
       .finally(() => setLoading(false));
-  }, [id, t]);
+  }, [id, router, t]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -463,11 +470,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                       if (showAnswer) {
                         if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
                         else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
-                        else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                        else if (isSelected) optionClass = "border-primary bg-primary/10 text-foreground font-medium shadow-subtle";
                       } else if (mode === "exam") {
-                        if (isSelected || isOptionSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                        if (isSelected || isOptionSelected) optionClass = "border-primary bg-primary/10 text-foreground font-medium shadow-subtle";
                       } else if (isOptionSelected) {
-                        optionClass = "border-primary bg-primary/10 shadow-subtle";
+                        optionClass = "border-primary bg-primary/10 text-foreground font-medium shadow-subtle";
                       }
                       return (
                         <button key={option.id} onClick={() => setSelectedOption(option.id)} disabled={showAnswer || answers[currentQuestion.id]?.optionId != null} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
@@ -481,7 +488,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                               showAnswer && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
                               String.fromCharCode(65 + optionIndex)}
                           </div>
-                           <span className="pt-1.5 leading-6 break-words">{option.text}</span>
+                           <span className="pt-1.5 leading-6 break-words text-foreground">{option.text}</span>
                         </div>
                       </button>
                     );

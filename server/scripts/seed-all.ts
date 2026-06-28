@@ -111,6 +111,7 @@ const examsData: ExamDef[] = [
     slug: "usmle-step-2",
     name: { en: "USMLE Step 2 CK", es: "USMLE Step 2 CK" },
     description: { en: "United States Medical Licensing Examination Step 2 Clinical Knowledge", es: "Examen de Licencia Médica de EE.UU. Step 2 Conocimiento Clínico" },
+    group: "usmle",
     sortOrder: 4,
     specialties: [
       { en: "Cardiology", es: "Cardiología" },
@@ -127,7 +128,7 @@ const examsData: ExamDef[] = [
 ];
 
 // Flashcards must include ALL specialties for ENURM, ENARM, MIR
-const flashcardExamSlugs = ["enurm", "enarm", "mir"];
+const flashcardExamSlugs = ["enurm", "enarm", "mir", "usmle-step-1", "usmle-step-2"];
 
 const questionsData = [
   {
