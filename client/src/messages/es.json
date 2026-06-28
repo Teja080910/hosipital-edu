@@ -438,6 +438,7 @@
     "email_col": "Correo",
     "role": "Rol",
     "joined": "Registrado",
+    "subscription": "Suscripción",
     "delete_user": "Eliminar",
     "delete_confirm": "¿Eliminar este usuario?",
     "user_deleted": "Usuario eliminado",
@@ -770,7 +771,9 @@
     "duration_s_col": "Duración (s)",
     "exams_optional_label": "Exámenes (opcional)",
     "all_exams_no_restriction": "Todos los exámenes (sin restricción)",
-    "cover_image_placeholder": "https://ejemplo.com/imagen.jpg"
+    "cover_image_placeholder": "https://ejemplo.com/imagen.jpg",
+    "video_col": "Video",
+    "lessons_col2": "Lecciones"
   },
   "progress": {
     "title": "Progreso",

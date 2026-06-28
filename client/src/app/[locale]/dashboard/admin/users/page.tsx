@@ -158,7 +158,7 @@ const deleteUser = async () => {
     { key: "createdAt", header: t("joined"), sortable: true },
     {
       key: "actions",
-      header: "",
+      header: t("subscription"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" onClick={() => openSubscription(row)}>

@@ -438,6 +438,7 @@
     "email_col": "Email",
     "role": "Role",
     "joined": "Joined",
+    "subscription": "Subscription",
     "delete_user": "Delete",
     "delete_confirm": "Delete this user?",
     "user_deleted": "User deleted",
@@ -770,7 +771,9 @@
     "duration_s_col": "Duration (s)",
     "exams_optional_label": "Exams (optional)",
     "all_exams_no_restriction": "All exams (no restriction)",
-    "cover_image_placeholder": "https://example.com/image.jpg"
+    "cover_image_placeholder": "https://example.com/image.jpg",
+    "video_col": "Video",
+    "lessons_col2": "Lessons"
   },
   "progress": {
     "title": "Progress",

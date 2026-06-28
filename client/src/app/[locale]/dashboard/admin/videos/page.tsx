@@ -183,14 +183,14 @@ export default function AdminVideosPage() {
 
   const renderTitle = (v: any) => (typeof v === "string" ? v : v?.en ?? v?.es ?? "");
   const moduleColumns = [
-    { key: "title", label: "Title", render: renderTitle },
-    { key: "lessons", label: "Lessons", render: (v: any[]) => v?.length || 0 },
+    { key: "title", label: t("title_label"), render: renderTitle },
+    { key: "lessons", label: t("lessons_label"), render: (v: any[]) => v?.length || 0 },
   ];
 
   const lessonColumns = [
-    { key: "title", label: "Title", render: renderTitle },
+    { key: "title", label: t("title_label"), render: renderTitle },
     { key: "duration", label: t("duration_s_col"), render: (v: number) => `${v}s` },
-    { key: "videoUrl", label: "Video", render: (v: string) => v ? <Badge variant="outline">Uploaded</Badge> : <Badge variant="secondary">None</Badge> },
+    { key: "videoUrl", label: t("video_col"), render: (v: string) => v ? <Badge variant="outline">Uploaded</Badge> : <Badge variant="secondary">None</Badge> },
   ];
 
   return (

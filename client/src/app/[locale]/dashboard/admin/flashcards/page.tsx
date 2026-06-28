@@ -218,12 +218,12 @@ export default function AdminFlashcardsPage() {
     { key: "back", header: t("col_back"), render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.back}</span> },
     {
       key: "specialty",
-      header: "Specialty",
+      header: t("specialty"),
       render: (row: any) => <span className="text-sm text-muted-foreground">{row.specialty?.en || row.specialty || "—"}</span>,
     },
     {
       key: "topic",
-      header: "Topic",
+      header: t("topic"),
       render: (row: any) => <span className="text-sm text-muted-foreground">{row.topic?.en || row.topic || "—"}</span>,
     },
     {
