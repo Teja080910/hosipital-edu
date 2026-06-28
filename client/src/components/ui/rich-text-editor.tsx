@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useCallback } from "react";
-import { Bold, Italic } from "lucide-react";
+import { Bold, Italic, Underline } from "lucide-react";
 
 interface RichTextEditorProps {
   value: string;
@@ -39,6 +39,9 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = 100 }
         </button>
         <button type="button" onClick={() => exec("italic")} className="p-1.5 rounded hover:bg-muted transition-colors" title="Italic">
           <Italic className="h-4 w-4" />
+        </button>
+        <button type="button" onClick={() => exec("underline")} className="p-1.5 rounded hover:bg-muted transition-colors" title="Underline">
+          <Underline className="h-4 w-4" />
         </button>
       </div>
       <div
