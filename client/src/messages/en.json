@@ -196,7 +196,9 @@
     "exam_history": "Exam History",
     "question_image": "Question image",
     "selected": "selected",
-    "questions_count": "{count} questions"
+    "questions_count": "{count} questions",
+    "correct_answer": "Correct answer",
+    "explanation": "Explanation"
   },
   "flashcards": {
     "title": "Flashcards",
@@ -279,6 +281,9 @@
     "copy_link": "Copy Link",
     "copied": "Copied!",
     "total_referred": "Total friends referred",
+    "your_code": "Your referral code",
+    "copy": "Copy",
+    "link_copied": "Link copied!",
     "toggle_theme": "Toggle theme",
     "light": "Light",
     "dark": "Dark",
@@ -299,6 +304,7 @@
     "enrolled_badge": "Enrolled",
     "course_content": "Course Content",
     "no_content": "No content available yet.",
+    "no_details": "No details available.",
     "module": "Module",
     "not_found": "Course not found",
     "go_back": "Go back",
@@ -496,6 +502,7 @@
     "create_new_course": "Create New Course",
     "configure_course": "Fill in the fields to configure the course",
     "course_title_placeholder": "Enter course title...",
+    "course_description_placeholder": "Course description or overview...",
     "short_description": "Short Description",
     "short_description_placeholder": "Brief summary...",
     "price": "Price",
@@ -712,6 +719,8 @@
     "placeholder_reference": "Optional reference or source",
     "select_specialty_placeholder": "Select specialty",
     "select_topic_placeholder": "Select topic",
+    "topic": "Topic",
+    "quantity": "Quantity",
     "col_front": "Front",
     "col_back": "Back",
     "flashcard_delete_desc": "Are you sure you want to delete this flashcard?",
@@ -835,7 +844,8 @@
     "custom_title": "Custom Title",
     "custom_title_placeholder": "Enter a name for this exam session",
     "reference": "Reference:",
-    "selected": "selected"
+    "selected": "selected",
+    "question_image": "Question image"
   },
   "subscribe": {
     "title": "Choose Your Plan",

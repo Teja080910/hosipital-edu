@@ -196,7 +196,9 @@
     "exam_history": "Historial de Exámenes",
     "question_image": "Imagen de la pregunta",
     "selected": "seleccionadas",
-    "questions_count": "{count} preguntas"
+    "questions_count": "{count} preguntas",
+    "correct_answer": "Respuesta correcta",
+    "explanation": "Explicación"
   },
   "flashcards": {
     "title": "Tarjetas de Estudio",
@@ -279,6 +281,9 @@
     "copy_link": "Copiar Enlace",
     "copied": "¡Copiado!",
     "total_referred": "Total de amigos referidos",
+    "your_code": "Tu código de referido",
+    "copy": "Copiar",
+    "link_copied": "¡Enlace copiado!",
     "toggle_theme": "Cambiar tema",
     "light": "Claro",
     "dark": "Oscuro",
@@ -299,6 +304,7 @@
     "enrolled_badge": "Inscrito",
     "course_content": "Contenido del Curso",
     "no_content": "No hay contenido disponible aún.",
+    "no_details": "No hay detalles disponibles.",
     "module": "Módulo",
     "not_found": "Curso no encontrado",
     "go_back": "Volver",
@@ -344,7 +350,8 @@
     "failed_submit_quiz": "Error al enviar el cuestionario",
     "question_of": "Pregunta {current} de {total}",
     "answered": "respondidas",
-    "score_percent": "Puntaje: {score}% ({correct}/{total} correctas)"
+    "score_percent": "Puntaje: {score}% ({correct}/{total} correctas)",
+    "questions_count": "{count} preguntas"
   },
   "lessons": {
     "not_found": "Lección no encontrada",
@@ -495,6 +502,7 @@
     "create_new_course": "Crear Nuevo Curso",
     "configure_course": "Completa los campos para configurar el curso",
     "course_title_placeholder": "Ingresa el título del curso...",
+    "course_description_placeholder": "Descripción o resumen del curso...",
     "short_description": "Descripción Corta",
     "short_description_placeholder": "Resumen breve...",
     "price": "Precio",
@@ -711,6 +719,8 @@
     "placeholder_reference": "Referencia opcional o fuente",
     "select_specialty_placeholder": "Seleccionar especialidad",
     "select_topic_placeholder": "Seleccionar tema",
+    "topic": "Tema",
+    "quantity": "Cantidad",
     "col_front": "Frente",
     "col_back": "Reverso",
     "flashcard_delete_desc": "¿Estás seguro de que quieres eliminar esta tarjeta?",
@@ -834,7 +844,8 @@
     "custom_title": "Título Personalizado",
     "custom_title_placeholder": "Ingresa un nombre para esta sesión",
     "reference": "Referencia:",
-    "selected": "seleccionado"
+    "selected": "seleccionado",
+    "question_image": "Imagen de la pregunta"
   },
   "subscribe": {
     "title": "Elige Tu Plan",
