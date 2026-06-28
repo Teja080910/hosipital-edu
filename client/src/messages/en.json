@@ -845,7 +845,9 @@
     "custom_title_placeholder": "Enter a name for this exam session",
     "reference": "Reference:",
     "selected": "selected",
-    "question_image": "Question image"
+    "question_image": "Question image",
+    "residency_exams": "Residency Exams",
+    "usmle_exams": "USMLE Exams"
   },
   "subscribe": {
     "title": "Choose Your Plan",

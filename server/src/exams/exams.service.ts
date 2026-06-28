@@ -42,6 +42,7 @@ export class ExamsService {
         slug: exams.slug,
         name: exams.name,
         description: exams.description,
+        group: exams.group,
         isActive: exams.isActive,
         sortOrder: exams.sortOrder,
         createdAt: exams.createdAt,

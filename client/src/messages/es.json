@@ -845,7 +845,9 @@
     "custom_title_placeholder": "Ingresa un nombre para esta sesión",
     "reference": "Referencia:",
     "selected": "seleccionado",
-    "question_image": "Imagen de la pregunta"
+    "question_image": "Imagen de la pregunta",
+    "residency_exams": "Exámenes de Residencia",
+    "usmle_exams": "Exámenes USMLE"
   },
   "subscribe": {
     "title": "Elige Tu Plan",
