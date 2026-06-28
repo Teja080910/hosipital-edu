@@ -69,7 +69,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get current user" })
   async getMe(@CurrentUser() user: any) {
-    return user;
+    return this.authService.getMe(user.id);
   }
 
   @Get("google")

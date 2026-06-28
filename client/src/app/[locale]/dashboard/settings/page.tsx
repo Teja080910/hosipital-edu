@@ -12,9 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
-import { usersApi } from "@/lib/api";
-import { Loader2, Copy, Share2, Gift } from "lucide-react";
-import { useEffect, useState } from "react";
+import { usersApi, uploadApi } from "@/lib/api";
+import { Loader2, Copy, Share2, Gift, Camera } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -25,6 +25,9 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [referral, setReferral] = useState<{ referralCode: string; referralUrl: string; totalReferred: number } | null>(null);
   const [loadingRef, setLoadingRef] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -34,6 +37,38 @@ export default function SettingsPage() {
       usersApi.getReferral(user.id).then(({ data }) => setReferral(data)).catch(() => {}).finally(() => setLoadingRef(false));
     }
   }, [user]);
+
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error(t("avatar_too_large")); return; }
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarPreview || !user) return;
+    setUploadingAvatar(true);
+    try {
+      const file = fileInputRef.current?.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      await new Promise((resolve) => { reader.onload = resolve; });
+      const base64 = (reader.result as string).split(",")[1];
+      const ext = file.name.split(".").pop() || "png";
+      const key = `avatars/${user.id}.${ext}`;
+      const { data: uploadResult } = await uploadApi.uploadFile(key, base64, file.type);
+      await usersApi.update(user.id, { avatarUrl: uploadResult.url });
+      await refreshUser();
+      setAvatarPreview(null);
+      toast.success(t("avatar_updated"));
+    } catch {
+      toast.error(t("avatar_failed"));
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -64,13 +99,36 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={user?.avatar} />
-                <AvatarFallback>
-                  {user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <Button variant="outline" size="sm" disabled>{t("change_avatar")}</Button>
+              <div className="relative">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={avatarPreview || user?.avatarUrl} />
+                  <AvatarFallback>
+                    {user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                {(uploadingAvatar) && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-background/60">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                )}
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} />
+              {avatarPreview ? (
+                <div className="flex gap-2">
+                  <Button variant="default" size="sm" onClick={handleAvatarUpload} disabled={uploadingAvatar}>
+                    {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {t("save")}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => { setAvatarPreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
+                    {t("cancel")}
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <Camera className="h-4 w-4 mr-2" />
+                  {t("change_avatar")}
+                </Button>
+              )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
