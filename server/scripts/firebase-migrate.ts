@@ -4,6 +4,12 @@ import { sql, eq, and } from "drizzle-orm";
 import * as schema from "../src/database/schema";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
+
+const UUID_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+function firebaseIdToUuid(firebaseId: string): string {
+  return crypto.createHash("md5").update(UUID_NAMESPACE + firebaseId).digest("hex").replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
+}
 
 const pool = new Pool({
   connectionString:
@@ -723,8 +729,9 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
       const userId = userByEmail[email];
       if (!userId) continue;
 
-      const attemptId = f.id || getDocId(doc);
-      if (!attemptId) continue;
+      const firebaseId = f.id || getDocId(doc);
+      if (!firebaseId) continue;
+      const attemptId = firebaseIdToUuid(firebaseId);
 
       const existing = await db
         .select()
