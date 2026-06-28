@@ -213,6 +213,7 @@ export const examAttempts = pgTable("exam_attempts", {
   questionCount: integer("question_count").notNull().default(0),
   answeredCount: integer("answered_count").notNull().default(0),
   correctCount: integer("correct_count").notNull().default(0),
+  questionIds: jsonb("question_ids"),
   timeLimit: integer("time_limit"),
   timeSpent: integer("time_spent").default(0).notNull(),
   startedAt: timestamp("started_at").defaultNow().notNull(),

@@ -1,17 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { useRouter } from "@/routing";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PageTransition } from "@/components/page-transition";
 import { AccountTypeGate } from "@/components/account-type-gate";
 import { ExamHistory } from "@/components/exams/exam-history";
+import { PageTransition } from "@/components/page-transition";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { examsApi } from "@/lib/api";
+import { useRouter } from "@/routing";
 import { Check, GraduationCap, Loader2, Play, X } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
   if (!obj) return "";
@@ -32,7 +31,7 @@ export default function ExamsPage() {
   useEffect(() => {
     examsApi.subscribedList()
       .then((res) => setExams(res.data))
-      .catch(() => {})
+      .catch(() => toast.error(t("load_exams_failed")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -63,7 +62,7 @@ export default function ExamsPage() {
     if (!examDetails[examId]) {
       examsApi.get(examId).then((res) => {
         setExamDetails((prev) => ({ ...prev, [examId]: res.data }));
-      }).catch(() => {});
+      }).catch(() => toast.error(t("load_exam_details_failed")));
     }
   };
 

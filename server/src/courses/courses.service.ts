@@ -44,12 +44,15 @@ export class CoursesService {
         .limit(1);
       if (sub.length > 0) {
         const plan = await this.db
-          .select({ isCourseOnly: subscriptionPlans.isCourseOnly, courseId: subscriptionPlans.courseId })
+          .select({ isCourseOnly: subscriptionPlans.isCourseOnly, courseId: subscriptionPlans.courseId, isDefault: subscriptionPlans.isDefault })
           .from(subscriptionPlans)
           .where(eq(subscriptionPlans.id, sub[0].planId))
           .limit(1);
-        if (plan.length > 0 && plan[0].isCourseOnly && plan[0].courseId) {
-          conditions.push(eq(courses.id, plan[0].courseId));
+        if (plan.length > 0) {
+          if (plan[0].isDefault) return [];
+          if (plan[0].isCourseOnly && plan[0].courseId) {
+            conditions.push(eq(courses.id, plan[0].courseId));
+          }
         }
       }
     }
@@ -193,6 +196,11 @@ export class CoursesService {
 
     const isCourseOnly = sub?.subscription_plans?.isCourseOnly;
     const subCourseId = sub?.subscription_plans?.courseId;
+    const isTrial = sub?.subscription_plans?.isDefault;
+
+    if (isTrial) {
+      throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
+    }
 
     if (isCourseOnly && subCourseId !== courseId) {
       throw new BadRequestException(this.i18n.t("courses.paymentRequired"));

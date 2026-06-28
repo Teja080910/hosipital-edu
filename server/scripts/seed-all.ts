@@ -481,6 +481,12 @@ async function main() {
   // 2. QUESTIONS
   // ========================================================================
   console.log("=== 2. Questions ===");
+
+  const residencyExams = await db
+    .select()
+    .from(schema.exams)
+    .where(inArray(schema.exams.slug, ["enurm", "enarm", "mir"]));
+
   let qCreated = 0;
   for (const q of questionsData) {
     // Check if question already exists by text
@@ -495,17 +501,26 @@ async function main() {
       continue;
     }
 
+    const primaryExam = residencyExams[0];
     const [question] = await db.insert(schema.questions).values({
       text: q.text,
       explanation: q.explanation,
       difficulty: q.difficulty,
       isActive: true,
       createdBy: userId,
+      examId: primaryExam?.id,
     }).returning();
 
     await db.insert(schema.questionOptions).values(
       q.options.map((o) => ({ ...o, questionId: question.id })),
     );
+
+    if (residencyExams.length > 0) {
+      await db.insert(schema.questionExams).values(
+        residencyExams.map((e: any) => ({ questionId: question.id, examId: e.id })),
+      );
+    }
+
     qCreated++;
     process.stdout.write(".");
   }
@@ -737,6 +752,35 @@ async function main() {
   console.log(`System Parameters: ${paramsCreated} created\n`);
 
   // ========================================================================
+  // 8. CERTIFICATE TEMPLATES
+  // ========================================================================
+  console.log("=== 8. Certificate Templates ===");
+  const [existingTemplate] = await db
+    .select()
+    .from(schema.certificateTemplates)
+    .where(eq(schema.certificateTemplates.isDefault, true))
+    .limit(1);
+
+  if (!existingTemplate) {
+    await db.insert(schema.certificateTemplates).values({
+      name: "Default Certificate",
+      fontFamily: "Helvetica",
+      textColor: "#1e3a5f",
+      layoutConfig: {
+        studentName: { x: 300, y: 250, fontSize: 44 },
+        courseName: { x: 300, y: 370, fontSize: 28 },
+        completionDate: { x: 300, y: 470, fontSize: 14 },
+        certificateNumber: { x: 300, y: 510, fontSize: 10 },
+        qrCode: { x: 680, y: 440, size: 100 },
+      },
+      isDefault: true,
+    });
+    console.log("  Created default certificate template");
+  } else {
+    console.log("  Skipped (exists): Default certificate template");
+  }
+
+  // ========================================================================
   // SUMMARY
   // ========================================================================
   console.log("=== Seed Complete ===");
@@ -748,6 +792,7 @@ async function main() {
   console.log(`  Articles: ${aCreated} new`);
   console.log(`  Plans: ${pCreated} new`);
   console.log(`  System Parameters: ${paramsCreated} new`);
+  console.log(`  Certificate Templates: ${!existingTemplate ? 1 : 0} new`);
 
   await pool.end();
   console.log("\nDone.");

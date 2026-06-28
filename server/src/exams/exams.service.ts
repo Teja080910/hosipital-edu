@@ -67,7 +67,7 @@ export class ExamsService {
         .limit(1);
 
       if (!sub || sub.isCourseOnly) return [];
-      allowedExamId = sub.examId || null;
+      allowedExamId = sub.examId || user.targetExamId || null;
     }
 
     const questionFilter = allowedExamId
@@ -118,6 +118,10 @@ export class ExamsService {
         }
 
         if (sub.examId && sub.examId !== id) {
+          throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
+        }
+
+        if (!sub.examId && user.targetExamId && user.targetExamId !== id) {
           throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
         }
       }

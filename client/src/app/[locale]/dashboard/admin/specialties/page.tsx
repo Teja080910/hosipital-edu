@@ -201,7 +201,7 @@ export default function AdminSpecialtiesPage() {
                         <Badge variant="outline" className="text-xs">Sort: {spec.sortOrder ?? 0}</Badge>
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openCreate("topic", spec.id)} title="Add topic">
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openCreate("topic", spec.id)} title={t("add_topic_tooltip")}>
                           <Plus className="h-3.5 w-3.5" />
                         </Button>
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit("specialty", spec)}>
@@ -230,7 +230,7 @@ export default function AdminSpecialtiesPage() {
                                   <Badge variant="outline" className="text-xs">Sort: {topic.sortOrder ?? 0}</Badge>
                                 </div>
                                 <div className="flex gap-1 shrink-0">
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openCreate("subtopic", topic.id)} title="Add subtopic">
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openCreate("subtopic", topic.id)} title={t("add_subtopic_tooltip")}>
                                     <Plus className="h-3 w-3" />
                                   </Button>
                                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit("topic", topic)}>

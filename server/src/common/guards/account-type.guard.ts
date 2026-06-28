@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { I18nService } from "../i18n/i18n.service";
 
@@ -16,6 +16,7 @@ export class AccountTypeGuard implements CanActivate {
     ]);
     if (!allowedTypes) return true;
     const { user } = context.switchToHttp().getRequest();
+    if (user?.role === "admin" || user?.role === "super_admin") return true;
     if (allowedTypes.includes(user?.accountType)) return true;
     throw new ForbiddenException(this.i18n.t("guard.accountTypeDenied"));
   }

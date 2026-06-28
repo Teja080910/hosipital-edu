@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { attemptsApi } from "@/lib/api";
-import { Clock, Loader2 } from "lucide-react";
+import { Clock, Loader2, Play } from "lucide-react";
 
 function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
   if (!obj) return "";
@@ -72,7 +72,12 @@ export function ExamHistory() {
                   </>
                 )}
                 {attempt.status !== "completed" && (
-                  <Badge variant="secondary">{t("in_progress")}</Badge>
+                  <>
+                    <Badge variant="secondary">{t("in_progress")}</Badge>
+                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/exams/${attempt.examId}?resume=${attempt.id}`)}>
+                      <Play className="h-3.5 w-3.5 mr-1.5" /> {t("continue")}
+                    </Button>
+                  </>
                 )}
               </div>
             </CardContent>

@@ -236,7 +236,7 @@ export default function AdminCoursesPage() {
                 value={form.coverImage}
                 onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none"
-                placeholder="https://example.com/image.jpg"
+                placeholder={t("cover_image_placeholder")}
               />
             </div>
 

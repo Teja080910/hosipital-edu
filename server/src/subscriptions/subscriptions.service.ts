@@ -90,6 +90,7 @@ export class SubscriptionsService {
           price: subscriptionPlans.price,
           currency: subscriptionPlans.currency,
           sortOrder: subscriptionPlans.sortOrder,
+          isDefault: subscriptionPlans.isDefault,
         },
       })
       .from(userSubscriptions)

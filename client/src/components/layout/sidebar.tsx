@@ -80,15 +80,16 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const { user } = useAuth();
   const pathname = usePathname();
   const [adminOpen, setAdminOpen] = useState(true);
+  const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const navItems = allNavItems.filter(item => {
+    if (item.label === "courses" && subData?.sub?.plan?.isDefault) return false;
     if (!item.accountTypes) return true;
     if (user?.accountType === "course_only") {
       return item.label === "courses" || item.label === "dashboard";
     }
     return item.accountTypes.includes(user?.accountType || "full");
   });
-  const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
 
   useEffect(() => {
     if (user && !isAdmin) {

@@ -95,14 +95,63 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const subtopicsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resumeId = params.get("resume");
+    const urlSpecialtyIds = params.getAll("specialtyIds");
+    if (urlSpecialtyIds.length > 0) {
+      setSelectedSpecialties(urlSpecialtyIds);
+    }
+
     Promise.all([
       examsApi.get(id),
       questionsApi.list({ examId: id }),
-    ])
-      .then(([examRes, questionsRes]) => {
+      resumeId ? attemptsApi.get(resumeId) : Promise.resolve(null),
+    ] as const)
+      .then(([examRes, questionsRes, attemptRes]) => {
         setExam(examRes.data);
         setAllQuestions(questionsRes.data);
         setFilteredQuestions(questionsRes.data);
+
+        if (attemptRes?.data) {
+          const attempt = attemptRes.data;
+          setAttemptId(attempt.id);
+          setMode(attempt.mode);
+          setQuestionLimit(attempt.questionCount || 10);
+          if (attempt.timeLimit) setTimeLimit(attempt.timeLimit);
+          const answers = attempt.answers || [];
+          const answeredQuestions: Question[] = answers
+            .filter((a: any) => a.question)
+            .map((a: any) => a.question);
+
+          if (answeredQuestions.length > 0) {
+            setExamQuestions(answeredQuestions);
+            const restored: Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }> = {};
+            let lastIdx = 0;
+            answers.forEach((a: any) => {
+              restored[a.questionId] = { optionId: a.selectedOptionId, isCorrect: a.isCorrect, flagged: a.isFlagged || false };
+              const idx = answeredQuestions.findIndex((q: Question) => q.id === a.questionId);
+              if (idx >= 0) lastIdx = idx;
+            });
+            setAnswers(restored);
+            const resumeIdx = Math.min(lastIdx + 1, answeredQuestions.length - 1);
+            setCurrentIndex(resumeIdx);
+            const resumeQ = answeredQuestions[resumeIdx];
+            setSelectedOption(resumeQ ? restored[resumeQ.id]?.optionId || null : null);
+            if (attempt.mode === "study") {
+              setShowAnswer(!!(resumeQ && restored[resumeQ.id]?.optionId));
+            }
+            setTotalTimeSpent(attempt.timeSpent || 0);
+            if (attempt.mode === "exam" && attempt.timeLimit) {
+              setTimeRemaining(Math.max(0, attempt.timeLimit * 60 - (attempt.timeSpent || 0)));
+            }
+            setPageState("taking");
+            useExamStore.setState({ isActive: true });
+            window.history.replaceState({}, "", window.location.pathname);
+          } else {
+            window.history.replaceState({}, "", window.location.pathname);
+            toast.info("Attempt had no answers. Configure and start again.");
+          }
+        }
       })
       .catch(() => toast.error(t("load_failed")))
       .finally(() => setLoading(false));
@@ -198,13 +247,15 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const totalQuestions = Math.min(questionLimit, filteredQuestions.length);
     if (totalQuestions === 0) { toast.error(t("no_questions")); return; }
     try {
+      const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
+      const questionIds = shuffled.map((q: any) => q.id);
       const { data: attempt } = await attemptsApi.create({
         examId: id, mode,
         questionCount: totalQuestions,
+        questionIds,
         timeLimit: mode === "exam" ? timeLimit : undefined,
         customTitle: customTitle || undefined,
       });
-      const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
       setExamQuestions(shuffled);
       setAttemptId(attempt.id);
       setTimeRemaining(mode === "exam" ? timeLimit * 60 : 0);
@@ -232,16 +283,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       ...prev,
       [currentQuestion.id]: { optionId: selectedOption, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
     }));
-    if (mode === "exam") {
-      try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { /* silent */ }
-    } else {
-      setShowAnswer(true);
-      setTimeout(() => {
-        if (currentIndex < displayQuestions.length - 1) {
-          navigateTo(currentIndex + 1);
-        }
-      }, 1500);
-    }
+    try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { /* silent */ }
+    if (mode === "study") setShowAnswer(true);
   };
 
   const handleFlag = () => {
@@ -255,7 +298,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const existing = q ? answers[q.id]?.optionId : null;
     setCurrentIndex(targetIndex);
     setSelectedOption(existing);
-    setShowAnswer(false);
+    setShowAnswer(mode === "study" && !!existing);
     setQuestionEntryTime(Date.now());
   };
   const handleNext = () => navigateTo(currentIndex + 1);
@@ -311,7 +354,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       <PageTransition>
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
-            onReview={() => { setPageState("taking"); setShowAnswer(true); }}
+            onReview={() => { setPageState("taking"); setShowAnswer(true); setCurrentIndex(0); }}
             onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.setState({ isActive: false }); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); }}
             onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
@@ -450,7 +493,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                 {!showAnswer && selectedOption && !answers[currentQuestion.id]?.optionId && (
                   <Button onClick={handleSubmitAnswer} className="w-full" size="lg">{t("submit")}</Button>
                 )}
-                {mode === "study" && showAnswer && <Button variant="outline" onClick={handleNext} className="w-full">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>}
+
               </CardContent>
             </Card>
 
@@ -548,14 +591,14 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                 <div className="relative">
                   <button onClick={() => { setShowSpecialties(!showSpecialties); setShowTopics(false); setShowSubtopics(false); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
                     <span className={selectedSpecialties.length > 0 ? "" : "text-muted-foreground"}>
-                      {selectedSpecialties.length > 0 ? `${selectedSpecialties.length} ${t("selected")}` : t("all_specialties")}
+                      {selectedSpecialties.length === specialties.length ? t("all_specialties") : selectedSpecialties.length > 0 ? `${selectedSpecialties.length} ${t("selected")}` : t("all_specialties")}
                     </span><ChevronDown className="h-4 w-4" />
                   </button>
                   {showSpecialties && (
                     <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
                       <ScrollArea className="max-h-48">
                         <CardContent className="p-1">
-                          <button onClick={() => { setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedSpecialties.length === 0 && <Check className="h-4 w-4 text-primary" />}{t("all_specialties")}</button>
+                          <button onClick={() => { setSelectedSpecialties(selectedSpecialties.length === specialties.length ? [] : specialties.map((s: any) => s.id)); setSelectedTopic(""); setSelectedSubtopic(""); setShowSpecialties(false); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{selectedSpecialties.length === specialties.length && <Check className="h-4 w-4 text-primary" />}{t("all_specialties")}</button>
                           {specialties.map((s: any) => {
                             const isSelected = selectedSpecialties.includes(s.id);
                             return (
@@ -629,27 +672,33 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
             <div>
               <label className="text-sm font-medium mb-2 block">{t("select_questions")} (max {maxQuestions})</label>
-              <div className="flex items-center gap-4">
-                <input type="range" min={1} max={Math.max(1, maxQuestions)} step={1} value={Math.min(questionLimit, maxQuestions)} onChange={(e) => setQuestionLimit(Number(e.target.value))} className="flex-1 accent-primary" />
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  value={questionLimit || ""}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, "");
-                    if (v === "") { setQuestionLimit(0); return; }
-                    const n = parseInt(v, 10);
-                    setQuestionLimit(Math.min(n, maxQuestions));
-                  }}
-                  onBlur={() => { if (questionLimit < 1 || isNaN(questionLimit)) setQuestionLimit(Math.max(1, maxQuestions)); }}
-                  className="w-20 text-center"
-                />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>1</span>
-                <span className="font-medium text-sm">{t("questions_count", { count: Math.min(questionLimit, maxQuestions) })}</span>
-                <span>{maxQuestions}</span>
-              </div>
+              {maxQuestions === 0 ? (
+                <p className="text-sm text-muted-foreground italic">{t("no_questions_filter")}</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4">
+                    <input type="range" min={1} max={maxQuestions} step={1} value={Math.min(questionLimit, maxQuestions)} onChange={(e) => setQuestionLimit(Number(e.target.value))} className="flex-1 accent-primary" />
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={questionLimit || ""}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, "");
+                        if (v === "") { setQuestionLimit(0); return; }
+                        const n = parseInt(v, 10);
+                        setQuestionLimit(Math.min(n, maxQuestions));
+                      }}
+                      onBlur={() => { if (questionLimit < 1 || isNaN(questionLimit)) setQuestionLimit(Math.max(1, maxQuestions)); }}
+                      className="w-20 text-center"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>1</span>
+                    <span className="font-medium text-sm">{t("questions_count", { count: Math.min(questionLimit, maxQuestions) })}</span>
+                    <span>{maxQuestions}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {mode === "exam" && (

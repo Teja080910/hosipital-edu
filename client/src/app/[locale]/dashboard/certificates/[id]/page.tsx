@@ -69,31 +69,31 @@ export default function CertificatePage() {
 
           <img src="${window.location.origin}/logo.png" style="width:50px;height:50px;border-radius:8px;object-fit:cover;border:2px solid #e2e8f0;margin-bottom:6px;" crossorigin="anonymous" />
 
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.3em;color:#64748b;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #e2e8f0;">Certificate of Completion</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.3em;color:#64748b;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #e2e8f0;">${t("certificate_of_completion")}</div>
 
-          <p style="font-size:13px;color:#94a3b8;margin:0 0 6px 0;letter-spacing:0.05em;">This is to certify that</p>
+          <p style="font-size:13px;color:#94a3b8;margin:0 0 6px 0;letter-spacing:0.05em;">${t("this_is_to_certify")}</p>
 
           <div style="margin:8px 0 16px 0;">
             <div style="font-size:48px;font-weight:900;color:#0f172a;line-height:1.2;">${cert.studentName}</div>
           </div>
 
-          <p style="font-size:13px;color:#94a3b8;margin:20px 0 6px 0;letter-spacing:0.05em;">has successfully completed the course</p>
+          <p style="font-size:13px;color:#94a3b8;margin:20px 0 6px 0;letter-spacing:0.05em;">${t("has_completed")}</p>
 
           <h2 style="font-size:24px;font-weight:700;color:#2563eb;max-width:700px;text-align:center;margin:0;">${localized(cert.courseName)}</h2>
 
           <div style="margin:24px 0 16px 0;padding:10px 28px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
-            <p style="font-size:11px;color:#94a3b8;margin:0 0 3px 0;text-transform:uppercase;letter-spacing:0.1em;">Date of Completion</p>
+            <p style="font-size:11px;color:#94a3b8;margin:0 0 3px 0;text-transform:uppercase;letter-spacing:0.1em;">${t("date_of_completion")}</p>
             <p style="font-size:17px;font-weight:600;color:#1e293b;margin:0;">${formatDate(cert.completionDate)}</p>
           </div>
 
           <div style="display:flex;align-items:center;justify-content:center;gap:40px;font-size:13px;color:#64748b;margin-top:12px;">
             <div style="text-align:center;">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;margin:0 0 3px 0;">Certificate No.</p>
+              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;margin:0 0 3px 0;">${t("certificate_no")}</p>
               <p style="font-family:monospace;font-size:12px;color:#334155;margin:0;">${cert.certificateNumber}</p>
             </div>
             <div style="height:32px;width:1px;background:#cbd5e1;"></div>
             <div style="text-align:center;">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;margin:0 0 3px 0;">Verification</p>
+              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;margin:0 0 3px 0;">${t("verification_label")}</p>
               <p style="font-family:monospace;font-size:12px;color:#334155;margin:0;">${cert.verificationHash.slice(0, 16)}...</p>
             </div>
           </div>
@@ -165,20 +165,20 @@ export default function CertificatePage() {
 
             <div className="flex flex-col items-center relative z-10">
               <img src="/logo.png" alt="MD Exam" className="w-[50px] h-[50px] rounded-lg object-cover mb-1" />
-              <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gray-500">Certificate of Completion</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gray-500">{t("certificate_of_completion")}</div>
             </div>
 
-<div className="flex-1 flex flex-col items-center justify-evenly py-8 px-16 relative z-10 text-center">              <p className="text-sm text-gray-500 mb-0.5">This is to certify that</p>
+<div className="flex-1 flex flex-col items-center justify-evenly py-8 px-16 relative z-10 text-center">              <p className="text-sm text-gray-500 mb-0.5">{t("this_is_to_certify")}</p>
 <h1 className="text-6xl font-black text-slate-900 leading-none tracking-tight">
                   {cert.studentName}
               </h1>
-              <p className="text-sm text-gray-500 mb-0.5">has successfully completed the course</p>
+              <p className="text-sm text-gray-500 mb-0.5">{t("has_completed")}</p>
 <h2 className="text-3xl font-bold text-blue-600 max-w-4xl text-center">                {localized(cert.courseName)}
               </h2>
             </div>
 
             <div className="my-8">
-              <p className="text-sm text-gray-600">Date of Completion</p>
+              <p className="text-sm text-gray-600">{t("date_of_completion")}</p>
               <p className="text-lg font-medium">{formatDate(cert.completionDate)}</p>
             </div>
 
