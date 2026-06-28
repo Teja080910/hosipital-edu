@@ -554,7 +554,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
   return (
     <PageTransition>
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto space-y-6">
         <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
         <Card>
           <CardHeader className="text-center">

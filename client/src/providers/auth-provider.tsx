@@ -1,16 +1,17 @@
 "use client";
 
+import { authApi } from "@/lib/api";
+import { useAuthStore } from "@/store/auth-store";
+import type { User } from "@/types";
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useContext,
-  useState,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
-import type { User } from "@/types";
-import { authApi } from "@/lib/api";
-import { useAuthStore } from "@/store/auth-store";
 
 interface AuthContextType {
   user: User | null;
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setTokens = useAuthStore((s) => s.setTokens);
   const clearTokens = useAuthStore((s) => s.clearTokens);
   const storedAccessToken = useAuthStore((s) => s.accessToken);
+  const router = useRouter();
 
   const refreshUser = async () => {
     const token = useAuthStore.getState().accessToken;
@@ -84,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearTokens();
     setUser(null);
-    window.location.href = "/login";
+    router.push("/login");
   };
 
   return (
