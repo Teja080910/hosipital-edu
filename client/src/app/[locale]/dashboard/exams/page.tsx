@@ -30,7 +30,7 @@ export default function ExamsPage() {
   const [examDetails, setExamDetails] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    examsApi.list()
+    examsApi.subscribedList()
       .then((res) => setExams(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));

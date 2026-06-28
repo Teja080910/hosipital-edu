@@ -62,7 +62,7 @@ function getDocId(doc: any): string {
 
 const EXAMS = [
   { slug: "enarm", name: { en: "ENARM", es: "ENARM" }, description: { en: "Examen Nacional de Aspirantes a Residencias Médicas - Mexico", es: "Examen Nacional de Aspirantes a Residencias Médicas - México" }, group: "residency", sortOrder: 0 },
-  { slug: "enurm", name: { en: "ENURM", es: "ENURM" }, description: { en: "Examen Nacional de Ubicación y Recursos Médicos - Mexico", es: "Examen Nacional de Ubicación y Recursos Médicos - México" }, group: "residency", sortOrder: 1 },
+  { slug: "enurm", name: { en: "ENURM", es: "ENURM" }, description: { en: "Examen Nacional Único de Residencias Médicas (Dominican Republic)", es: "Examen Nacional Único de Residencias Médicas (República Dominicana)" }, group: "residency", sortOrder: 1 },
   { slug: "mir", name: { en: "MIR", es: "MIR" }, description: { en: "Médico Interno Residente - Spain", es: "Médico Interno Residente - España" }, group: "residency", sortOrder: 2 },
   { slug: "usmle-step-1", name: { en: "USMLE Step 1", es: "USMLE Step 1" }, description: { en: "United States Medical Licensing Examination - Step 1", es: "United States Medical Licensing Examination - Step 1" }, group: "usmle", sortOrder: 3 },
 ];

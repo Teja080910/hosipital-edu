@@ -38,7 +38,7 @@ export default function QuestionsPage() {
   const [filters, setFilters] = useState({ specialtyId: "", topicId: "", difficulty: "" });
 
   useEffect(() => {
-    examsApi.list().then((res) => setExams(res.data)).catch(() => {});
+    examsApi.subscribedList().then((res) => setExams(res.data)).catch(() => {});
   }, []);
 
   useEffect(() => {

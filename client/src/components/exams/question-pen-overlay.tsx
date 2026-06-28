@@ -8,7 +8,7 @@ const drawings = new Map<string, [{ x: number; y: number }[], string][]>();
 export function QuestionPenOverlay({ questionId, children }: { questionId: string; children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [tool, setTool] = useState<"pen" | "highlighter">("pen");
+  const [tool, setTool] = useState<"pen" | "highlighter" | null>(null);
   const drawing = useRef(false);
   const paths = useRef<[{ x: number; y: number }[], string][]>(drawings.get(questionId) || []);
   const currentPath = useRef<{ x: number; y: number }[]>([]);
@@ -27,9 +27,9 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (const [path, color] of paths.current) {
       if (path.length < 2) continue;
-      if (color === "rgba(250,204,21,0.25)") ctx.globalCompositeOperation = "multiply";
+      const isHighlighter = color.startsWith("rgba");
       ctx.strokeStyle = color;
-      ctx.lineWidth = color === "rgba(250,204,21,0.25)" ? 24 : 3;
+      ctx.lineWidth = isHighlighter ? 24 : 3;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(path[0].x, path[0].y);
@@ -37,7 +37,6 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
         ctx.lineTo(path[i].x, path[i].y);
       }
       ctx.stroke();
-      ctx.globalCompositeOperation = "source-over";
     }
   }, []);
 
@@ -56,7 +55,7 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
     if (!ctx) return;
     const p = currentPath.current;
     if (p.length < 2) return;
-    const color = tool === "highlighter" ? "rgba(250,204,21,0.25)" : "#ef4444";
+    const color = tool === "highlighter" ? "rgba(253, 224, 71, 0.35)" : "#ef4444";
     ctx.strokeStyle = color;
     ctx.lineWidth = tool === "highlighter" ? 24 : 3;
     ctx.lineCap = "round";
@@ -70,7 +69,7 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
     if (!drawing.current) return;
     drawing.current = false;
     if (currentPath.current.length > 0) {
-      const color = tool === "highlighter" ? "rgba(250,204,21,0.4)" : "#ef4444";
+      const color = tool === "highlighter" ? "rgba(253, 224, 71, 0.35)" : "#ef4444";
       paths.current.push([[...currentPath.current], color]);
       drawings.set(questionId, paths.current);
     }
@@ -148,14 +147,16 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
       <div ref={containerRef} className="relative">
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 z-10"
+          className="absolute inset-0 z-0"
           style={{ pointerEvents: tool ? "auto" : "none", cursor: tool === "highlighter" ? "cell" : tool === "pen" ? "crosshair" : "default" }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         />
-        {children}
+        <div className="relative z-10" style={{ pointerEvents: tool ? "none" : "auto" }}>
+          {children}
+        </div>
       </div>
     </div>
   );
