@@ -18,6 +18,7 @@ interface ExamDef {
   slug: string;
   name: { en: string; es: string };
   description: { en: string; es: string };
+  group: string;
   sortOrder: number;
   specialties: SpecialtyDef[];
 }
@@ -26,7 +27,8 @@ const examsData: ExamDef[] = [
   {
     slug: "enurm",
     name: { en: "ENURM", es: "ENURM" },
-    description: { en: "Examen Nacional Único de Residencias Médicas (Latin America)", es: "Examen Nacional Único de Residencias Médicas (Latinoamérica)" },
+    description: { en: "Examen Nacional Único de Residencias Médicas (Dominican Republic)", es: "Examen Nacional Único de Residencias Médicas (República Dominicana)" },
+    group: "residency",
     sortOrder: 0,
     specialties: [
       { en: "ENURM Basic Sciences", es: "ENURM Ciencias Básicas" },
@@ -52,6 +54,7 @@ const examsData: ExamDef[] = [
     slug: "enarm",
     name: { en: "ENARM", es: "ENARM" },
     description: { en: "Examen Nacional de Aspirantes a Residencias Médicas (Mexico)", es: "Examen Nacional de Aspirantes a Residencias Médicas (México)" },
+    group: "residency",
     sortOrder: 1,
     specialties: [
       { en: "ENARM Surgery", es: "ENARM Cirugía" },
@@ -76,6 +79,7 @@ const examsData: ExamDef[] = [
     slug: "mir",
     name: { en: "MIR", es: "MIR" },
     description: { en: "Médico Interno Residente (Spain)", es: "Médico Interno Residente (España)" },
+    group: "residency",
     sortOrder: 2,
     specialties: [
       { en: "Anatomy", es: "Anatomía" },
@@ -96,6 +100,7 @@ const examsData: ExamDef[] = [
     slug: "usmle-step-1",
     name: { en: "USMLE Step 1", es: "USMLE Step 1" },
     description: { en: "United States Medical Licensing Examination Step 1", es: "Examen de Licencia Médica de EE.UU. Step 1" },
+    group: "usmle",
     sortOrder: 3,
     specialties: [
       { en: "Anatomy", es: "Anatomía" },
@@ -106,6 +111,7 @@ const examsData: ExamDef[] = [
     slug: "usmle-step-2",
     name: { en: "USMLE Step 2 CK", es: "USMLE Step 2 CK" },
     description: { en: "United States Medical Licensing Examination Step 2 Clinical Knowledge", es: "Examen de Licencia Médica de EE.UU. Step 2 Conocimiento Clínico" },
+    group: "usmle",
     sortOrder: 4,
     specialties: [
       { en: "Cardiology", es: "Cardiología" },
@@ -122,7 +128,7 @@ const examsData: ExamDef[] = [
 ];
 
 // Flashcards must include ALL specialties for ENURM, ENARM, MIR
-const flashcardExamSlugs = ["enurm", "enarm", "mir"];
+const flashcardExamSlugs = ["enurm", "enarm", "mir", "usmle-step-1", "usmle-step-2"];
 
 const questionsData = [
   {
@@ -437,6 +443,7 @@ async function main() {
         slug: exam.slug,
         name: exam.name,
         description: exam.description,
+        group: exam.group,
         sortOrder: exam.sortOrder,
         isActive: true,
       }).returning();

@@ -4,6 +4,7 @@ export interface User {
   email: string;
   role: "student" | "admin" | "super_admin";
   avatar?: string;
+  avatarUrl?: string;
   accountType?: "full" | "course_only";
 }
 

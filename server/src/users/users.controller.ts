@@ -7,6 +7,7 @@ import {
   Patch,
   Query,
   UseGuards,
+  ValidationPipe,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -78,7 +79,7 @@ export class UsersController {
   @ApiOperation({ summary: "Update user" })
   async update(
     @Param("id") id: string,
-    @Body() data: any,
+    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false })) data: any,
     @CurrentUser() user: any,
   ) {
     if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {

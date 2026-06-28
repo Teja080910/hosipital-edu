@@ -30,11 +30,25 @@ export default function ExamsPage() {
   const [examDetails, setExamDetails] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    examsApi.list()
+    examsApi.subscribedList()
       .then((res) => setExams(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const groups = exams.reduce<Record<string, any[]>>((acc, exam) => {
+    const g = exam.group || "residency";
+    if (!acc[g]) acc[g] = [];
+    acc[g].push(exam);
+    return acc;
+  }, {});
+
+  const groupLabels: Record<string, string> = {
+    residency: t("residency_exams"),
+    usmle: t("usmle_exams"),
+  };
+
+  const groupOrder = ["residency", "usmle"];
 
   const toggleExam = (examId: string) => {
     setSelectedExams((prev) => {
@@ -98,8 +112,12 @@ export default function ExamsPage() {
         ) : exams.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">{t("no_exams")}</div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {exams.map((exam) => {
+          <div className="space-y-8">
+            {groupOrder.filter((g) => groups[g]).map((group) => (
+              <div key={group}>
+                <h2 className="text-xl font-semibold mb-4">{groupLabels[group] || group}</h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {groups[group].map((exam: any) => {
               const isSelected = !!selectedExams[exam.id];
               const specs = examDetails[exam.id]?.specialties || [];
               const selectedSpecs = selectedExams[exam.id] || [];
@@ -182,6 +200,9 @@ export default function ExamsPage() {
                 </Card>
               );
             })}
+                  </div>
+                </div>
+              ))}
           </div>
         )}
 

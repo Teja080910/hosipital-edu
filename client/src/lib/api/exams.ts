@@ -2,6 +2,7 @@ import api from "../client";
 
 export const examsApi = {
   list: () => api.get("/exams"),
+  subscribedList: () => api.get("/exams/subscribed"),
   get: (id: string) => api.get(`/exams/${id}`),
   create: (data: Record<string, unknown>) => api.post("/exams", data),
   update: (id: string, data: Record<string, unknown>) => api.patch(`/exams/${id}`, data),

@@ -82,6 +82,7 @@ export const exams = pgTable("exams", {
   slug: text("slug").notNull().unique(),
   name: jsonb("name").notNull(),
   description: jsonb("description").notNull(),
+  group: text("group").notNull().default("residency"),
   isActive: boolean("is_active").default(true).notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
