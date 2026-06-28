@@ -11,3 +11,5 @@ drizzle-meta/
 my-part*
 firebase_dump/
 server/exports
+.commandcode/taste
+taste.md
