@@ -17,6 +17,7 @@ export class AccountTypeGuard implements CanActivate {
     if (!allowedTypes) return true;
     const { user } = context.switchToHttp().getRequest();
     if (allowedTypes.includes(user?.accountType)) return true;
+    if (user?.role === "admin" || user?.role === "super_admin") return true;
     throw new ForbiddenException(this.i18n.t("guard.accountTypeDenied"));
   }
 }

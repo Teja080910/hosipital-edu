@@ -2,6 +2,7 @@
 
 import { ExamResults } from "@/components/exams/exam-results";
 import { FloatingCalculator } from "@/components/exams/floating-calculator";
+import { QuestionPenOverlay } from "@/components/exams/question-pen-overlay";
 
 import { PageTransition } from "@/components/page-transition";
 import { AccountTypeGate } from "@/components/account-type-gate";
@@ -443,7 +444,9 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6 p-5 sm:p-6">
-                <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words" dangerouslySetInnerHTML={{ __html: currentQuestion.text }} />
+                <QuestionPenOverlay questionId={currentQuestion.id}>
+                  <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words">{currentQuestion.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
+                </QuestionPenOverlay>
                 {currentQuestion.images && currentQuestion.images.filter((img: any) => img.section === "title" || !img.section).length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.filter((img: any) => img.section === "title" || !img.section).map((img: any) => (

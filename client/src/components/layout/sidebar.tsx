@@ -82,6 +82,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const [adminOpen, setAdminOpen] = useState(true);
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const navItems = allNavItems.filter(item => {
+    if (user?.role === "admin" || user?.role === "super_admin") return true;
     if (!item.accountTypes) return true;
     if (user?.accountType === "course_only") {
       return item.label === "courses" || item.label === "dashboard";
