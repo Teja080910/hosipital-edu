@@ -244,7 +244,9 @@
     "previous": "Previous",
     "next": "Next",
     "confirm": "Confirm",
-    "close": "Close"
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel"
   },
   "settings": {
     "title": "Settings",
@@ -770,7 +772,9 @@
     "all_exams_no_restriction": "All exams (no restriction)",
     "cover_image_placeholder": "https://example.com/image.jpg",
     "video_col": "Video",
-    "lessons_col2": "Lessons"
+    "lessons_col2": "Lessons",
+    "total_questions": "{count} total questions",
+    "subscription": "Subscription"
   },
   "progress": {
     "title": "Progress",
