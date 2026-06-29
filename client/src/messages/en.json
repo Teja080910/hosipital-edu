@@ -358,7 +358,10 @@
     "score_percent": "Score: {score}% ({correct}/{total} correct)",
     "questions_count": "{count} questions",
     "no_details": "No details available for this course.",
-    "subscribe_to_access": "Subscribe to Access"
+    "subscribe_to_access": "Subscribe to Access",
+    "subscribe_to_course": "Subscribe to access \"{course}\"",
+    "maybe_later": "Maybe Later",
+    "trial_active": "You have a 24-hour free trial for your registered exam"
   },
   "lessons": {
     "not_found": "Lesson not found",

@@ -22,6 +22,7 @@ interface Course {
   hasCertificate: boolean;
   lessonCount?: number;
   sortOrder: number;
+  examId: string | null;
 }
 
 function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
@@ -40,8 +41,7 @@ export default function CoursesPage() {
   const [enrolling, setEnrolling] = useState<string | null>(null);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
-
-  const isCourseOnly = user?.accountType === "course_only";
+  const [lockedSet, setLockedSet] = useState<Set<string>>(new Set());
 
   const fetchCourses = async () => {
     try {
@@ -59,7 +59,27 @@ export default function CoursesPage() {
             slugs.push(data[i].slug);
           }
         });
+
+        if (data.length > 0 && !enrolled.has(data[0].id)) {
+          try {
+            await coursesApi.enroll(data[0].slug);
+            enrolled.add(data[0].id);
+            slugs.push(data[0].slug);
+          } catch {}
+        }
         setEnrolledIds(enrolled);
+
+        const accessChecks = await Promise.allSettled(
+          data.map((c: Course) => coursesApi.checkAccess(c.slug))
+        );
+        const locked = new Set<string>();
+        accessChecks.forEach((res, i) => {
+          if (res.status === "fulfilled" && !res.value.data.hasAccess && !enrolled.has(data[i].id)) {
+            locked.add(data[i].id);
+          }
+        });
+        setLockedSet(locked);
+
         if (slugs.length > 0) {
           const progressResults = await Promise.allSettled(
             slugs.map((s) => coursesApi.getProgress(s))
@@ -133,10 +153,10 @@ export default function CoursesPage() {
                   lessons: course.lessonCount || 0,
                   duration: `${course.durationDays} ${t("days")}`,
                 }}
-                enrolled={enrolledIds.has(course.id)}
-                onEnroll={() => handleEnroll(course.id, course.slug)}
+                enrolled={index === 0 || enrolledIds.has(course.id)}
+                onEnroll={index === 0 ? undefined : () => handleEnroll(course.id, course.slug)}
                 isEnrolling={enrolling === course.id}
-                locked={isCourseOnly && index > 0 && !enrolledIds.has(course.id)}
+                locked={index > 0 && lockedSet.has(course.id)}
               />
             ))}
           </div>

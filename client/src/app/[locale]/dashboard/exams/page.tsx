@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { useRouter } from "@/routing";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export default function ExamsPage() {
   const t = useTranslations("exams");
   const n = useTranslations("nav");
   const router = useRouter();
+  const locale = useParams().locale as string;
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedExams, setSelectedExams] = useState<Record<string, string[]>>({});
@@ -108,8 +110,8 @@ export default function ExamsPage() {
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <CardTitle className="break-words">{localized(exam.name)}</CardTitle>
-                        <CardDescription className="break-words">{localized(exam.description)}</CardDescription>
+                        <CardTitle className="break-words">{localized(exam.name, locale)}</CardTitle>
+                        <CardDescription className="break-words">{localized(exam.description, locale)}</CardDescription>
                       </div>
                       <button
                         onClick={() => toggleExam(exam.id)}
@@ -152,7 +154,7 @@ export default function ExamsPage() {
                                     : "bg-background text-muted-foreground border-border"
                                 }`}
                               >
-                                {localized(s.name)}
+                                {localized(s.name, locale)}
                               </button>
                             );
                           })}

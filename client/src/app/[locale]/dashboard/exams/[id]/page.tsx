@@ -32,6 +32,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -48,6 +49,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const t = useTranslations("exams");
   const tc = useTranslations("common");
   const router = useRouter();
+  const locale = useParams().locale as string;
 
   const [pageState, setPageState] = useState<PageState>("config");
   const [mode, setMode] = useState<"study" | "exam">("exam");
@@ -166,7 +168,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }, []);
 
   useEffect(() => {
-    if (pageState !== "taking" || mode !== "exam") return;
+    if (pageState !== "taking" || mode !== "exam" || reviewMode) return;
     const handleVisibility = () => {
       if (document.hidden) {
         tabWarningsRef.current += 1;
@@ -180,7 +182,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [pageState, mode, t]);
+  }, [pageState, mode, reviewMode, t]);
 
   useEffect(() => {
     confirmSubmitRef.current = handleConfirmSubmit;
@@ -564,8 +566,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4"><div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center"><Settings2 className="h-8 w-8 text-primary" /></div></div>
-            <CardTitle className="text-2xl">{localized(exam.name)}</CardTitle>
-            <CardDescription>{localized(exam.description)}</CardDescription>
+            <CardTitle className="text-2xl">{localized(exam.name, locale)}</CardTitle>
+            <CardDescription>{localized(exam.description, locale)}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
@@ -620,7 +622,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                               <div className={`h-4 w-4 rounded border flex items-center justify-center ${isSelected ? "bg-primary border-primary" : "border-input"}`}>
                                 {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                               </div>
-                              {localized(s.name)}
+                              {localized(s.name, locale)}
                             </button>
                           );
                         })}

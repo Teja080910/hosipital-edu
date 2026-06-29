@@ -9,6 +9,7 @@ export const coursesApi = {
   enroll: (slug: string, stripePaymentId?: string) =>
     api.post(`/courses/${slug}/enroll`, { stripePaymentId }),
   checkEnrollment: (slug: string) => api.get(`/courses/check-enrollment/${slug}`),
+  checkAccess: (slug: string) => api.get(`/courses/check-access/${slug}`),
   getProgress: (slug: string) => api.get(`/courses/${slug}/progress`),
   getLessonQuiz: (slug: string, lessonId: string) => api.get(`/courses/${slug}/lessons/${lessonId}/quiz`),
   createModule: (courseId: string, data: { title: any; description?: any; sortOrder?: number }) =>

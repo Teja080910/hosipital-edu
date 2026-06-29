@@ -64,6 +64,20 @@ export class AttemptsService {
         .limit(1);
 
       if (!sub) {
+        if (user.targetExamId && user.targetExamId === data.examId) {
+          const [attempt] = await this.db
+            .insert(examAttempts)
+            .values({
+              userId: data.userId,
+              examId: data.examId,
+              mode: data.mode,
+              questionCount: data.questionCount,
+              timeLimit: data.timeLimit,
+              customTitle: data.customTitle,
+            })
+            .returning();
+          return attempt;
+        }
         throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
       }
 
