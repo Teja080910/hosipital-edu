@@ -4,8 +4,9 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { BookOpen, CheckCircle, Clock, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "@/routing";
 
 interface CourseCardProps {
   course: {
@@ -21,25 +22,39 @@ interface CourseCardProps {
   enrolled?: boolean;
   onEnroll?: () => void;
   isEnrolling?: boolean;
+  locked?: boolean;
 }
 
-export function CourseCard({ course, enrolled, onEnroll, isEnrolling }: CourseCardProps) {
+export function CourseCard({ course, enrolled, onEnroll, isEnrolling, locked }: CourseCardProps) {
   const t = useTranslations("courses");
+  const router = useRouter();
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (locked) {
+      e.preventDefault();
+      router.push("/dashboard/subscribe");
+    }
+  };
+
   return (
-    <Card className="overflow-hidden">
-      <Link href={`/dashboard/courses/${course.slug || course.id}`}>
-        <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden">
-          {course.thumbnail ? (
-            <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
-          ) : (
-            <BookOpen className="h-12 w-12 text-primary/40" />
-          )}
-        </div>
-      </Link>
-      <CardHeader>
-        <Link href={`/dashboard/courses/${course.slug || course.id}`}>
-          <CardTitle className="text-base hover:text-primary transition-colors">{course.title}</CardTitle>
+    <Card className="overflow-hidden relative">
+      <div onClick={handleClick}>
+        <Link href={locked ? "#" : `/dashboard/courses/${course.slug || course.id}`}>
+          <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden">
+            {course.thumbnail ? (
+              <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+            ) : (
+              <BookOpen className="h-12 w-12 text-primary/40" />
+            )}
+          </div>
         </Link>
+      </div>
+      <CardHeader>
+        <div onClick={handleClick}>
+          <Link href={locked ? "#" : `/dashboard/courses/${course.slug || course.id}`}>
+            <CardTitle className="text-base hover:text-primary transition-colors">{course.title}</CardTitle>
+          </Link>
+        </div>
         <CardDescription className="line-clamp-2">{course.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -55,6 +70,10 @@ export function CourseCard({ course, enrolled, onEnroll, isEnrolling }: CourseCa
           <Button className="w-full" size="sm" variant="secondary" disabled>
             <CheckCircle className="h-4 w-4 mr-2" /> {t("enrolled_badge")}
           </Button>
+        ) : locked ? (
+          <Button className="w-full" size="sm" onClick={() => router.push("/dashboard/subscribe")}>
+            <Lock className="h-4 w-4 mr-2" /> {t("subscribe_to_access")}
+          </Button>
         ) : onEnroll && (
           <Button className="w-full" size="sm" onClick={onEnroll} disabled={isEnrolling}>
             {isEnrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -62,6 +81,9 @@ export function CourseCard({ course, enrolled, onEnroll, isEnrolling }: CourseCa
           </Button>
         )}
       </CardContent>
+      {locked && (
+        <div className="absolute inset-0 backdrop-blur-[2px] bg-background/10 rounded-xl pointer-events-none" />
+      )}
     </Card>
   );
 }

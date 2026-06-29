@@ -61,10 +61,10 @@ function getDocId(doc: any): string {
 // ─── Exam / Category helpers ─────────────────────────────────────────────────
 
 const EXAMS = [
-  { slug: "enarm", name: { en: "ENARM", es: "ENARM" }, description: { en: "Examen Nacional de Aspirantes a Residencias Médicas - Mexico", es: "Examen Nacional de Aspirantes a Residencias Médicas - México" }, group: "residency", sortOrder: 0 },
-  { slug: "enurm", name: { en: "ENURM", es: "ENURM" }, description: { en: "Examen Nacional Único de Residencias Médicas (Dominican Republic)", es: "Examen Nacional Único de Residencias Médicas (República Dominicana)" }, group: "residency", sortOrder: 1 },
-  { slug: "mir", name: { en: "MIR", es: "MIR" }, description: { en: "Médico Interno Residente - Spain", es: "Médico Interno Residente - España" }, group: "residency", sortOrder: 2 },
-  { slug: "usmle-step-1", name: { en: "USMLE Step 1", es: "USMLE Step 1" }, description: { en: "United States Medical Licensing Examination - Step 1", es: "United States Medical Licensing Examination - Step 1" }, group: "usmle", sortOrder: 3 },
+  { slug: "enarm", name: { en: "ENARM", es: "ENARM" }, description: { en: "Examen Nacional de Aspirantes a Residencias Médicas - Mexico", es: "Examen Nacional de Aspirantes a Residencias Médicas - México" }, sortOrder: 0 },
+  { slug: "enurm", name: { en: "ENURM", es: "ENURM" }, description: { en: "Examen Nacional de Ubicación y Recursos Médicos - Mexico", es: "Examen Nacional de Ubicación y Recursos Médicos - México" }, sortOrder: 1 },
+  { slug: "mir", name: { en: "MIR", es: "MIR" }, description: { en: "Médico Interno Residente - Spain", es: "Médico Interno Residente - España" }, sortOrder: 2 },
+  { slug: "usmle-step-1", name: { en: "USMLE Step 1", es: "USMLE Step 1" }, description: { en: "United States Medical Licensing Examination - Step 1", es: "United States Medical Licensing Examination - Step 1" }, sortOrder: 3 },
 ];
 
 const EXAM_TYPE_TO_SLUG: Record<string, string> = {
@@ -99,8 +99,8 @@ async function ensureExams(): Promise<Record<string, string>> {
       console.log(`  Exam exists: ${ex.slug}`);
     } else {
       const r = await pool.query(
-        "INSERT INTO exams (slug, name, description, group, sort_order, is_active) VALUES ($1, $2, $3, $4, $5, true) RETURNING id",
-        [ex.slug, JSON.stringify(ex.name), JSON.stringify(ex.description), ex.group, ex.sortOrder],
+        "INSERT INTO exams (slug, name, description, sort_order, is_active) VALUES ($1, $2, $3, $4, true) RETURNING id",
+        [ex.slug, JSON.stringify(ex.name), JSON.stringify(ex.description), ex.sortOrder],
       );
       slugToId[ex.slug] = r.rows[0].id;
       console.log(`  Created exam: ${ex.slug}`);

@@ -46,6 +46,7 @@ import {
   Sparkles,
   Star,
   Sun,
+  Twitter,
   Video,
   Youtube
 } from "lucide-react";
@@ -88,7 +89,6 @@ const sb = useTranslations("subscribe");
     }).catch(() => {});
   }, []);
 
-  const currentLocale = useParams().locale as string;
   const testimonials = testimonialsData.length > 0
     ? testimonialsData.map((item) => ({
         name: item.name?.[currentLocale] || item.name?.en || "",
@@ -118,7 +118,7 @@ const sb = useTranslations("subscribe");
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-
+  const currentLocale = useParams().locale as string;
   const { user, isLoading, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const handleLogout = useCallback(async () => {

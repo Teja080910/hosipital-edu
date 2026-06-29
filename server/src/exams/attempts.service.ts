@@ -4,8 +4,9 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from "@nestjs/common";
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { DRIZZLE } from "../database/database.provider";
 import {
   examAnswers,
@@ -34,7 +35,6 @@ export class AttemptsService {
     questionCount: number;
     timeLimit?: number;
     customTitle?: string;
-    questionIds?: string[];
   }) {
     const [user] = await this.db
       .select({ role: users.role, targetExamId: users.targetExamId })
@@ -43,6 +43,10 @@ export class AttemptsService {
       .limit(1);
 
     const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+
+    if (!isAdmin && user.targetExamId && user.targetExamId !== data.examId) {
+      throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
+    }
 
     let sub: any = null;
 
@@ -55,12 +59,25 @@ export class AttemptsService {
           and(
             eq(userSubscriptions.userId, data.userId),
             eq(userSubscriptions.status, "active"),
-            isNull(userSubscriptions.canceledAt),
           ),
         )
         .limit(1);
 
       if (!sub) {
+        if (user.targetExamId && user.targetExamId === data.examId) {
+          const [attempt] = await this.db
+            .insert(examAttempts)
+            .values({
+              userId: data.userId,
+              examId: data.examId,
+              mode: data.mode,
+              questionCount: data.questionCount,
+              timeLimit: data.timeLimit,
+              customTitle: data.customTitle,
+            })
+            .returning();
+          return attempt;
+        }
         throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
       }
 
@@ -70,10 +87,6 @@ export class AttemptsService {
       }
 
       if (plan.examId && plan.examId !== data.examId) {
-        throw new HttpException(this.i18n.t("exams.subscriptionNotIncludeExam"), HttpStatus.FORBIDDEN);
-      }
-
-      if (!plan.examId && user.targetExamId && user.targetExamId !== data.examId) {
         throw new HttpException(this.i18n.t("exams.subscriptionNotIncludeExam"), HttpStatus.FORBIDDEN);
       }
 
@@ -103,7 +116,6 @@ export class AttemptsService {
         questionCount: data.questionCount,
         timeLimit: data.timeLimit,
         customTitle: data.customTitle,
-        questionIds: data.questionIds || null,
       })
       .returning();
 
@@ -132,28 +144,24 @@ export class AttemptsService {
       .limit(1);
     if (!attempt) throw new NotFoundException(this.i18n.t("exams.attemptNotFound"));
 
-    const allQIds: string[] = attempt.questionIds || [];
-
     const answers = await this.db
       .select()
       .from(examAnswers)
       .where(eq(examAnswers.attemptId, id))
       .orderBy(asc(examAnswers.answeredAt));
 
-    const answeredQIds = [...new Set(answers.map((a: any) => a.questionId))] as string[];
-    const neededQIds = [...new Set([...allQIds, ...answeredQIds])];
+    if (!answers.length) return { ...attempt, answers };
 
-    if (!neededQIds.length) return { ...attempt, answers };
-
+    const questionIds = [...new Set(answers.map((a: any) => a.questionId))] as string[];
     const allQuestions = await this.db
       .select()
       .from(questions)
-      .where(inArray(questions.id, neededQIds));
+      .where(inArray(questions.id, questionIds));
 
     const qOptions = await this.db
       .select()
       .from(questionOptions)
-      .where(inArray(questionOptions.questionId, neededQIds))
+      .where(inArray(questionOptions.questionId, questionIds))
       .orderBy(asc(questionOptions.sortOrder));
 
     const qOptMap = new Map<string, any[]>();
@@ -164,20 +172,9 @@ export class AttemptsService {
 
     const qMap = new Map(allQuestions.map((q: any) => [q.id, { ...q, options: qOptMap.get(q.id) || [] }]));
 
-    const answeredSet = new Set(answers.map((a: any) => a.questionId));
-    const orderedQIds = allQIds.length ? allQIds : answeredQIds;
-
-    const merged = orderedQIds.map((qId: string) => {
-      const answer = answers.find((a: any) => a.questionId === qId);
-      return {
-        ...(answer || { attemptId: id, questionId: qId, selectedOptionId: null, isCorrect: false, timeSpent: 0, isFlagged: false, answeredAt: null }),
-        question: qMap.get(qId) || null,
-      };
-    });
-
     return {
       ...attempt,
-      answers: merged,
+      answers: answers.map((a: any) => ({ ...a, question: qMap.get(a.questionId) || null })),
     };
   }
 

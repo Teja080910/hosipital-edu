@@ -6,6 +6,8 @@ export interface User {
   avatar?: string;
   avatarUrl?: string;
   accountType?: "full" | "course_only";
+  targetExamId?: string;
+  createdAt?: string;
 }
 
 export interface Question {

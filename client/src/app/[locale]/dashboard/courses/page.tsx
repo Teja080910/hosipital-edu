@@ -4,10 +4,11 @@ import { CourseCard } from "@/components/courses/course-card";
 import { PageTransition } from "@/components/page-transition";
 import { useAuth } from "@/hooks/use-auth";
 import { coursesApi } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "@/routing";
 
 interface Course {
   id: string;
@@ -20,6 +21,8 @@ interface Course {
   durationDays: number;
   hasCertificate: boolean;
   lessonCount?: number;
+  sortOrder: number;
+  examId: string | null;
 }
 
 function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
@@ -30,12 +33,15 @@ function localized(obj: Record<string, string> | string | null | undefined, loca
 
 export default function CoursesPage() {
   const t = useTranslations("courses");
+  const tc = useTranslations("common");
   const { user } = useAuth();
+  const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState<string | null>(null);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
+  const [lockedSet, setLockedSet] = useState<Set<string>>(new Set());
 
   const fetchCourses = async () => {
     try {
@@ -53,7 +59,27 @@ export default function CoursesPage() {
             slugs.push(data[i].slug);
           }
         });
+
+        if (data.length > 0 && !enrolled.has(data[0].id)) {
+          try {
+            await coursesApi.enroll(data[0].slug);
+            enrolled.add(data[0].id);
+            slugs.push(data[0].slug);
+          } catch {}
+        }
         setEnrolledIds(enrolled);
+
+        const accessChecks = await Promise.allSettled(
+          data.map((c: Course) => coursesApi.checkAccess(c.slug))
+        );
+        const locked = new Set<string>();
+        accessChecks.forEach((res, i) => {
+          if (res.status === "fulfilled" && !res.value.data.hasAccess && !enrolled.has(data[i].id)) {
+            locked.add(data[i].id);
+          }
+        });
+        setLockedSet(locked);
+
         if (slugs.length > 0) {
           const progressResults = await Promise.allSettled(
             slugs.map((s) => coursesApi.getProgress(s))
@@ -114,7 +140,7 @@ export default function CoursesPage() {
           <div className="text-center py-12 text-muted-foreground">{t("no_courses")}</div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
+            {courses.map((course, index) => (
               <CourseCard
                 key={course.id}
                 course={{
@@ -127,9 +153,10 @@ export default function CoursesPage() {
                   lessons: course.lessonCount || 0,
                   duration: `${course.durationDays} ${t("days")}`,
                 }}
-                enrolled={enrolledIds.has(course.id)}
-                onEnroll={() => handleEnroll(course.id, course.slug)}
+                enrolled={index === 0 || enrolledIds.has(course.id)}
+                onEnroll={index === 0 ? undefined : () => handleEnroll(course.id, course.slug)}
                 isEnrolling={enrolling === course.id}
+                locked={index > 0 && lockedSet.has(course.id)}
               />
             ))}
           </div>

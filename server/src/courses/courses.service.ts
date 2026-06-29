@@ -13,6 +13,7 @@ import {
   userSubscriptions,
   subscriptionPlans,
   exams,
+  users,
 } from "../database/schema";
 import { eq, and, asc, inArray, sql, desc, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
@@ -28,34 +29,9 @@ export class CoursesService {
     @Inject(STRIPE) private stripe: Stripe,
   ) {}
 
-  async findAll(onlyActive = true, userId?: string) {
+  async findAll(onlyActive = true, _userId?: string) {
     const conditions: SQL[] = [];
     if (onlyActive) conditions.push(eq(courses.isActive, true));
-
-    if (userId) {
-      const sub = await this.db
-        .select({ planId: userSubscriptions.planId })
-        .from(userSubscriptions)
-        .where(and(
-          eq(userSubscriptions.userId, userId),
-          eq(userSubscriptions.status, "active"),
-          sql`${userSubscriptions.canceledAt} IS NULL`,
-        ))
-        .limit(1);
-      if (sub.length > 0) {
-        const plan = await this.db
-          .select({ isCourseOnly: subscriptionPlans.isCourseOnly, courseId: subscriptionPlans.courseId, isDefault: subscriptionPlans.isDefault })
-          .from(subscriptionPlans)
-          .where(eq(subscriptionPlans.id, sub[0].planId))
-          .limit(1);
-        if (plan.length > 0) {
-          if (plan[0].isDefault) return [];
-          if (plan[0].isCourseOnly && plan[0].courseId) {
-            conditions.push(eq(courses.id, plan[0].courseId));
-          }
-        }
-      }
-    }
 
     return this.db
       .select({
@@ -70,6 +46,7 @@ export class CoursesService {
         hasCertificate: courses.hasCertificate,
         sortOrder: courses.sortOrder,
         isActive: courses.isActive,
+        examId: courses.examId,
         createdAt: courses.createdAt,
         lessonCount: sql<number>`count(${courseLessons.id})::int`,
       })
@@ -196,11 +173,6 @@ export class CoursesService {
 
     const isCourseOnly = sub?.subscription_plans?.isCourseOnly;
     const subCourseId = sub?.subscription_plans?.courseId;
-    const isTrial = sub?.subscription_plans?.isDefault;
-
-    if (isTrial) {
-      throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
-    }
 
     if (isCourseOnly && subCourseId !== courseId) {
       throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
@@ -241,6 +213,50 @@ export class CoursesService {
     }
 
     throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
+  }
+
+  async checkAccess(userId: string, courseId: string) {
+    const [course] = await this.db
+      .select({ examId: courses.examId })
+      .from(courses)
+      .where(eq(courses.id, courseId))
+      .limit(1);
+    if (!course) return { hasAccess: false };
+
+    const [sub] = await this.db
+      .select()
+      .from(userSubscriptions)
+      .innerJoin(
+        subscriptionPlans,
+        eq(userSubscriptions.planId, subscriptionPlans.id),
+      )
+      .where(
+        and(
+          eq(userSubscriptions.userId, userId),
+          eq(userSubscriptions.status, "active"),
+        ),
+      )
+      .limit(1);
+
+    if (sub) {
+      const plan = sub.subscription_plans;
+      if (!plan.examId && !plan.isCourseOnly) return { hasAccess: true };
+      if (plan.examId && course.examId && plan.examId === course.examId) return { hasAccess: true };
+      if (plan.isCourseOnly && plan.courseId === courseId) return { hasAccess: true };
+    }
+
+    const [user] = await this.db
+      .select({ targetExamId: users.targetExamId, createdAt: users.createdAt })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (user && user.targetExamId && course.examId && user.targetExamId === course.examId) {
+      const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+      if (hoursSinceRegistration <= 24) return { hasAccess: true, isTrial: true };
+    }
+
+    return { hasAccess: false };
   }
 
   async getEnrollment(userId: string, courseId: string) {

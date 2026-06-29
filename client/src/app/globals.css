@@ -235,27 +235,3 @@ body {
   box-shadow: var(--shadow-heavy);
   border-color: var(--primary);
 }
-
-/* ── Tame rich-text highlights inside question / explanation content ── */
-/* Covers <mark> tags and any inline span with a background-color        */
-mark,
-[dangerouslySetInnerHTML] mark,
-.prose mark {
-  background-color: rgba(253, 224, 71, 0.15) !important; /* very light yellow */
-  color: inherit !important;
-  border-radius: 2px;
-  padding: 0 1px;
-}
-
-/* Override inline style highlights that come from the rich-text editor  */
-/* (spans with style="background-color: ...") */
-span[style*="background-color"] {
-  background-color: rgba(253, 224, 71, 0.12) !important;
-  color: inherit !important;
-}
-
-.dark mark,
-.dark span[style*="background-color"] {
-  background-color: rgba(253, 224, 71, 0.08) !important;
-  color: inherit !important;
-}

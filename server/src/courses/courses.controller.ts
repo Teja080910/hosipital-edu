@@ -52,6 +52,18 @@ export class CoursesController {
     return { enrolled: !!enrollment };
   }
 
+  @Get("check-access/:slug")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Check if user has access to course (subscription or trial)" })
+  async checkAccess(
+    @Param("slug") slug: string,
+    @CurrentUser() user: any,
+  ) {
+    const courseId = await this.coursesService.findIdBySlug(slug);
+    return this.coursesService.checkAccess(user.id, courseId);
+  }
+
   @Post(":slug/enroll")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

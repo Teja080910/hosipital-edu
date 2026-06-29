@@ -11,6 +11,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { ExamsService } from "./exams.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { OptionalJwtAuthGuard } from "../common/guards/optional-jwt-auth.guard";
 import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
@@ -22,18 +23,10 @@ export class ExamsController {
   constructor(private examsService: ExamsService) {}
 
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: "List all active exams (public)" })
   async findAll(@CurrentUser() user?: any) {
     return this.examsService.findAll(user);
-  }
-
-  @Get("subscribed")
-  @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full", "course_only")
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "List exams available to the current user" })
-  async findSubscribed(@CurrentUser() user: any) {
-    return this.examsService.findSubscribed(user);
   }
 
   @Get(":id")
