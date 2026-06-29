@@ -59,14 +59,6 @@ export default function CoursesPage() {
             slugs.push(data[i].slug);
           }
         });
-
-        if (data.length > 0 && !enrolled.has(data[0].id)) {
-          try {
-            await coursesApi.enroll(data[0].slug);
-            enrolled.add(data[0].id);
-            slugs.push(data[0].slug);
-          } catch {}
-        }
         setEnrolledIds(enrolled);
 
         const accessChecks = await Promise.allSettled(
@@ -153,10 +145,10 @@ export default function CoursesPage() {
                   lessons: course.lessonCount || 0,
                   duration: `${course.durationDays} ${t("days")}`,
                 }}
-                enrolled={index === 0 || enrolledIds.has(course.id)}
-                onEnroll={index === 0 ? undefined : () => handleEnroll(course.id, course.slug)}
+                enrolled={enrolledIds.has(course.id)}
+                onEnroll={() => handleEnroll(course.id, course.slug)}
                 isEnrolling={enrolling === course.id}
-                locked={index > 0 && lockedSet.has(course.id)}
+                locked={!enrolledIds.has(course.id)}
               />
             ))}
           </div>
