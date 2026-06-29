@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
+import { getAccessibleExamId } from "../common/utils/access-helper";
 import { DRIZZLE } from "../database/database.provider";
 import { exams, questionExams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions } from "../database/schema";
 
@@ -16,13 +17,7 @@ export class ExamsService {
     if (user) {
       const isAdmin = user.role === "admin" || user.role === "super_admin";
       if (!isAdmin) {
-        const [sub] = await this.db
-          .select({ examId: subscriptionPlans.examId })
-          .from(userSubscriptions)
-          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
-          .limit(1);
-        allowedExamId = sub?.examId || user.targetExamId || null;
+        allowedExamId = await getAccessibleExamId(this.db, user.id);
       }
     }
 
@@ -64,13 +59,7 @@ export class ExamsService {
     if (user) {
       const isAdmin = user.role === "admin" || user.role === "super_admin";
       if (!isAdmin) {
-        const [sub] = await this.db
-          .select({ examId: subscriptionPlans.examId })
-          .from(userSubscriptions)
-          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
-          .limit(1);
-        const allowedExamId = sub?.examId || user.targetExamId || null;
+        const allowedExamId = await getAccessibleExamId(this.db, user.id);
         if (allowedExamId && allowedExamId !== id) {
           throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
         }

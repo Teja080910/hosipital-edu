@@ -7,6 +7,7 @@ import { DRIZZLE } from "../database/database.provider";
 import { questions, questionExams, questionOptions, questionImages, userSubscriptions, subscriptionPlans, users } from "../database/schema";
 import { and, eq, isNull, ilike, asc, inArray, or, type SQL } from "drizzle-orm";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
+import { getAccessibleExamId } from "../common/utils/access-helper";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -265,18 +266,6 @@ export class QuestionsService {
   }
 
   private async getSubscriptionExamId(userId: string): Promise<string | null> {
-    const [sub] = await this.db
-      .select({ examId: subscriptionPlans.examId })
-      .from(userSubscriptions)
-      .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-      .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
-      .limit(1);
-    if (sub?.examId) return sub.examId;
-    const [u] = await this.db
-      .select({ targetExamId: users.targetExamId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    return u?.targetExamId || null;
+    return getAccessibleExamId(this.db, userId);
   }
 }

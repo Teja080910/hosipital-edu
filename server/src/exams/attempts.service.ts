@@ -19,6 +19,7 @@ import {
   userSubscriptions,
   users,
 } from "../database/schema";
+import { getAccessibleExamId } from "../common/utils/access-helper";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -37,7 +38,7 @@ export class AttemptsService {
     customTitle?: string;
   }) {
     const [user] = await this.db
-      .select({ role: users.role, targetExamId: users.targetExamId })
+      .select({ role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
       .from(users)
       .where(eq(users.id, data.userId))
       .limit(1);
@@ -65,18 +66,21 @@ export class AttemptsService {
 
       if (!sub) {
         if (user.targetExamId && user.targetExamId === data.examId) {
-          const [attempt] = await this.db
-            .insert(examAttempts)
-            .values({
-              userId: data.userId,
-              examId: data.examId,
-              mode: data.mode,
-              questionCount: data.questionCount,
-              timeLimit: data.timeLimit,
-              customTitle: data.customTitle,
-            })
-            .returning();
-          return attempt;
+          const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+          if (hoursSinceRegistration <= 24) {
+            const [attempt] = await this.db
+              .insert(examAttempts)
+              .values({
+                userId: data.userId,
+                examId: data.examId,
+                mode: data.mode,
+                questionCount: data.questionCount,
+                timeLimit: data.timeLimit,
+                customTitle: data.customTitle,
+              })
+              .returning();
+            return attempt;
+          }
         }
         throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
       }
