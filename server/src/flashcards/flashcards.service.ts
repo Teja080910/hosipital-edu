@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, HttpException, HttpStatus, Inject } from "@nestjs/common";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
+import { getAccessibleExamId } from "../common/utils/access-helper";
 import { DRIZZLE } from "../database/database.provider";
 import {
   flashcards,
@@ -365,21 +366,6 @@ export class FlashcardsService {
   }
 
   private async getSubscriptionExamId(userId: string): Promise<string | null> {
-    const [sub] = await this.db
-      .select({ examId: subscriptionPlans.examId })
-      .from(userSubscriptions)
-      .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-      .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
-      .limit(1);
-
-    if (sub?.examId) return sub.examId;
-
-    const [user] = await this.db
-      .select({ targetExamId: users.targetExamId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    return user?.targetExamId || null;
+    return getAccessibleExamId(this.db, userId);
   }
 }

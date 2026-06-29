@@ -1,7 +1,8 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
-import { videoModules, videoModuleExams, videoLessons, userVideoProgress, userSubscriptions, subscriptionPlans } from "../database/schema";
+import { videoModules, videoModuleExams, videoLessons, userVideoProgress, userSubscriptions, subscriptionPlans, users } from "../database/schema";
 import { eq, asc, and, inArray, isNull, or, type SQL } from "drizzle-orm";
+import { getAccessibleExamId } from "../common/utils/access-helper";
 
 @Injectable()
 export class VideosService {
@@ -10,13 +11,7 @@ export class VideosService {
   async findAll(user?: any) {
     let subExamId: string | null = null;
     if (user) {
-      const [sub] = await this.db
-        .select({ examId: subscriptionPlans.examId })
-        .from(userSubscriptions)
-        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
-        .limit(1);
-      subExamId = sub?.examId || null;
+      subExamId = await getAccessibleExamId(this.db, user.id);
     }
 
     const modules = await this.db

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { Bold, Italic } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -8,11 +8,11 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   minHeight?: number;
-  rows?: number;
 }
 
 export function RichTextEditor({ value, onChange, placeholder, minHeight = 100 }: RichTextEditorProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const isUpdating = useRef(false);
 
   const exec = useCallback((cmd: string) => {
     document.execCommand(cmd, false);
@@ -21,6 +21,7 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = 100 }
 
   const handleInput = () => {
     if (ref.current) {
+      isUpdating.current = true;
       onChange(ref.current.innerHTML);
     }
   };
@@ -30,6 +31,15 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = 100 }
     const text = e.clipboardData.getData("text/plain");
     document.execCommand("insertText", false, text);
   };
+
+  useEffect(() => {
+    if (ref.current && !isUpdating.current) {
+      if (ref.current.innerHTML !== value) {
+        ref.current.innerHTML = value;
+      }
+    }
+    isUpdating.current = false;
+  }, [value]);
 
   return (
     <div className="space-y-1">
@@ -47,7 +57,6 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = 100 }
         suppressContentEditableWarning
         onInput={handleInput}
         onPaste={handlePaste}
-        dangerouslySetInnerHTML={{ __html: value }}
         className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-b-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[100px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none overflow-y-auto"
         style={{ minHeight }}
         data-placeholder={placeholder}
