@@ -28,31 +28,9 @@ export class CoursesService {
     @Inject(STRIPE) private stripe: Stripe,
   ) {}
 
-  async findAll(onlyActive = true, userId?: string) {
+  async findAll(onlyActive = true, _userId?: string) {
     const conditions: SQL[] = [];
     if (onlyActive) conditions.push(eq(courses.isActive, true));
-
-    if (userId) {
-      const sub = await this.db
-        .select({ planId: userSubscriptions.planId })
-        .from(userSubscriptions)
-        .where(and(
-          eq(userSubscriptions.userId, userId),
-          eq(userSubscriptions.status, "active"),
-          sql`${userSubscriptions.canceledAt} IS NULL`,
-        ))
-        .limit(1);
-      if (sub.length > 0) {
-        const plan = await this.db
-          .select({ isCourseOnly: subscriptionPlans.isCourseOnly, courseId: subscriptionPlans.courseId })
-          .from(subscriptionPlans)
-          .where(eq(subscriptionPlans.id, sub[0].planId))
-          .limit(1);
-        if (plan.length > 0 && plan[0].isCourseOnly && plan[0].courseId) {
-          conditions.push(eq(courses.id, plan[0].courseId));
-        }
-      }
-    }
 
     return this.db
       .select({

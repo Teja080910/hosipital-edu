@@ -358,7 +358,8 @@
     "answered": "answered",
     "score_percent": "Score: {score}% ({correct}/{total} correct)",
     "questions_count": "{count} questions",
-    "no_details": "No details available."
+    "no_details": "No details available.",
+    "subscribe_to_access": "Subscribe to Access"
   },
   "lessons": {
     "not_found": "Lesson not found",
