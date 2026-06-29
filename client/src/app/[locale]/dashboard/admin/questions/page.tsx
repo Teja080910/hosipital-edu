@@ -283,7 +283,6 @@ export default function AdminQuestionsPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("question_mgmt_title")}</h1>
             <p className="text-muted-foreground">{t("question_mgmt_subtitle")}</p>
-            <p className="text-sm text-muted-foreground mt-1">{t("total_questions", { count: questions.length })}</p>
           </div>
           <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> {t("add_question")}</Button>
         </div>

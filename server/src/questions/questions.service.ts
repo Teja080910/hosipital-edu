@@ -53,7 +53,7 @@ export class QuestionsService {
         .from(questionExams)
         .where(eq(questionExams.examId, subExamId));
       const subIds = subQIds.map((r: any) => r.questionId);
-      conditions.push(subIds.length ? inArray(questions.id, subIds) : eq(questions.examId, subExamId));
+      conditions.push(inArray(questions.id, subIds));
       if (examId && examId !== subExamId) {
         return [];
       }
@@ -63,7 +63,7 @@ export class QuestionsService {
         .from(questionExams)
         .where(eq(questionExams.examId, examId));
       const eIds = examQIds.map((r: any) => r.questionId);
-      conditions.push(eIds.length ? inArray(questions.id, eIds) : eq(questions.examId, examId));
+      conditions.push(inArray(questions.id, eIds));
     }
 
     if (specialtyId) conditions.push(eq(questions.specialtyId, specialtyId));
@@ -271,15 +271,6 @@ export class QuestionsService {
       .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
       .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
       .limit(1);
-
-    if (sub?.examId) return sub.examId;
-
-    const [user] = await this.db
-      .select({ targetExamId: users.targetExamId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    return user?.targetExamId || null;
+    return sub?.examId || null;
   }
 }

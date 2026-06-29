@@ -306,7 +306,7 @@ export default function AdminSubscriptionsPage() {
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("course")}</label>
                 <Select value={form.courseId || "__none__"} onValueChange={(v) => setForm({ ...form, courseId: v === "__none__" ? "" : v })}>
                   <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4 transition-all duration-300 focus:border-primary/50 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)]">
-                    <SelectValue placeholder={t("select_course_placeholder")} />
+                    <SelectValue placeholder="Select a course" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
                     <SelectItem value="__none__">{t("none")}</SelectItem>

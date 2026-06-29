@@ -125,7 +125,7 @@ const currentLocale = useParams().locale as string;
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="gap-2.5 px-2.5 ml-2 hover:bg-accent/50 rounded-xl">
               <Avatar className="h-7 w-7 ring-2 ring-border/50">
-                <AvatarImage src={user?.avatarUrl || user?.avatar} />
+                <AvatarImage src={user?.avatar} />
                 <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-600 dark:text-blue-400 font-semibold">
                   {user?.name?.charAt(0)?.toUpperCase() || "U"}
                 </AvatarFallback>

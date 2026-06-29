@@ -27,15 +27,6 @@ export class ExamsController {
     return this.examsService.findAll(user);
   }
 
-  @Get("subscribed")
-  @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full", "course_only")
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "List exams available to the current user" })
-  async findSubscribed(@CurrentUser() user: any) {
-    return this.examsService.findSubscribed(user);
-  }
-
   @Get(":id")
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
   @AllowedAccountTypes("full", "course_only")

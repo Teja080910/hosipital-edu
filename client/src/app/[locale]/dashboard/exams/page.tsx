@@ -1,16 +1,17 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/routing";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageTransition } from "@/components/page-transition";
 import { AccountTypeGate } from "@/components/account-type-gate";
 import { ExamHistory } from "@/components/exams/exam-history";
-import { PageTransition } from "@/components/page-transition";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { examsApi } from "@/lib/api";
-import { useRouter } from "@/routing";
 import { Check, GraduationCap, Loader2, Play, X } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
   if (!obj) return "";
@@ -29,25 +30,11 @@ export default function ExamsPage() {
   const [examDetails, setExamDetails] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    examsApi.subscribedList()
+    examsApi.list()
       .then((res) => setExams(res.data))
-      .catch(() => toast.error(t("load_exams_failed")))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
-
-  const groups = exams.reduce<Record<string, any[]>>((acc, exam) => {
-    const g = exam.group || "residency";
-    if (!acc[g]) acc[g] = [];
-    acc[g].push(exam);
-    return acc;
-  }, {});
-
-  const groupLabels: Record<string, string> = {
-    residency: t("residency_exams"),
-    usmle: t("usmle_exams"),
-  };
-
-  const groupOrder = ["residency", "usmle"];
 
   const toggleExam = (examId: string) => {
     setSelectedExams((prev) => {
@@ -62,7 +49,7 @@ export default function ExamsPage() {
     if (!examDetails[examId]) {
       examsApi.get(examId).then((res) => {
         setExamDetails((prev) => ({ ...prev, [examId]: res.data }));
-      }).catch(() => toast.error(t("load_exam_details_failed")));
+      }).catch(() => {});
     }
   };
 
@@ -111,12 +98,8 @@ export default function ExamsPage() {
         ) : exams.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">{t("no_exams")}</div>
         ) : (
-          <div className="space-y-8">
-            {groupOrder.filter((g) => groups[g]).map((group) => (
-              <div key={group}>
-                <h2 className="text-xl font-semibold mb-4">{groupLabels[group] || group}</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {groups[group].map((exam: any) => {
+          <div className="grid gap-4 sm:grid-cols-2">
+            {exams.map((exam) => {
               const isSelected = !!selectedExams[exam.id];
               const specs = examDetails[exam.id]?.specialties || [];
               const selectedSpecs = selectedExams[exam.id] || [];
@@ -199,9 +182,6 @@ export default function ExamsPage() {
                 </Card>
               );
             })}
-                  </div>
-                </div>
-              ))}
           </div>
         )}
 

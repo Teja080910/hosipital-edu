@@ -228,14 +228,4 @@ export class AuthService {
     const { passwordHash, ...rest } = user;
     return rest;
   }
-
-  async getMe(userId: string) {
-    const [user] = await this.db
-      .select()
-      .from(users)
-      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
-      .limit(1);
-    if (!user) throw new UnauthorizedException();
-    return this.sanitizeUser(user);
-  }
 }

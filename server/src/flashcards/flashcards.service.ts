@@ -371,15 +371,6 @@ export class FlashcardsService {
       .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
       .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
       .limit(1);
-
-    if (sub?.examId) return sub.examId;
-
-    const [user] = await this.db
-      .select({ targetExamId: users.targetExamId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    return user?.targetExamId || null;
+    return sub?.examId || null;
   }
 }

@@ -42,12 +42,7 @@ export default function AdminVideosPage() {
     try {
       const { data } = await streamApi.listModules();
       setModules(data);
-      if (data.length > 0) {
-        setSelectedModule((prev: any) => {
-          if (!prev) return data[0];
-          return data.find((m: any) => m.id === prev.id) || data[0];
-        });
-      }
+      if (data.length > 0) setSelectedModule((prev: any) => prev ?? data[0]);
     } catch {
       toast.error(t("load_failed_courses"));
     } finally {
@@ -183,14 +178,14 @@ export default function AdminVideosPage() {
 
   const renderTitle = (v: any) => (typeof v === "string" ? v : v?.en ?? v?.es ?? "");
   const moduleColumns = [
-    { key: "title", label: t("title_label"), render: renderTitle },
-    { key: "lessons", label: t("lessons_label"), render: (v: any[]) => v?.length || 0 },
+    { key: "title", label: "Title", render: renderTitle },
+    { key: "lessons", label: "Lessons", render: (v: any[]) => v?.length || 0 },
   ];
 
   const lessonColumns = [
-    { key: "title", label: t("title_label"), render: renderTitle },
-    { key: "duration", label: t("duration_s_col"), render: (v: number) => `${v}s` },
-    { key: "videoUrl", label: t("video_col"), render: (v: string) => v ? <Badge variant="outline">Uploaded</Badge> : <Badge variant="secondary">None</Badge> },
+    { key: "title", label: "Title", render: renderTitle },
+    { key: "duration", label: "Duration (s)", render: (v: number) => `${v}s` },
+    { key: "videoUrl", label: "Video", render: (v: string) => v ? <Badge variant="outline">Uploaded</Badge> : <Badge variant="secondary">None</Badge> },
   ];
 
   return (
@@ -307,10 +302,10 @@ export default function AdminVideosPage() {
                 <Textarea value={moduleForm.description} onChange={(e) => setModuleForm((p) => ({ ...p, description: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium">{t("exams_optional_label")}</label>
+                <label className="text-sm font-medium">Exams (optional)</label>
                 <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-lg border border-border/80 min-h-[44px] mt-1">
                   {examIds.length === 0 && (
-                    <span className="text-sm text-muted-foreground/50 px-2 py-1">{t("all_exams_no_restriction")}</span>
+                    <span className="text-sm text-muted-foreground/50 px-2 py-1">All exams (no restriction)</span>
                   )}
                   {examIds.map((eId) => {
                     const exam = exams.find((e: any) => e.id === eId);

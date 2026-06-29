@@ -67,13 +67,13 @@ export default function AdminAnalyticsPage() {
           <StatsCard icon={Users} label={t("total_users")} value={String(stats?.totalUsers ?? 0)} color="text-blue-500" />
           <StatsCard icon={FileQuestion} label={t("questions_answered")} value={String(stats?.totalQuestionsAnswered ?? 0)} color="text-green-500" />
           <StatsCard icon={GraduationCap} label={t("exams_taken")} value={String(stats?.totalAttempts ?? 0)} color="text-orange-500" />
-          <StatsCard icon={FileQuestion} label={t("flashcards_reviewed")} value={String(stats?.totalFlashcardsReviewed ?? 0)} color="text-purple-500" />
+          <StatsCard icon={FileQuestion} label="Flashcards Reviewed" value={String(stats?.totalFlashcardsReviewed ?? 0)} color="text-purple-500" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>{t("daily_active_users")}</CardTitle>
+              <CardTitle>Daily Active Users (30 days)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -92,7 +92,7 @@ export default function AdminAnalyticsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("monthly_active_users")}</CardTitle>
+              <CardTitle>Monthly Active Users</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -113,7 +113,7 @@ export default function AdminAnalyticsPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>{t("user_growth_30d")}</CardTitle>
+              <CardTitle>User Growth (30 days)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -132,14 +132,14 @@ export default function AdminAnalyticsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("cohort_retention")}</CardTitle>
+              <CardTitle>Cohort Retention</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="text-muted-foreground">
-                      <th className="text-left p-1">{t("cohort_col")}</th>
+                      <th className="text-left p-1">Cohort</th>
                       <th className="p-1">Users</th>
                       <th className="p-1">M0</th>
                       <th className="p-1">M1</th>
@@ -177,7 +177,7 @@ export default function AdminAnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("exam_completion_by_exam")}</CardTitle>
+            <CardTitle>Exam Completion by Exam</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -187,8 +187,8 @@ export default function AdminAnalyticsPage() {
                   <XAxis dataKey="examId" tickFormatter={(v) => v?.slice(0, 8) || ""} className="text-xs text-muted-foreground" />
                   <YAxis className="text-xs text-muted-foreground" />
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }} />
-                  <Bar dataKey="started" name={t("started_cap")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="completed" name={t("completed_cap")} fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="started" name="Started" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="completed" name="Completed" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
