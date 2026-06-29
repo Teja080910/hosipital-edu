@@ -3,6 +3,7 @@ import { getMessages, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/providers/auth-provider";
+import { ClientErrorBoundary } from "@/components/client-error-boundary";
 import type { ReactNode } from "react";
 import "../globals.css";
 
@@ -34,7 +35,9 @@ export default async function LocaleLayout({
           <ThemeProvider>
             <AuthProvider>
               <QueryProvider>
-                {children}
+                <ClientErrorBoundary>
+                  {children}
+                </ClientErrorBoundary>
               </QueryProvider>
             </AuthProvider>
           </ThemeProvider>

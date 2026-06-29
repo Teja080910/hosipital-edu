@@ -74,46 +74,6 @@ const sb = useTranslations("subscribe");
   const a = useTranslations("auth");
   const n = useTranslations("nav");
   const c = useTranslations("common");
-
-  const features = Array.from({ length: 6 }, (_, i) => ({
-    icon: [BookOpen, Brain, Video, Library, BarChart3, Calendar][i],
-    title: t(`feature_${i}_title`),
-    desc: t(`feature_${i}_desc`),
-  }));
-
-  const [testimonialsData, setTestimonialsData] = useState<any[]>([]);
-
-  useEffect(() => {
-    testimonialsApi.getAll().then(({ data }) => {
-      if (Array.isArray(data)) setTestimonialsData(data);
-    }).catch(() => {});
-  }, []);
-
-  const testimonials = testimonialsData.length > 0
-    ? testimonialsData.map((item) => ({
-        name: item.name?.[currentLocale] || item.name?.en || "",
-        role: item.role?.[currentLocale] || item.role?.en || "",
-        text: item.text?.[currentLocale] || item.text?.en || "",
-        rating: item.rating ?? 5,
-      }))
-    : Array.from({ length: 3 }, (_, i) => ({
-        name: t(`testimonial_${i}_name`),
-        role: t(`testimonial_${i}_role`),
-        text: t(`testimonial_${i}_text`),
-        rating: 5,
-      }));
-
-  const planFeatures: Record<string, string[]> = {
-    monthly: Array.from({ length: 4 }, (_, i) => t(`plan_monthly_${i}`)),
-    quarterly: Array.from({ length: 5 }, (_, i) => t(`plan_quarterly_${i}`)),
-    annual: Array.from({ length: 5 }, (_, i) => t(`plan_annual_${i}`)),
-  };
-
-  const faqs = Array.from({ length: 4 }, (_, i) => ({
-    q: t(`faq_${i}_q`),
-    a: t(`faq_${i}_a`),
-  }));
-
   const { theme, setTheme, resolvedTheme } = useTheme();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -154,6 +114,45 @@ const sb = useTranslations("subscribe");
       }).catch(() => {});
     }
   }, [user]);
+
+  const features = Array.from({ length: 6 }, (_, i) => ({
+    icon: [BookOpen, Brain, Video, Library, BarChart3, Calendar][i],
+    title: t(`feature_${i}_title`),
+    desc: t(`feature_${i}_desc`),
+  }));
+
+  const [testimonialsData, setTestimonialsData] = useState<any[]>([]);
+
+  useEffect(() => {
+    testimonialsApi.getAll().then(({ data }) => {
+      if (Array.isArray(data)) setTestimonialsData(data);
+    }).catch(() => {});
+  }, []);
+
+  const testimonials = testimonialsData.length > 0
+    ? testimonialsData.map((item) => ({
+        name: item.name?.[currentLocale] || item.name?.en || "",
+        role: item.role?.[currentLocale] || item.role?.en || "",
+        text: item.text?.[currentLocale] || item.text?.en || "",
+        rating: item.rating ?? 5,
+      }))
+    : Array.from({ length: 3 }, (_, i) => ({
+        name: t(`testimonial_${i}_name`),
+        role: t(`testimonial_${i}_role`),
+        text: t(`testimonial_${i}_text`),
+        rating: 5,
+      }));
+
+  const planFeatures: Record<string, string[]> = {
+    monthly: Array.from({ length: 4 }, (_, i) => t(`plan_monthly_${i}`)),
+    quarterly: Array.from({ length: 5 }, (_, i) => t(`plan_quarterly_${i}`)),
+    annual: Array.from({ length: 5 }, (_, i) => t(`plan_annual_${i}`)),
+  };
+
+  const faqs = Array.from({ length: 4 }, (_, i) => ({
+    q: t(`faq_${i}_q`),
+    a: t(`faq_${i}_a`),
+  }));
 
   const getPlanButton = (plan: any) => {
     const isPopular = plan.sortOrder === 1;
