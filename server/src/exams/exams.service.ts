@@ -70,63 +70,6 @@ export class ExamsService {
     return rows.map((r) => ({ ...r, hasAccess }));
   }
 
-  async findSubscribed(user: any) {
-    const isAdmin = user.role === "admin" || user.role === "super_admin";
-    let allowedExamId: string | null = null;
-    let hasAccess = false;
-
-    if (!isAdmin) {
-      const [sub] = await this.db
-        .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
-        .from(userSubscriptions)
-        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
-        .limit(1);
-
-      if (sub && sub.isCourseOnly) return [];
-      if (sub) {
-        if (sub.examId) {
-          allowedExamId = sub.examId;
-        } else if (user.targetExamId) {
-          allowedExamId = user.targetExamId;
-        }
-        hasAccess = true;
-      } else if (user.targetExamId) {
-        allowedExamId = user.targetExamId;
-        const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
-        if (hoursSinceRegistration <= 24) {
-          hasAccess = true;
-        }
-      }
-    } else {
-      hasAccess = true;
-    }
-
-    const questionFilter = allowedExamId
-      ? sql`EXISTS (SELECT 1 FROM question_exams WHERE question_exams.exam_id = ${allowedExamId} AND question_exams.question_id = questions.id) OR questions.exam_id = ${allowedExamId}`
-      : sql`EXISTS (SELECT 1 FROM question_exams WHERE question_exams.exam_id = exams.id AND question_exams.question_id = questions.id) OR questions.exam_id = exams.id`;
-
-    const examFilter = allowedExamId
-      ? eq(exams.id, allowedExamId)
-      : eq(exams.isActive, true);
-
-    const rows = await this.db
-      .select({
-        id: exams.id,
-        slug: exams.slug,
-        name: exams.name,
-        description: exams.description,
-        isActive: exams.isActive,
-        sortOrder: exams.sortOrder,
-        createdAt: exams.createdAt,
-        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE (${questionFilter}) AND questions.is_active = true)`,
-      })
-      .from(exams)
-      .where(examFilter)
-      .orderBy(asc(exams.sortOrder));
-    return rows.map((r) => ({ ...r, hasAccess }));
-  }
-
   async findById(id: string, user?: any) {
     const [exam] = await this.db
       .select()
@@ -147,11 +90,13 @@ export class ExamsService {
 
         if (!sub || sub.isCourseOnly) {
           if (user.targetExamId && user.targetExamId === id) {
-            // Allow viewing exam details (specialties/topics) even after trial
+            const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+            if (hoursSinceRegistration > 24) {
+              throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
+            }
           } else if (!sub) {
             throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
           }
-          // sub exists but isCourseOnly and no targetExamId match -> blocked
         } else if (sub.examId && sub.examId !== id) {
           throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
         }

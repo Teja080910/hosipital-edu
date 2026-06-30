@@ -33,7 +33,7 @@ export async function getAccessibleExamId(
   if (user?.targetExamId) {
     const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
     if (hoursSinceRegistration <= 24) return user.targetExamId;
-    return user.targetExamId;
+    return null;
   }
 
   return null;
