@@ -179,6 +179,11 @@ export class CoursesService {
     }
 
     const isValidStripeSession = stripePaymentId?.startsWith("cs_");
+    const subExamId = sub?.subscription_plans?.examId;
+    if (sub && !isCourseOnly && subExamId && subExamId !== course.examId) {
+      throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
+    }
+
     if (parseFloat(course.price) === 0 || isValidStripeSession || (sub && !isCourseOnly) || (isCourseOnly && subCourseId === courseId)) {
       const [enrollment] = await this.db
         .insert(userCourseEnrollments)

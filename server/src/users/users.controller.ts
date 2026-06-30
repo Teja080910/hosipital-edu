@@ -36,9 +36,6 @@ class UpdateUserDto {
   @IsString()
   targetExamId?: string | null;
 
-  @IsOptional()
-  @IsBoolean()
-  emailVerified?: boolean;
 }
 
 @ApiTags("users")
@@ -109,7 +106,7 @@ export class UsersController {
     if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
       throw new ForbiddenException(this.i18n.t("users.accessDenied"));
     }
-    return this.usersService.update(id, data as any);
+    return this.usersService.update(id, data as any, user);
   }
 
   @Delete(":id")

@@ -24,13 +24,14 @@ export class SubscriptionExamGuard implements CanActivate {
     if (!user) throw new ForbiddenException(this.i18n.t("guard.notAuthenticated"));
 
     const [sub] = await this.db
-      .select({ examId: subscriptionPlans.examId })
+      .select({ examId: subscriptionPlans.examId, currentPeriodEnd: userSubscriptions.currentPeriodEnd })
       .from(userSubscriptions)
       .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
       .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
       .limit(1);
 
     if (!sub) return false;
+    if (sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) <= new Date()) return false;
     if (!sub.examId) return true;
     if (sub.examId === requiredExamId) return true;
     throw new ForbiddenException(this.i18n.t("guard.subscriptionExamDenied"));

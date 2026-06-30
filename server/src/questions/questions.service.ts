@@ -232,6 +232,7 @@ export class QuestionsService {
     if (examId !== undefined) cleanData.examId = examId || null;
     if (specialtyId !== undefined) cleanData.specialtyId = specialtyId || null;
     if (topicId !== undefined) cleanData.topicId = topicId || null;
+    if (subtopicId !== undefined) cleanData.subtopicId = subtopicId || null;
     const [question] = await this.db
       .update(questions)
       .set(cleanData)

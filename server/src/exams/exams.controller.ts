@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   UseGuards,
+  ParseUUIDPipe,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { ExamsService } from "./exams.service";
@@ -187,7 +188,7 @@ export class ExamsController {
   @AllowedAccountTypes("full", "course_only")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get exam with specialties" })
-  async findOne(@Param("id") id: string, @CurrentUser() user: any) {
+  async findOne(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     return this.examsService.findById(id, user);
   }
 
@@ -226,7 +227,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create specialty (admin)" })
-  async createSpecialty(@Param("examId") examId: string, @Body() data: CreateSpecialtyDto) {
+  async createSpecialty(@Param("examId", ParseUUIDPipe) examId: string, @Body() data: CreateSpecialtyDto) {
     return this.examsService.createSpecialty(examId, data);
   }
 
@@ -255,7 +256,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create topic (admin)" })
-  async createTopic(@Param("specialtyId") specialtyId: string, @Body() data: CreateTopicDto) {
+  async createTopic(@Param("specialtyId", ParseUUIDPipe) specialtyId: string, @Body() data: CreateTopicDto) {
     return this.examsService.createTopic(specialtyId, data);
   }
 
@@ -284,7 +285,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create subtopic (admin)" })
-  async createSubtopic(@Param("topicId") topicId: string, @Body() data: CreateSubtopicDto) {
+  async createSubtopic(@Param("topicId", ParseUUIDPipe) topicId: string, @Body() data: CreateSubtopicDto) {
     return this.examsService.createSubtopic(topicId, data);
   }
 

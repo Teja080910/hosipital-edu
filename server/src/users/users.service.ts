@@ -48,7 +48,15 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, data: Partial<typeof users.$inferInsert>) {
+  async update(id: string, data: Partial<typeof users.$inferInsert>, currentUser?: any) {
+    const { emailVerified, ...rest } = data;
+    if (currentUser && currentUser.role !== "admin" && currentUser.role !== "super_admin") {
+      return this.updateInternal(id, rest);
+    }
+    return this.updateInternal(id, data);
+  }
+
+  private async updateInternal(id: string, data: Partial<typeof users.$inferInsert>) {
     const [user] = await this.db
       .update(users)
       .set({ ...stripTimestamps(data), updatedAt: new Date() })

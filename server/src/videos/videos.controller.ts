@@ -19,7 +19,8 @@ export class VideosController {
   constructor(private videosService: VideosService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "List all video modules with lessons" })
   async findAll(@CurrentUser() user: any) {

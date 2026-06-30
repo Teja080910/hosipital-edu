@@ -11,7 +11,6 @@ drizzle-meta/
 my-part*
 firebase_dump/
 server/exports
-.commandcode/taste
 taste.md
 package-lock.json
 
@@ -21,4 +20,3 @@ exiting-app/key.jks
 mdexam_keys.pdf
 my-part.md
 .commandcode/
-firebase_dump/

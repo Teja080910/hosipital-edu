@@ -11,12 +11,27 @@ export class VideosService {
   async findAll(user?: any) {
     if (user) {
       const [u] = await this.db
-        .select({ accountType: users.accountType })
+        .select({ accountType: users.accountType, role: users.role })
         .from(users)
         .where(eq(users.id, user.id))
         .limit(1);
       if (u?.accountType === "course_only") {
         return [];
+      }
+      if (u?.role !== "admin" && u?.role !== "super_admin") {
+        const [sub] = await this.db
+          .select()
+          .from(userSubscriptions)
+          .where(
+            and(
+              eq(userSubscriptions.userId, user.id),
+              eq(userSubscriptions.status, "active"),
+            ),
+          )
+          .limit(1);
+        if (!sub) {
+          return [];
+        }
       }
     }
     let subExamId: string | null = null;

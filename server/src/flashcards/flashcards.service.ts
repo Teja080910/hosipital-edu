@@ -349,7 +349,7 @@ export class FlashcardsService {
       throw e;
     }
 
-    if (!isAdmin && sub && sub.remainingFlashcardAttempts != null) {
+    if (!isAdmin && sub && sub.remainingFlashcardAttempts != null && !existing) {
       await this.db
         .update(userSubscriptions)
         .set({ remainingFlashcardAttempts: sql`${userSubscriptions.remainingFlashcardAttempts} - 1` })

@@ -113,7 +113,4 @@ export class MailService {
     );
   }
 
-  private resolveLocalized(locale: string, key: string): string {
-    return t(locale, key);
-  }
 }
