@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/routing";
 import { Link } from "@/routing";
@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
+import { GraduationCap, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 export default function LoginPage() {
   const t = useTranslations("auth");
@@ -26,20 +27,28 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!turnstileToken) {
+      setErrorMsg(t("captcha_required"));
+      return;
+    }
     setLoading(true);
     setErrorMsg(null);
     try {
-      await login(email, password);
+      await login(email, password, turnstileToken);
       toast.success(t("welcome_back"));
       setLoading(false);
       router.push("/dashboard");
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || t("invalid_credentials");
-      setErrorMsg(msg);
+      setErrorMsg(Array.isArray(msg) ? msg[0] : msg);
       setLoading(false);
+      setTurnstileToken(null);
+      turnstileRef.current?.reset();
     }
   };
 
@@ -141,6 +150,21 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.23 }}
+                className="flex justify-center"
+              >
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                  onSuccess={setTurnstileToken}
+                  onExpire={() => setTurnstileToken(null)}
+                  onError={() => setTurnstileToken(null)}
+                />
               </motion.div>
 
               <motion.div

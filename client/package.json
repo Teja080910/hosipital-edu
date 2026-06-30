@@ -12,6 +12,7 @@
     "pull:translations": "node scripts/pull-translations.js"
   },
   "dependencies": {
+    "@marsidev/react-turnstile": "^1.5.3",
     "@radix-ui/react-avatar": "^1.1.7",
     "@radix-ui/react-checkbox": "^1.1.5",
     "@radix-ui/react-collapsible": "^1.1.5",

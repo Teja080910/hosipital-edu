@@ -8,6 +8,7 @@ export interface User {
   accountType?: "full" | "course_only";
   targetExamId?: string;
   createdAt?: string;
+  emailVerifiedAt?: string | null;
 }
 
 export interface Question {
