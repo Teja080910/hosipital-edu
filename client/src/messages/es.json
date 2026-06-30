@@ -176,7 +176,8 @@
     "resend_verification": "Reenviar correo de verificación",
     "verification_sent_toast": "¡Correo de verificación enviado! Revisa tu bandeja de entrada.",
     "verify_email_banner": "Por favor verifica tu correo para acceder a todas las funciones.",
-    "resend_verification_success": "Correo de verificación reenviado. Revisa tu bandeja de entrada."
+    "resend_verification_success": "Correo de verificación reenviado. Revisa tu bandeja de entrada.",
+    "resend_failed": "Error al reenviar el correo de verificación. Inténtalo de nuevo más tarde."
   },
   "questions": {
     "title": "Banco de Preguntas",

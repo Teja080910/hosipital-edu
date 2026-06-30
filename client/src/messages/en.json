@@ -176,7 +176,8 @@
     "resend_verification": "Resend verification email",
     "verification_sent_toast": "Verification email sent! Check your inbox.",
     "verify_email_banner": "Please verify your email address to access all features.",
-    "resend_verification_success": "Verification email resent. Check your inbox."
+    "resend_verification_success": "Verification email resent. Check your inbox.",
+    "resend_failed": "Failed to resend verification email. Try again later."
   },
   "questions": {
     "title": "Question Bank",

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { authApi } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -27,6 +28,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
 
@@ -51,6 +53,19 @@ export default function LoginPage() {
       setLoading(false);
       setTurnstileToken(null);
       turnstileRef.current?.reset();
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email || resending) return;
+    setResending(true);
+    try {
+      await authApi.resendVerification(email);
+      toast.success(t("verification_sent_toast"));
+    } catch {
+      toast.error(t("resend_failed"));
+    } finally {
+      setResending(false);
     }
   };
 
@@ -176,13 +191,23 @@ export default function LoginPage() {
                 className="pt-1"
               >
                 {errorMsg && (
-                  <motion.p
+                  <motion.div
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-3 text-sm font-medium text-destructive text-center"
+                    className="mb-3 text-center"
                   >
-                    {errorMsg}
-                  </motion.p>
+                    <p className="text-sm font-medium text-destructive">{errorMsg}</p>
+                    {errorMsg.includes("verify your email") && (
+                      <button
+                        type="button"
+                        onClick={handleResend}
+                        disabled={resending}
+                        className="mt-2 text-xs text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
+                      >
+                        {resending ? t("sending") : t("resend_verification")}
+                      </button>
+                    )}
+                  </motion.div>
                 )}
                 <Button
                   type="submit"
