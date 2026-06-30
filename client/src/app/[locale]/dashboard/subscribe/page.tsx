@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { subscriptionsApi } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, localizedText } from "@/lib/utils";
 import { useRouter } from "@/routing";
 import { motion } from "framer-motion";
 import { ArrowRight, Check, Crown, Loader2, Lock, Sparkles } from "lucide-react";
@@ -83,7 +83,9 @@ export default function SubscribePage() {
           </h1>
           <p className="text-lg text-muted-foreground">
             {currentSub
-              ? t("description_with_sub", { plan: currentSub.plan?.name?.en || currentSub.plan?.interval || "active" })
+              ? t("description_with_sub", {
+                  plan: localizedText(currentSub.plan?.name, locale) || currentSub.plan?.interval || "active",
+                })
               : t("description_no_sub")}
           </p>
         </motion.div>
@@ -95,7 +97,7 @@ export default function SubscribePage() {
                 <div className="flex items-center gap-3 mb-3">
                   <Crown className="h-6 w-6 text-amber-500" />
                   <div>
-                    <p className="font-semibold text-lg">{currentSub.plan?.name?.en || t("current_plan")}</p>
+                    <p className="font-semibold text-lg">{localizedText(currentSub.plan?.name, locale) || t("current_plan")}</p>
                     <p className="text-sm text-muted-foreground">
                       ${currentSub.plan?.price}/{currentSub.plan?.interval} &middot; {currentSub.status}
                     </p>
@@ -127,7 +129,7 @@ export default function SubscribePage() {
               const isDowngrade = currentSub && plan.sortOrder < currentPlanOrder;
               const isUpgrade = currentSub && plan.sortOrder > currentPlanOrder;
               return (
-                <motion.div key={plan.id || plan.name?.en} {...stagger(i)} className="flex">
+                <motion.div key={plan.id || localizedText(plan.name, locale) || plan.interval} {...stagger(i)} className="flex">
                   <Card className={cn(
                     "relative flex flex-col w-full border-border/50 transition-all duration-300",
                     isCurrent && "border-amber-400/50 shadow-lg shadow-amber-500/10 scale-105 md:scale-105 z-10",
@@ -153,15 +155,15 @@ export default function SubscribePage() {
                         <span className="text-4xl font-bold">${plan.price}</span>
                         <span className="text-muted-foreground ml-1">/{plan.interval}</span>
                       </div>
-                      {plan.description?.en && (
-                        <p className="text-sm text-muted-foreground mt-2">{plan.description.en}</p>
+                      {localizedText(plan.description, locale) && (
+                        <p className="text-sm text-muted-foreground mt-2">{localizedText(plan.description, locale)}</p>
                       )}
                     </CardHeader>
                     <CardContent className="flex-1">
-                      {plan.name?.en && (
+                      {localizedText(plan.name, locale) && (
                         <div className="flex items-center gap-2 mb-4">
                           <Sparkles className="h-4 w-4 text-primary" />
-                          <span className="font-medium text-sm">{plan.name.en}</span>
+                          <span className="font-medium text-sm">{localizedText(plan.name, locale)}</span>
                         </div>
                       )}
                     </CardContent>

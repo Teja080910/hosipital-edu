@@ -12,7 +12,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { subscriptionsApi } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, localizedText } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -108,15 +108,15 @@ export function SubscribeDialog({ open, onOpenChange, courseTitle, courseId }: S
                     <span className="text-3xl font-bold">${plan.price}</span>
                     <span className="text-muted-foreground ml-1 text-sm">/{plan.interval}</span>
                   </div>
-                  {plan.description?.en && (
-                    <p className="text-xs text-muted-foreground mt-1">{plan.description.en}</p>
+                  {localizedText(plan.description, locale) && (
+                    <p className="text-xs text-muted-foreground mt-1">{localizedText(plan.description, locale)}</p>
                   )}
                 </CardHeader>
                 <CardContent className="flex-1">
-                  {plan.name?.en && (
+                  {localizedText(plan.name, locale) && (
                     <div className="flex items-center gap-1.5 mb-2">
                       <Sparkles className="h-3.5 w-3.5 text-primary" />
-                      <span className="font-medium text-xs">{plan.name.en}</span>
+                      <span className="font-medium text-xs">{localizedText(plan.name, locale)}</span>
                     </div>
                   )}
                 </CardContent>

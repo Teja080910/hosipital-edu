@@ -4,7 +4,8 @@ import { useTranslations } from "next-intl";
 import { usePathname } from "@/routing";
 import { Link } from "@/routing";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, localizedText } from "@/lib/utils";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -78,6 +79,8 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const sbs = useTranslations("subscribe");
   const { user } = useAuth();
   const pathname = usePathname();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
   const [adminOpen, setAdminOpen] = useState(true);
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const navItems = allNavItems.filter(item => {
@@ -222,7 +225,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
                   <div className="flex items-center gap-2 mb-1">
                     <Crown className="h-4 w-4 text-amber-500" />
                     <span className="text-xs font-semibold text-foreground">
-                      {subData.sub?.plan?.name?.en || sb("active_plan")}
+                      {localizedText(subData.sub?.plan?.name, locale) || sb("active_plan")}
                     </span>
                   </div>
                   <div className="text-[11px] text-muted-foreground">
@@ -250,7 +253,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
                     <Link key={plan.id} href="/dashboard/subscribe">
                       <span className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-foreground hover:bg-accent/50 transition-colors">
                         <Sparkles className={cn("h-3.5 w-3.5", isDowngrade ? "text-muted-foreground" : "text-primary")} />
-                        {(isDowngrade ? sbs("downgrade") : sbs("upgrade"))} to {plan.name?.en || plan.interval} &middot; ${plan.price}/{plan.interval === "year" ? "yr" : plan.interval === "quarter" ? "3mo" : "mo"}
+                        {(isDowngrade ? sbs("downgrade") : sbs("upgrade"))} to {localizedText(plan.name, locale) || plan.interval} &middot; ${plan.price}/{plan.interval === "year" ? "yr" : plan.interval === "quarter" ? "3mo" : "mo"}
                       </span>
                     </Link>
                   );
