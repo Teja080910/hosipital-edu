@@ -8,7 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 export function SubscriptionGate({ children }: { children: ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -32,6 +32,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
         try {
           const { data } = await subscriptionsApi.confirmCheckout(sessionId);
           if (data.status === "active") {
+            await refreshUser();
             const url = pathname.replace("?checkout=success", "").replace(`&session_id=${sessionId}`, "").replace(`?session_id=${sessionId}`, "");
             router.replace(url);
             setChecking(false);

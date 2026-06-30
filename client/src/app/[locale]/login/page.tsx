@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 export default function LoginPage() {
@@ -66,6 +67,9 @@ export default function LoginPage() {
       </div>
 
       <motion.div {...fadeUp} className="relative w-full max-w-md">
+        <div className="absolute top-4 right-4 z-10">
+          <LanguageSwitcher />
+        </div>
         <Card className="relative border-border/50 bg-card/80 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/20 overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-blue-500 to-indigo-500" />
 

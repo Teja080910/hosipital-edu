@@ -24,7 +24,7 @@ export class FlashcardsController {
 
   @Get()
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full")
+  @AllowedAccountTypes("full", "course_only")
   @ApiBearerAuth()
   @ApiOperation({ summary: "List flashcards with filters" })
   async findAll(
@@ -40,7 +40,7 @@ export class FlashcardsController {
 
   @Get("specialties")
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full")
+  @AllowedAccountTypes("full", "course_only")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get flashcard specialties" })
   async getSpecialties(@CurrentUser() user: any) {
@@ -49,7 +49,7 @@ export class FlashcardsController {
 
   @Get("due")
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full")
+  @AllowedAccountTypes("full", "course_only")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get due flashcards for review" })
   async findDue(@CurrentUser() user: any, @Query("limit") limit?: number) {

@@ -40,7 +40,6 @@ import { useAuth } from "@/hooks/use-auth";
 
 const allNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "dashboard" },
-  // { href: "/dashboard/questions", icon: FileQuestion, label: "questions", accountTypes: ["full"] },
   { href: "/dashboard/flashcards", icon: Library, label: "flashcards", accountTypes: ["full"] },
   { href: "/dashboard/exams", icon: GraduationCap, label: "exams", accountTypes: ["full"] },
   { href: "/dashboard/courses", icon: BookOpen, label: "courses" },
@@ -84,9 +83,6 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const navItems = allNavItems.filter(item => {
     if (user?.role === "admin" || user?.role === "super_admin") return true;
     if (!item.accountTypes) return true;
-    if (user?.accountType === "course_only") {
-      return item.label === "courses" || item.label === "dashboard";
-    }
     return item.accountTypes.includes(user?.accountType || "full");
   });
   const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);

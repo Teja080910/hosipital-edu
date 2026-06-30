@@ -159,7 +159,7 @@
     "target_exam": "Target Exam",
     "select_exam": "Select your target exam",
     "something_went_wrong": "Something went wrong. Please try again.",
-    "courses_only": "Courses Only",
+    "courses_only": "Clinical Courses",
     "invalid_reset_token": "Invalid or missing reset token",
     "invalid_link": "Invalid Link",
     "invalid_link_desc": "This password reset link is invalid or has expired.",
@@ -1028,7 +1028,8 @@
       "step_1": "See your overall stats: questions answered, accuracy, study streak, total hours",
       "step_2": "View the weekly activity chart to see your study pattern",
       "step_3": "Check accuracy by specialty to identify weak areas",
-      "step_4": "Review your streak calendar for the last 30 days"
+      "step_4": "Review your streak calendar for the last 30 days",
+      "subscribe": "Subscribe to Access"
     },
     "subscription": {
       "title": "Subscription & Billing",

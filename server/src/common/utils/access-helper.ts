@@ -12,7 +12,17 @@ export async function getAccessibleExamId(
     .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
     .limit(1);
 
-  if (sub?.examId) return sub.examId;
+  if (sub) {
+    if (sub.examId) return sub.examId;
+    // general plan — show all content only if user has no target exam
+    const [user] = await db
+      .select({ targetExamId: users.targetExamId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (user?.targetExamId) return user.targetExamId;
+    return null;
+  }
 
   const [user] = await db
     .select({ targetExamId: users.targetExamId, createdAt: users.createdAt })
@@ -23,6 +33,7 @@ export async function getAccessibleExamId(
   if (user?.targetExamId) {
     const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
     if (hoursSinceRegistration <= 24) return user.targetExamId;
+    return null;
   }
 
   return null;
