@@ -41,7 +41,7 @@ export class ExamsService {
       }
     }
 
-    if (user && !allowedExamId && user.role !== "admin" && user.role !== "super_admin") return [];
+    if (user && !allowedExamId && !hasAccess && user.role !== "admin" && user.role !== "super_admin") return [];
 
     const questionFilter = allowedExamId
       ? sql`(SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = ${allowedExamId} AND question_exams.question_id = questions.id)`
