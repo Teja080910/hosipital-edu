@@ -280,6 +280,13 @@ export class SubscriptionsService {
         amount: plan.price,
         interval: plan.interval,
       });
+
+      if (!plan.isCourseOnly && user.accountType === "course_only") {
+        await this.db
+          .update(users)
+          .set({ accountType: "full", updatedAt: new Date() })
+          .where(eq(users.id, data.userId));
+      }
     }
 
     return sub;
