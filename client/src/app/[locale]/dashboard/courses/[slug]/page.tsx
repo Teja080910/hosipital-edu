@@ -43,9 +43,16 @@ export default function CourseDetailPage() {
       setCourse(data);
       if (user) {
         coursesApi.checkEnrollment(slug).then(({ data: enrollment }) => {
-          setIsEnrolled(enrollment.enrolled);
           if (enrollment.enrolled) {
+            setIsEnrolled(true);
             coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
+          } else {
+            coursesApi.checkAccess(slug).then(({ data: access }) => {
+              if (access.hasAccess) {
+                setIsEnrolled(true);
+                coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
+              }
+            }).catch(() => {});
           }
         }).catch(() => {});
       }
