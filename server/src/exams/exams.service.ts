@@ -31,6 +31,9 @@ export class ExamsService {
             allowedExamId = user.targetExamId;
           }
           hasAccess = true;
+        } else if (sub && sub.isCourseOnly && user.targetExamId) {
+          allowedExamId = user.targetExamId;
+          hasAccess = true;
         } else if (user.targetExamId) {
           allowedExamId = user.targetExamId;
           const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
