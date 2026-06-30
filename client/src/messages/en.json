@@ -794,7 +794,9 @@
     "all_exams_no_restriction": "All exams (no restriction)",
     "cover_image_placeholder": "https://example.com/image.jpg",
     "video_col": "Video",
-    "lessons_col2": "Lessons"
+    "lessons_col2": "Lessons",
+    "uploaded": "Uploaded",
+    "preview": "Preview"
   },
   "progress": {
     "title": "Progress",

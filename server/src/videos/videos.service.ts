@@ -1,7 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { videoModules, videoModuleExams, videoLessons, userVideoProgress, userSubscriptions, subscriptionPlans, users } from "../database/schema";
-import { eq, asc, and, inArray, isNull, or, type SQL } from "drizzle-orm";
+import { eq, asc, and, inArray } from "drizzle-orm";
 import { getAccessibleExamId } from "../common/utils/access-helper";
 
 @Injectable()
@@ -9,6 +9,16 @@ export class VideosService {
   constructor(@Inject(DRIZZLE) private db: any) {}
 
   async findAll(user?: any) {
+    if (user) {
+      const [u] = await this.db
+        .select({ accountType: users.accountType })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      if (u?.accountType === "course_only") {
+        return [];
+      }
+    }
     let subExamId: string | null = null;
     if (user) {
       subExamId = await getAccessibleExamId(this.db, user.id);
@@ -20,7 +30,7 @@ export class VideosService {
       .where(eq(videoModules.isActive, true))
       .orderBy(asc(videoModules.sortOrder));
 
-    const moduleIds = modules.map(m => m.id);
+    const moduleIds = modules.map((m: typeof modules[number]) => m.id);
     const allExamLinks = await this.db
       .select()
       .from(videoModuleExams)

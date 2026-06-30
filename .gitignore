@@ -13,3 +13,12 @@ firebase_dump/
 server/exports
 .commandcode/taste
 taste.md
+package-lock.json
+
+client/tsconfig.tsbuildinfo
+client/next-env.d.ts
+exiting-app/key.jks
+mdexam_keys.pdf
+my-part.md
+.commandcode/
+firebase_dump/

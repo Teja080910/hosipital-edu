@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Resend } from "resend";
 import {
@@ -16,6 +16,7 @@ import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
   private resend: Resend | null = null;
 
   constructor(
@@ -47,10 +48,10 @@ export class MailService {
         subject,
         html,
       });
-      console.log(`[Mail] Email sent to ${to}:`, JSON.stringify(result));
+      this.logger.log(`Email sent to ${to}: ${JSON.stringify(result)}`);
       return result;
     } catch (err) {
-      console.error(`[Mail] Failed to send to ${to}:`, err);
+      this.logger.error(`Failed to send to ${to}: ${err}`);
       throw err;
     }
   }

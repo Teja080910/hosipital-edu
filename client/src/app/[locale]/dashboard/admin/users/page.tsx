@@ -25,7 +25,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataGrid } from "@/components/admin/data-grid";
 import { usersApi, subscriptionsApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2, CreditCard, Eye } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
 
 export default function AdminUsersPage() {
   const t = useTranslations("admin");
@@ -218,7 +218,7 @@ const deleteUser = async () => {
               <div className="text-xs text-muted-foreground space-y-1 mb-2">
                 <p>{t("current_plan")}: <span className="font-medium text-foreground">{userSub.plan?.name?.en || userSub.planId}</span></p>
                 <p>{t("status")}: <Badge variant={userSub.status === "active" ? "default" : "secondary"} className="text-xs">{userSub.status}</Badge></p>
-                <p>{t("period_end")}: {new Date(userSub.currentPeriodEnd).toLocaleDateString()}</p>
+                <p>{t("period_end")}: {userSub.currentPeriodEnd ? new Date(userSub.currentPeriodEnd).toLocaleDateString() : "—"}</p>
               </div>
             )}
             <div className="space-y-2">

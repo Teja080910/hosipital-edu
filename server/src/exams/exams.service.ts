@@ -42,12 +42,14 @@ export class ExamsService {
       .where(eq(exams.isActive, true))
       .orderBy(asc(exams.sortOrder));
 
-    return rows.map((r) => {
+    return rows.map((r: typeof rows[number]) => {
       let hasAccess = false;
       if (isAdmin) {
         hasAccess = true;
       } else if (sub) {
-        if (!sub.examId || sub.examId === r.id) {
+        if (sub.isCourseOnly) {
+          hasAccess = false;
+        } else if (!sub.examId || sub.examId === r.id) {
           hasAccess = true;
         }
       } else if (user && user.targetExamId === r.id) {
@@ -78,15 +80,17 @@ export class ExamsService {
           .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
           .limit(1);
 
-        if (!sub || sub.isCourseOnly) {
+        if (!sub) {
           if (user.targetExamId && user.targetExamId === id) {
             const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
             if (hoursSinceRegistration > 24) {
               throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
             }
-          } else if (!sub) {
+          } else {
             throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
           }
+        } else if (sub.isCourseOnly) {
+          throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
         } else if (sub.examId && sub.examId !== id) {
           throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
         }

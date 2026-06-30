@@ -30,7 +30,8 @@ export class SubscriptionExamGuard implements CanActivate {
       .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
       .limit(1);
 
-    if (!sub || !sub.examId) return true;
+    if (!sub) return false;
+    if (!sub.examId) return true;
     if (sub.examId === requiredExamId) return true;
     throw new ForbiddenException(this.i18n.t("guard.subscriptionExamDenied"));
   }

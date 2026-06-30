@@ -16,11 +16,15 @@ import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { IsOptional, IsString, IsBoolean, IsNumber, IsArray, IsObject } from "class-validator";
+import { IsOptional, IsString, IsBoolean, IsNumber, IsObject } from "class-validator";
 
 class CreateExamDto {
   @IsObject()
-  title!: object;
+  name!: object;
+
+  @IsOptional()
+  @IsObject()
+  title?: object;
 
   @IsOptional()
   @IsObject()
@@ -44,6 +48,10 @@ class CreateExamDto {
 }
 
 class UpdateExamDto {
+  @IsOptional()
+  @IsObject()
+  name?: object;
+
   @IsOptional()
   @IsObject()
   title?: object;
@@ -75,6 +83,10 @@ class CreateSpecialtyDto {
 
   @IsOptional()
   @IsString()
+  nameEn?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
 
   @IsOptional()
@@ -102,6 +114,10 @@ class CreateTopicDto {
 
   @IsOptional()
   @IsString()
+  nameEn?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
 
   @IsOptional()
@@ -126,6 +142,10 @@ class UpdateTopicDto {
 class CreateSubtopicDto {
   @IsString()
   name!: string;
+
+  @IsOptional()
+  @IsString()
+  nameEn?: string;
 
   @IsOptional()
   @IsString()
@@ -177,7 +197,12 @@ export class ExamsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create exam (admin)" })
   async create(@Body() data: CreateExamDto) {
-    return this.examsService.create(data);
+    const payload: any = { ...data };
+    if (payload.title && !payload.name) {
+      payload.name = payload.title;
+    }
+    delete payload.title;
+    return this.examsService.create(payload);
   }
 
   @Patch(":id")
@@ -186,7 +211,12 @@ export class ExamsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update exam (admin)" })
   async update(@Param("id") id: string, @Body() data: UpdateExamDto) {
-    return this.examsService.update(id, data);
+    const payload: any = { ...data };
+    if (payload.title && !payload.name) {
+      payload.name = payload.title;
+    }
+    delete payload.title;
+    return this.examsService.update(id, payload);
   }
 
   // ─── Specialty CRUD ───

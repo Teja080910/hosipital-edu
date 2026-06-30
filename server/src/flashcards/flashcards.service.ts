@@ -12,7 +12,7 @@ import {
   specialties,
   topics,
 } from "../database/schema";
-import { eq, and, inArray, isNull, or, count, sql, lte, type SQL } from "drizzle-orm";
+import { eq, and, inArray, isNull, count, sql, lte, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -36,6 +36,16 @@ export class FlashcardsService {
     const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
 
     if (!isAdmin) {
+      if (user) {
+        const [u] = await this.db
+          .select({ accountType: users.accountType })
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
+        if (u?.accountType === "course_only") {
+          return { data: [], total: 0, page, limit };
+        }
+      }
       let subExamId: string | null = null;
       if (user) {
         subExamId = await this.getSubscriptionExamId(user.id);
@@ -239,8 +249,10 @@ export class FlashcardsService {
 
     const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
 
+    let sub: any = null;
+
     if (!isAdmin) {
-      const [sub] = await this.db
+      [sub] = await this.db
         .select()
         .from(userSubscriptions)
         .where(
@@ -256,10 +268,14 @@ export class FlashcardsService {
       }
 
       const [plan] = await this.db
-        .select({ examId: subscriptionPlans.examId })
+        .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
         .from(subscriptionPlans)
         .where(eq(subscriptionPlans.id, sub.planId))
         .limit(1);
+
+      if (plan?.isCourseOnly) {
+        throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
+      }
 
       if (plan?.examId) {
         const [link] = await this.db
@@ -275,11 +291,6 @@ export class FlashcardsService {
       if (sub.remainingFlashcardAttempts != null && sub.remainingFlashcardAttempts < 1) {
         throw new HttpException(this.i18n.t("flashcards.noRemainingAttempts"), HttpStatus.FORBIDDEN);
       }
-
-      await this.db
-        .update(userSubscriptions)
-        .set({ remainingFlashcardAttempts: sql`${userSubscriptions.remainingFlashcardAttempts} - 1` })
-        .where(eq(userSubscriptions.id, sub.id));
     }
 
     const [existing] = await this.db
@@ -305,34 +316,46 @@ export class FlashcardsService {
       now.getTime() + result.interval * 24 * 60 * 60 * 1000,
     );
 
-    if (existing) {
-      const [review] = await this.db
-        .update(userFlashcardReviews)
-        .set({
-          easeFactor: result.easeFactor,
-          interval: result.interval,
-          repetitions: result.repetitions,
-          nextReviewAt,
-          lastReviewedAt: now,
-          updatedAt: now,
-        })
-        .where(eq(userFlashcardReviews.id, existing.id))
-        .returning();
-      return review;
+    let review: any;
+    try {
+      if (existing) {
+        [review] = await this.db
+          .update(userFlashcardReviews)
+          .set({
+            easeFactor: result.easeFactor,
+            interval: result.interval,
+            repetitions: result.repetitions,
+            nextReviewAt,
+            lastReviewedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(userFlashcardReviews.id, existing.id))
+          .returning();
+      } else {
+        [review] = await this.db
+          .insert(userFlashcardReviews)
+          .values({
+            userId,
+            flashcardId,
+            easeFactor: result.easeFactor,
+            interval: result.interval,
+            repetitions: result.repetitions,
+            nextReviewAt,
+            lastReviewedAt: now,
+          })
+          .returning();
+      }
+    } catch (e) {
+      throw e;
     }
 
-    const [review] = await this.db
-      .insert(userFlashcardReviews)
-      .values({
-        userId,
-        flashcardId,
-        easeFactor: result.easeFactor,
-        interval: result.interval,
-        repetitions: result.repetitions,
-        nextReviewAt,
-        lastReviewedAt: now,
-      })
-      .returning();
+    if (!isAdmin && sub && sub.remainingFlashcardAttempts != null) {
+      await this.db
+        .update(userSubscriptions)
+        .set({ remainingFlashcardAttempts: sql`${userSubscriptions.remainingFlashcardAttempts} - 1` })
+        .where(eq(userSubscriptions.id, sub.id));
+    }
+
     return review;
   }
 
@@ -392,7 +415,7 @@ export class FlashcardsService {
 
     const rows = await query;
 
-    rows.sort((a, b) => (a.name?.en ?? "").localeCompare(b.name?.en ?? ""));
+    rows.sort((a: typeof rows[number], b: typeof rows[number]) => (a.name?.en ?? "").localeCompare(b.name?.en ?? ""));
 
     return rows;
   }

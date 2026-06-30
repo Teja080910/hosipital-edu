@@ -78,19 +78,18 @@ export default function CoursesPage() {
         });
         setEnrolledIds(subscribed);
 
-        if (slugs.length > 0) {
+        const finalSlugs = data.filter((c: Course) => subscribed.has(c.id)).map((c: Course) => c.slug);
+        if (finalSlugs.length > 0) {
           const progressResults = await Promise.allSettled(
-            slugs.map((s) => coursesApi.getProgress(s))
+            finalSlugs.map((s: string) => coursesApi.getProgress(s))
           );
           const pmap: Record<string, number> = {};
-          let idx = 0;
-          for (const id of enrolled) {
-            const res = progressResults[idx];
+          progressResults.forEach((res, idx) => {
             if (res.status === "fulfilled") {
-              pmap[id] = res.value.data.percentage || 0;
+              const courseId = data.find((c: Course) => c.slug === finalSlugs[idx])?.id;
+              if (courseId) pmap[courseId] = res.value.data.percentage || 0;
             }
-            idx++;
-          }
+          });
           setProgressMap(pmap);
         }
       }

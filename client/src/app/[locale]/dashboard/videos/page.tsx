@@ -49,8 +49,8 @@ export default function VideosPage() {
       <PageTransition>
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <BookOpen className="h-12 w-12 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">{t("noVideos") || "No videos available"}</h2>
-          <p className="text-muted-foreground">{t("noVideosDesc") || "Video lessons are being prepared."}</p>
+          <h2 className="text-xl font-semibold">{t("noVideos")}</h2>
+          <p className="text-muted-foreground">{t("noVideosDesc")}</p>
         </div>
       </PageTransition>
     );

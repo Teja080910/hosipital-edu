@@ -38,10 +38,12 @@ api.interceptors.response.use(
           return api(originalRequest);
         } catch {
           useAuthStore.getState().clearTokens();
-window.location.href = "/login";
+const locale = window.location.pathname.split("/")[1] || "en";
+window.location.href = `/${locale}/login`;
         }
       } else {
-        window.location.href = "/login";
+        const locale = window.location.pathname.split("/")[1] || "en";
+        window.location.href = `/${locale}/login`;
       }
     }
     return Promise.reject(error);

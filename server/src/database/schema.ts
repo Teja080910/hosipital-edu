@@ -71,11 +71,11 @@ export const users = pgTable("users", {
   googleId: text("google_id").unique(),
   preferredLocale: text("preferred_locale").default("en").notNull(),
   referralCode: text("referral_code").unique(),
-  referredBy: uuid("referred_by").references(() => users.id, { onDelete: "set null" }),
+  referredBy: uuid("referred_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
-});
+}) as any;
 
 export const exams = pgTable("exams", {
   id: uuid("id").defaultRandom().primaryKey(),

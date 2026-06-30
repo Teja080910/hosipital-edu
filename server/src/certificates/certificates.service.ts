@@ -8,6 +8,7 @@ import {
   courseLessons,
   courseModules,
   userCourseProgress,
+  userCourseEnrollments,
   users,
 } from "../database/schema";
 import { UploadService } from "../upload/upload.service";
@@ -67,6 +68,19 @@ export class CertificatesService {
       .where(eq(courses.id, courseId))
       .limit(1);
     if (!course) throw new NotFoundException(this.i18n.t("certificates.courseNotFound"));
+
+    const [enrollment] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (!enrollment) throw new BadRequestException("Not enrolled in this course");
 
     const progressRows = await this.db
       .select()

@@ -178,14 +178,14 @@ export default function AdminVideosPage() {
 
   const renderTitle = (v: any) => (typeof v === "string" ? v : v?.en ?? v?.es ?? "");
   const moduleColumns = [
-    { key: "title", label: "Title", render: renderTitle },
-    { key: "lessons", label: "Lessons", render: (v: any[]) => v?.length || 0 },
+    { key: "title", label: t("title_label"), render: renderTitle },
+    { key: "lessons", label: t("lessons_label"), render: (v: any[]) => v?.length || 0 },
   ];
 
   const lessonColumns = [
-    { key: "title", label: "Title", render: renderTitle },
-    { key: "duration", label: "Duration (s)", render: (v: number) => `${v}s` },
-    { key: "videoUrl", label: "Video", render: (v: string) => v ? <Badge variant="outline">Uploaded</Badge> : <Badge variant="secondary">None</Badge> },
+    { key: "title", label: t("title_label"), render: renderTitle },
+    { key: "duration", label: t("duration_s_col"), render: (v: number) => `${v}s` },
+    { key: "videoUrl", label: t("video_col"), render: (v: string) => v ? <Badge variant="outline">{t("uploaded")}</Badge> : <Badge variant="secondary">{t("none")}</Badge> },
   ];
 
   return (
@@ -302,10 +302,10 @@ export default function AdminVideosPage() {
                 <Textarea value={moduleForm.description} onChange={(e) => setModuleForm((p) => ({ ...p, description: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium">Exams (optional)</label>
+                <label className="text-sm font-medium">{t("exams_optional_label")}</label>
                 <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-lg border border-border/80 min-h-[44px] mt-1">
                   {examIds.length === 0 && (
-                    <span className="text-sm text-muted-foreground/50 px-2 py-1">All exams (no restriction)</span>
+                    <span className="text-sm text-muted-foreground/50 px-2 py-1">{t("all_exams_no_restriction")}</span>
                   )}
                   {examIds.map((eId) => {
                     const exam = exams.find((e: any) => e.id === eId);
@@ -350,7 +350,7 @@ export default function AdminVideosPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium">Title</label>
+                <label className="text-sm font-medium">{t("title_label")}</label>
                 <Input value={lessonForm.title} onChange={(e) => setLessonForm((p) => ({ ...p, title: e.target.value }))} />
               </div>
               <div>
@@ -409,8 +409,8 @@ export default function AdminVideosPage() {
           open={!!deleteTarget}
           onOpenChange={() => setDeleteTarget(null)}
           onConfirm={deleteType === "module" ? deleteModule : deleteLesson}
-          title={`Delete ${deleteType}`}
-          description={`Are you sure you want to delete this ${deleteType}? This action cannot be undone.`}
+          title={deleteType === "module" ? t("delete_module") : t("delete_lesson")}
+          description={deleteType === "module" ? t("delete_module_confirm") : t("delete_lesson_confirm")}
         />
       </div>
     </PageTransition>

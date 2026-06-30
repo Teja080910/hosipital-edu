@@ -128,6 +128,8 @@ export class QuestionsController {
   }
 
   @Get(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Get question with options" })
   async findOne(@Param("id") id: string, @CurrentUser() user?: any) {
     return this.questionsService.findById(id, user);

@@ -167,7 +167,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     if (modeParam === "exam" || modeParam === "study") {
       setMode(modeParam);
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (pageState !== "taking" || mode !== "exam" || reviewMode) return;
@@ -188,7 +188,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     confirmSubmitRef.current = handleConfirmSubmit;
-  });
+  }, []);
 
   useEffect(() => {
     if (pageState !== "taking" && pageState !== "results") return;
@@ -324,16 +324,18 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     isSubmittingRef.current = true;
     submittedRef.current = true;
     setSubmitting(true); setShowSubmitDialog(false); setShowTimeWarning(false);
-    const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
-    const total = displayQuestions.length;
-    setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
-    setPageState("results");
-    useExamStore.getState().endExam();
-    window.history.replaceState({}, "", `/dashboard/exams/${id}`);
-    if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
     try {
       await Promise.all(allAttemptIds.map((aid) => attemptsApi.complete(aid)));
-    } catch { /* silent */ }
+      const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
+      const total = displayQuestions.length;
+      setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
+      setPageState("results");
+      useExamStore.getState().endExam();
+      window.history.replaceState({}, "", `/dashboard/exams/${id}`);
+      if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
+    } catch {
+      toast.error(t("submit_failed"));
+    }
     setSubmitting(false);
     isSubmittingRef.current = false;
   };

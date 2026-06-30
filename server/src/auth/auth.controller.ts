@@ -8,7 +8,7 @@ import { ResendVerificationDto } from "./dto/resend-verification.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
-import { LocalAuthGuard } from "../common/guards/local-auth.guard";
+
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { I18nService } from "../common/i18n/i18n.service";
 
@@ -21,6 +21,8 @@ export class AuthController {
   ) {}
 
   @Post("register")
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: "Register new user" })
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
@@ -80,10 +82,13 @@ export class AuthController {
 
   @Get("google")
   @ApiOperation({ summary: "Google OAuth login" })
-  async googleAuth() {}
+  async googleAuth() {
+    // TODO: Google OAuth not yet implemented
+  }
 
   @Get("google/callback")
   @ApiOperation({ summary: "Google OAuth callback" })
+  // TODO: Add @UseGuards(AuthGuard('google')) when Google OAuth is implemented
   async googleAuthRedirect(@Req() req: any) {
     return req.user;
   }

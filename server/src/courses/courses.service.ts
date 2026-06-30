@@ -178,7 +178,8 @@ export class CoursesService {
       throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
     }
 
-    if (parseFloat(course.price) === 0 || stripePaymentId || (sub && !isCourseOnly) || (isCourseOnly && subCourseId === courseId)) {
+    const isValidStripeSession = stripePaymentId?.startsWith("cs_");
+    if (parseFloat(course.price) === 0 || isValidStripeSession || (sub && !isCourseOnly) || (isCourseOnly && subCourseId === courseId)) {
       const [enrollment] = await this.db
         .insert(userCourseEnrollments)
         .values({
@@ -241,6 +242,9 @@ export class CoursesService {
     if (sub) {
       const plan = sub.subscription_plans;
       if (plan.isCourseOnly) {
+        if (plan.courseId !== courseId) {
+          return { hasAccess: false };
+        }
         return { hasAccess: true };
       }
       if (plan.examId && course.examId) {
@@ -356,6 +360,19 @@ export class CoursesService {
   }
 
   async completeLesson(userId: string, courseId: string, lessonId: string) {
+    const [enrollment] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (!enrollment) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
+
     const [existing] = await this.db
       .select()
       .from(userCourseProgress)
@@ -398,6 +415,19 @@ export class CoursesService {
   }
 
   async incompleteLesson(userId: string, courseId: string, lessonId: string) {
+    const [enrollment] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (!enrollment) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
+
     const [existing] = await this.db
       .select()
       .from(userCourseProgress)
@@ -474,7 +504,7 @@ export class CoursesService {
     if (!quiz) return null;
     if (quiz.questions && Array.isArray(quiz.questions)) {
       quiz.questions = quiz.questions.map((q: any) => {
-        const { correctAnswer, isCorrect, ...rest } = q;
+        const { correctIndex, ...rest } = q;
         return rest;
       });
     }
@@ -495,7 +525,7 @@ export class CoursesService {
     if (!quiz) return null;
     if (quiz.questions && Array.isArray(quiz.questions)) {
       quiz.questions = quiz.questions.map((q: any) => {
-        const { correctAnswer, isCorrect, ...rest } = q;
+        const { correctIndex, ...rest } = q;
         return rest;
       });
     }

@@ -35,8 +35,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
           const { data } = await subscriptionsApi.confirmCheckout(sessionId);
           if (data.status === "active") {
             await refreshUser();
-            const url = pathname.replace("?checkout=success", "").replace(`&session_id=${sessionId}`, "").replace(`?session_id=${sessionId}`, "");
-            router.replace(url);
+            router.replace(pathname);
             setChecking(false);
             return true;
           }
@@ -64,7 +63,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
     checkRef.current = checkSubscription;
     checkSubscription();
 
-    if (pathname.includes("checkout=success")) {
+    if (searchParams?.has("checkout")) {
       pollRef.current = setInterval(() => checkRef.current?.(), 2000);
       timeoutRef.current = setTimeout(() => {
         if (pollRef.current) clearInterval(pollRef.current);

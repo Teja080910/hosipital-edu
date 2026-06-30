@@ -16,6 +16,146 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { IsOptional, IsString, IsBoolean, IsNumber, IsUUID } from "class-validator";
+
+class CreateCourseDto {
+  @IsString()
+  title!: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsNumber()
+  duration?: number;
+
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
+  @IsOptional()
+  @IsString()
+  objectives?: string;
+
+  @IsOptional()
+  @IsString()
+  targetAudience?: string;
+
+  @IsOptional()
+  @IsString()
+  prerequisites?: string;
+
+  @IsOptional()
+  @IsString()
+  whatYouWillLearn?: string;
+
+  @IsOptional()
+  @IsString()
+  introduction?: string;
+
+  @IsOptional()
+  @IsString()
+  preExamInstructions?: string;
+
+  @IsOptional()
+  @IsString()
+  postExamInstructions?: string;
+}
+
+class UpdateCourseDto {
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsNumber()
+  duration?: number;
+
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
+  @IsOptional()
+  @IsString()
+  objectives?: string;
+
+  @IsOptional()
+  @IsString()
+  targetAudience?: string;
+
+  @IsOptional()
+  @IsString()
+  prerequisites?: string;
+
+  @IsOptional()
+  @IsString()
+  whatYouWillLearn?: string;
+
+  @IsOptional()
+  @IsString()
+  introduction?: string;
+
+  @IsOptional()
+  @IsString()
+  preExamInstructions?: string;
+
+  @IsOptional()
+  @IsString()
+  postExamInstructions?: string;
+}
 
 @ApiTags("courses")
 @Controller("courses")
@@ -35,7 +175,7 @@ export class CoursesController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create course (admin)" })
-  async create(@Body() data: any, @CurrentUser() user: any) {
+  async create(@Body() data: CreateCourseDto, @CurrentUser() user: any) {
     return this.coursesService.create({ ...data, createdBy: user.id });
   }
 
@@ -262,7 +402,7 @@ export class CoursesController {
   @ApiOperation({ summary: "Update course (admin)" })
   async update(
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() data: any,
+    @Body() data: UpdateCourseDto,
   ) {
     return this.coursesService.update(id, data);
   }

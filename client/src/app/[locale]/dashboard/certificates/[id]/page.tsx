@@ -49,7 +49,7 @@ export default function CertificatePage() {
     certificatesApi
       .get(id as string)
       .then(({ data }) => setCert(data))
-      .catch(() => setError("Certificate not found"))
+      .catch(() => setError(t("not_found_error")))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -138,9 +138,9 @@ export default function CertificatePage() {
   if (error || !cert) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">{error || "Certificate not found"}</p>
+        <p className="text-muted-foreground">{error || t("not_found_error")}</p>
         <Button variant="outline" asChild>
-          <Link href="/dashboard"><ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard</Link>
+          <Link href="/dashboard"><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_dashboard")}</Link>
         </Button>
       </div>
     );

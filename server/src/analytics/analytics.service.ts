@@ -10,7 +10,7 @@ import {
   questions,
   specialties,
 } from "../database/schema";
-import { eq, and, count, sql, gte, lte, desc, between } from "drizzle-orm";
+import { eq, and, count, sql, gte, desc } from "drizzle-orm";
 
 @Injectable()
 export class AnalyticsService {
@@ -222,10 +222,10 @@ export class AnalyticsService {
       .where(sql`${users.createdAt} IS NOT NULL`)
       .orderBy(sql`date_trunc('month', ${users.createdAt})::date`);
 
-    const cohorts: Record<string, { total: number; activeMonths: Set<number> }> = {};
+    const cohorts: Record<string, { total: number; activeByMonth: Map<number, Set<string>> }> = {};
     for (const row of rows) {
       const cohort = new Date(row.cohortMonth).getTime();
-      if (!cohorts[cohort]) cohorts[cohort] = { total: 0, activeMonths: new Set() };
+      if (!cohorts[cohort]) cohorts[cohort] = { total: 0, activeByMonth: new Map() };
       cohorts[cohort].total++;
     }
 
@@ -250,7 +250,12 @@ export class AnalyticsService {
         const monthOffset = Math.round(
           (new Date(act.month).getTime() - cohort) / (30 * 24 * 60 * 60 * 1000),
         );
-        if (monthOffset >= 0) cohorts[cohort].activeMonths.add(monthOffset);
+        if (monthOffset >= 0) {
+          if (!cohorts[cohort].activeByMonth.has(monthOffset)) {
+            cohorts[cohort].activeByMonth.set(monthOffset, new Set());
+          }
+          cohorts[cohort].activeByMonth.get(monthOffset)!.add(act.userId);
+        }
       }
     }
 
@@ -258,8 +263,8 @@ export class AnalyticsService {
     for (const [cohortKey, data] of Object.entries(cohorts)) {
       const retention: Record<string, number> = {};
       for (let m = 0; m <= 6; m++) {
-        const activeCount = data.activeMonths.has(m) ? 1 : 0;
-        retention[`month_${m}`] = Math.round((activeCount / data.total) * 100);
+        const activeUsersInMonth = data.activeByMonth.get(m)?.size || 0;
+        retention[`month_${m}`] = Math.round((activeUsersInMonth / data.total) * 100);
       }
       result.push({
         cohort: new Date(Number(cohortKey)).toISOString().slice(0, 7),

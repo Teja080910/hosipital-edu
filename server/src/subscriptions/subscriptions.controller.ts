@@ -116,8 +116,7 @@ export class SubscriptionsController {
 
   @Get("subscription-plans")
   @ApiOperation({ summary: "List subscription plans" })
-  async findPlans(@Query("all") all?: string, @Req() req?: any) {
-    const user = req.user;
+  async findPlans(@Query("all") all?: string, @CurrentUser() user?: any) {
     const isAdmin = user?.role === "admin";
     return this.subscriptionsService.findPlans(!(all === "true" && isAdmin));
   }

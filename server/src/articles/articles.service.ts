@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
-import { articles, articleTagsMapping, userSubscriptions, subscriptionPlans } from "../database/schema";
+import { articles, userSubscriptions, subscriptionPlans } from "../database/schema";
 import { eq, and, isNull, desc, asc } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 

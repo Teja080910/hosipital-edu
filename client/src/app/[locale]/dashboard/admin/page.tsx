@@ -1,13 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTransition } from "@/components/page-transition";
 import { StatsCard } from "@/components/admin/stats-card";
-import { Users, FileQuestion, GraduationCap, DollarSign, Activity, TrendingUp } from "lucide-react";
+import { Users, FileQuestion, GraduationCap, DollarSign } from "lucide-react";
 
 export default function AdminPage() {
   const t = useTranslations("admin");
+  const locale = useParams().locale as string;
 
   return (
     <PageTransition>
@@ -62,7 +64,7 @@ export default function AdminPage() {
                 { label: t("view_analytics"), href: "/admin/analytics" },
                 { label: t("manage_subscriptions"), href: "/admin/subscriptions" },
               ].map((item) => (
-                <a key={item.label} href={item.href}>
+                <a key={item.label} href={`/${locale}/dashboard${item.href}`}>
                   <Card className="p-4 hover:bg-muted/50 transition-colors cursor-pointer">
                     <p className="font-medium">{item.label}</p>
                   </Card>

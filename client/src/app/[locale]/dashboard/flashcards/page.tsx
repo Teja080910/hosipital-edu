@@ -128,7 +128,7 @@ export default function FlashcardsPage() {
       }
       setIsFlipped(false);
     } catch {
-      setError("Failed to load flashcards");
+      setError(c("error"));
     } finally {
       setLoading(false);
     }
@@ -169,15 +169,20 @@ export default function FlashcardsPage() {
       const items = data.data ?? [];
       if (items.length > 0) {
         pageRef.current = nextPage;
-        setCards((prev) => [...prev, ...items]);
+        setCards((prev) => {
+          const updated = [...prev, ...items];
+          setAllLoaded(updated.length >= (data.total ?? 0));
+          return updated;
+        });
+      } else {
+        setAllLoaded(true);
       }
-      setAllLoaded(cards.length + items.length >= (data.total ?? 0));
     } catch {
     } finally {
       setLoadingMore(false);
       loadingRef.current = false;
     }
-  }, [loadingMore, allLoaded, selectedSpecialty, fetchDueCards, cards.length]);
+  }, [loadingMore, allLoaded, selectedSpecialty, fetchDueCards]);
 
   const currentCard = cards[currentIndex];
 
@@ -200,7 +205,6 @@ export default function FlashcardsPage() {
       setIsFlipped(false);
     } else if (!allLoaded) {
       await loadNextPage();
-      setCurrentIndex((i) => i + 1);
       setIsFlipped(false);
     } else {
       setCards([]);

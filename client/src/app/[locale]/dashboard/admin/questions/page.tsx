@@ -26,7 +26,7 @@ import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { questionsApi, examsApi, uploadApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Check, Eye, BookOpen, Lightbulb, CheckCircle2, XCircle, ImageIcon, Upload, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Check, Eye, BookOpen, Lightbulb, CheckCircle2, XCircle, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
@@ -48,7 +48,7 @@ export default function AdminQuestionsPage() {
   const [viewQuestion, setViewQuestion] = useState<any | null>(null);
   const [viewLoading, setViewLoading] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [exams, setExams] = useState<any[]>([]);
@@ -103,9 +103,8 @@ export default function AdminQuestionsPage() {
     setDialogOpen(true);
   };
 
-  // Fix: fetch full question with options before opening edit
   const openEdit = async (q: any) => {
-    setLoadingEdit(true);
+    setLoadingEditId(q.id);
     try {
       const { data } = await questionsApi.get(q.id);
       setEditing(data);
@@ -126,7 +125,7 @@ export default function AdminQuestionsPage() {
     } catch {
       toast.error(t("load_failed_question_details"));
     } finally {
-      setLoadingEdit(false);
+      setLoadingEditId(null);
     }
   };
 
@@ -257,8 +256,8 @@ export default function AdminQuestionsPage() {
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); openView(row); }}>
             <Eye className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); openEdit(row); }} disabled={loadingEdit}>
-            {loadingEdit ? <Loader2 className="h-3 w-3 animate-spin" /> : <Pencil className="h-3.5 w-3.5" />}
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); openEdit(row); }} disabled={loadingEditId === row.id}>
+            {loadingEditId === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Pencil className="h-3.5 w-3.5" />}
           </Button>
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }}>
             <Trash2 className="h-3.5 w-3.5" />

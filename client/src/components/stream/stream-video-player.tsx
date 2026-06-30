@@ -16,9 +16,8 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const savedRef = useRef<number>(0);
 
-  if (!uid) return null;
-
   useEffect(() => {
+    if (!uid) return;
     let cancelled = false;
 
     (async () => {
@@ -72,6 +71,8 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
       window.removeEventListener("message", onMessage);
     };
   }, [uid, lessonId]);
+
+  if (!uid) return null;
 
   return (
     <div className={cn("relative aspect-video bg-black rounded-lg overflow-hidden", className)}>

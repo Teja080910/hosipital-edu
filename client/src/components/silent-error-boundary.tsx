@@ -26,7 +26,14 @@ export class SilentErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return this.props.children;
+      return (
+        <div className="flex items-center justify-center min-h-[200px] p-8 text-center">
+          <div>
+            <h3 className="text-lg font-semibold text-muted-foreground">Something went wrong</h3>
+            <p className="text-sm text-muted-foreground mt-1">An unexpected error occurred. Please try refreshing the page.</p>
+          </div>
+        </div>
+      );
     }
     return this.props.children;
   }

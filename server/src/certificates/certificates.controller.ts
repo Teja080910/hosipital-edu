@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Param, Body, UseGuards, ForbiddenException } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { CertificatesService } from "./certificates.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
@@ -21,8 +21,12 @@ export class CertificatesController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get certificate by id" })
-  async findOne(@Param("id") id: string) {
-    return this.certificatesService.findById(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: any) {
+    const cert = await this.certificatesService.findById(id);
+    if (cert.userId !== user.id && user.role !== "admin" && user.role !== "super_admin") {
+      throw new ForbiddenException();
+    }
+    return cert;
   }
 
   @Post("generate")

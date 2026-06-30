@@ -8,7 +8,6 @@ import {
   Body,
   Query,
   UseGuards,
-  Req,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { ArticlesService } from "./articles.service";
@@ -99,8 +98,8 @@ export class ArticlesController {
 
   @Get(":slug")
   @ApiOperation({ summary: "Get single article by slug" })
-  async findOne(@Param("slug") slug: string) {
-    return this.articlesService.findBySlug(slug);
+  async findOne(@Param("slug") slug: string, @CurrentUser() user?: any) {
+    return this.articlesService.findBySlug(slug, user);
   }
 
   @Post()

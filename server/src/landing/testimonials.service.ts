@@ -1,4 +1,4 @@
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { testimonials } from "../database/schema";
 import { eq, asc } from "drizzle-orm";
@@ -40,6 +40,12 @@ export class TestimonialsService {
   }
 
   async remove(id: string) {
+    const [existing] = await this.db
+      .select()
+      .from(testimonials)
+      .where(eq(testimonials.id, id))
+      .limit(1);
+    if (!existing) throw new NotFoundException("Testimonial not found");
     await this.db
       .delete(testimonials)
       .where(eq(testimonials.id, id));

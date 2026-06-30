@@ -26,7 +26,7 @@ import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { flashcardsApi, examsApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Copy, Upload, FileText, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Upload, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminFlashcardsPage() {
@@ -186,7 +186,7 @@ export default function AdminFlashcardsPage() {
       }).filter(Boolean);
 
       if (cards.length === 0) {
-        toast.error("No valid flashcards found. Use tab or comma-separated format: front\tback");
+        toast.error(t("import_no_valid"));
         setImporting(false);
         return;
       }
@@ -202,12 +202,12 @@ export default function AdminFlashcardsPage() {
         })
       );
       await Promise.all(promises);
-      toast.success(`${cards.length} flashcard(s) imported`);
+      toast.success(t("import_success", { count: cards.length }));
       setImportOpen(false);
       setImportText("");
       fetchFlashcards();
     } catch {
-      toast.error("Failed to import flashcards");
+      toast.error(t("import_failed"));
     } finally {
       setImporting(false);
     }
@@ -218,12 +218,12 @@ export default function AdminFlashcardsPage() {
     { key: "back", header: t("col_back"), render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.back}</span> },
     {
       key: "specialty",
-      header: "Specialty",
+      header: t("specialty"),
       render: (row: any) => <span className="text-sm text-muted-foreground">{row.specialty?.en || row.specialty || "—"}</span>,
     },
     {
       key: "topic",
-      header: "Topic",
+      header: t("topic"),
       render: (row: any) => <span className="text-sm text-muted-foreground">{row.topic?.en || row.topic || "—"}</span>,
     },
     {
@@ -259,7 +259,7 @@ export default function AdminFlashcardsPage() {
             <p className="text-muted-foreground">{t("flashcard_mgmt_subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-2" /> Import</Button>
+            <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-2" /> {t("import_btn")}</Button>
             <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> {t("create_flashcard")}</Button>
           </div>
         </div>
@@ -445,8 +445,8 @@ export default function AdminFlashcardsPage() {
                 <FileText className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <DialogTitle className="text-xl font-bold tracking-tight">Import Flashcards</DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Paste tab or comma-separated data (front, back) — one per line</p>
+                <DialogTitle className="text-xl font-bold tracking-tight">{t("import_flashcards")}</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("import_flashcards_desc")}</p>
               </div>
             </div>
           </DialogHeader>
@@ -459,14 +459,14 @@ export default function AdminFlashcardsPage() {
               placeholder={`front\tback\nExample question\tExample answer`}
             />
             <p className="text-xs text-muted-foreground">
-              Format: one flashcard per line, front and back separated by tab or comma
+              {t("import_format_hint")}
             </p>
           </div>
           <DialogFooter className="p-6 pt-4 border-t border-border/60 flex justify-end gap-3">
             <Button variant="outline" onClick={() => { setImportOpen(false); setImportText(""); }} className="rounded-xl px-6 h-10 text-sm font-medium">{c("cancel")}</Button>
             <Button onClick={handleImport} disabled={importing || !importText.trim()} className="rounded-xl px-6 h-10 text-sm font-medium shadow-md">
               {importing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Import
+              {t("import_btn")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -19,7 +19,7 @@ import {
   userSubscriptions,
   users,
 } from "../database/schema";
-import { getAccessibleExamId } from "../common/utils/access-helper";
+
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -100,8 +100,8 @@ export class AttemptsService {
       }
 
       const plan = sub.subscription_plans;
-      if (plan.isCourseOnly && plan.examId !== data.examId) {
-        throw new HttpException(this.i18n.t("exams.planOnlyCourses"), HttpStatus.FORBIDDEN);
+      if (plan.isCourseOnly) {
+        throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
       }
 
       if (plan.examId && plan.examId !== data.examId) {
@@ -268,6 +268,9 @@ export class AttemptsService {
 
     let answer: any;
     if (existingAnswer) {
+      const oldIsCorrect = existingAnswer.isCorrect;
+      const correctDelta = (isCorrect ? 1 : 0) - (oldIsCorrect ? 1 : 0);
+
       [answer] = await this.db
         .update(examAnswers)
         .set({
@@ -278,6 +281,14 @@ export class AttemptsService {
         })
         .where(eq(examAnswers.id, existingAnswer.id))
         .returning();
+
+      await this.db
+        .update(examAttempts)
+        .set({
+          correctCount: sql`${examAttempts.correctCount} + ${correctDelta}`,
+          timeSpent: sql`${examAttempts.timeSpent} + ${data.timeSpent}`,
+        })
+        .where(eq(examAttempts.id, data.attemptId));
     } else {
       [answer] = await this.db
         .insert(examAnswers)
@@ -289,16 +300,16 @@ export class AttemptsService {
           timeSpent: data.timeSpent,
         })
         .returning();
-    }
 
-    await this.db
-      .update(examAttempts)
-      .set({
-        answeredCount: sql`${examAttempts.answeredCount} + 1`,
-        correctCount: sql`${examAttempts.correctCount} + ${isCorrect ? 1 : 0}`,
-        timeSpent: sql`${examAttempts.timeSpent} + ${data.timeSpent}`,
-      })
-      .where(eq(examAttempts.id, data.attemptId));
+      await this.db
+        .update(examAttempts)
+        .set({
+          answeredCount: sql`${examAttempts.answeredCount} + 1`,
+          correctCount: sql`${examAttempts.correctCount} + ${isCorrect ? 1 : 0}`,
+          timeSpent: sql`${examAttempts.timeSpent} + ${data.timeSpent}`,
+        })
+        .where(eq(examAttempts.id, data.attemptId));
+    }
 
     const [attempt] = await this.db
       .select({ userId: examAttempts.userId })

@@ -46,7 +46,6 @@ import {
   Sparkles,
   Star,
   Sun,
-  Twitter,
   Video,
   Youtube
 } from "lucide-react";
