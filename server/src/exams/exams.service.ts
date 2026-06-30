@@ -24,12 +24,7 @@ export class ExamsService {
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
           .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
           .limit(1);
-        if (sub && sub.isCourseOnly) {
-          if (user.targetExamId) {
-            allowedExamId = user.targetExamId;
-            hasAccess = true;
-          }
-        } else if (sub) {
+        if (sub && !sub.isCourseOnly) {
           if (sub.examId) {
             allowedExamId = sub.examId;
           } else if (user.targetExamId) {
@@ -48,17 +43,7 @@ export class ExamsService {
       }
     }
 
-    if (user && !allowedExamId && !hasAccess && user.role !== "admin" && user.role !== "super_admin") {
-      const [sub] = await this.db
-        .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
-        .from(userSubscriptions)
-        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
-        .limit(1);
-      if (sub) {
-        hasAccess = sub.isCourseOnly ? false : true;
-      }
-    }
+    if (user && !allowedExamId && !hasAccess && user.role !== "admin" && user.role !== "super_admin") return [];
 
     const questionFilter = allowedExamId
       ? sql`(SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = ${allowedExamId} AND question_exams.question_id = questions.id)`

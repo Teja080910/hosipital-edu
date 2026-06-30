@@ -74,9 +74,10 @@ export function CourseCard({ course, enrolled, onEnroll, isEnrolling, locked }: 
           <Button className="w-full" size="sm" onClick={() => router.push("/dashboard/subscribe")}>
             <Lock className="h-4 w-4 mr-2" /> {t("subscribe_to_access")}
           </Button>
-        ) : (
-          <Button className="w-full" size="sm" onClick={() => router.push(`/dashboard/courses/${course.slug || course.id}`)}>
-            <BookOpen className="h-4 w-4 mr-2" /> {t("watch")}
+        ) : onEnroll && (
+          <Button className="w-full" size="sm" onClick={onEnroll} disabled={isEnrolling}>
+            {isEnrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {t("enroll_now")}
           </Button>
         )}
       </CardContent>

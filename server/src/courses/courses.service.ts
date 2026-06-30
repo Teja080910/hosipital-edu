@@ -223,19 +223,6 @@ export class CoursesService {
       .limit(1);
     if (!course) return { hasAccess: false };
 
-    const [enrollment] = await this.db
-      .select()
-      .from(userCourseEnrollments)
-      .where(
-        and(
-          eq(userCourseEnrollments.userId, userId),
-          eq(userCourseEnrollments.courseId, courseId),
-          eq(userCourseEnrollments.status, "active"),
-        ),
-      )
-      .limit(1);
-    if (enrollment) return { hasAccess: true };
-
     const [sub] = await this.db
       .select()
       .from(userSubscriptions)
@@ -254,40 +241,58 @@ export class CoursesService {
     if (sub) {
       const plan = sub.subscription_plans;
       if (plan.isDefault) {
+        const [user] = await this.db
+          .select({ targetExamId: users.targetExamId })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (user?.targetExamId && course.examId && user.targetExamId === course.examId) {
+          const [firstCourse] = await this.db
+            .select({ id: courses.id })
+            .from(courses)
+            .where(and(eq(courses.examId, user.targetExamId), eq(courses.isActive, true)))
+            .orderBy(asc(courses.sortOrder))
+            .limit(1);
+          if (firstCourse && firstCourse.id === courseId) {
+            return { hasAccess: true, isTrial: true };
+          }
+        } else if (!user?.targetExamId) {
+          const [firstCourse] = await this.db
+            .select({ id: courses.id })
+            .from(courses)
+            .where(eq(courses.isActive, true))
+            .orderBy(asc(courses.sortOrder))
+            .limit(1);
+          if (firstCourse && firstCourse.id === courseId) {
+            return { hasAccess: true, isTrial: true };
+          }
+        }
+        return { hasAccess: false };
+      }
+      if (!plan.examId && !plan.isCourseOnly) return { hasAccess: true };
+      if (plan.examId && course.examId && plan.examId === course.examId) return { hasAccess: true };
+      if (plan.isCourseOnly && plan.courseId === courseId) return { hasAccess: true };
+    }
+
+    const [user] = await this.db
+      .select({ targetExamId: users.targetExamId, createdAt: users.createdAt })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (user && user.targetExamId && course.examId && user.targetExamId === course.examId) {
+      const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+      if (hoursSinceRegistration <= 24) {
         const [firstCourse] = await this.db
           .select({ id: courses.id })
           .from(courses)
-          .where(eq(courses.isActive, true))
+          .where(and(eq(courses.examId, user.targetExamId), eq(courses.isActive, true)))
           .orderBy(asc(courses.sortOrder))
           .limit(1);
         if (firstCourse && firstCourse.id === courseId) {
           return { hasAccess: true, isTrial: true };
         }
-        return { hasAccess: false };
       }
-      if (plan.isCourseOnly && plan.courseId && plan.courseId === courseId) {
-        return { hasAccess: true };
-      }
-      if (!plan.examId && !plan.isCourseOnly) {
-        return { hasAccess: true };
-      }
-      if (plan.examId && course.examId && plan.examId === course.examId) {
-        return { hasAccess: true };
-      }
-      if (plan.isCourseOnly && !plan.courseId) {
-        return { hasAccess: true };
-      }
-      return { hasAccess: false };
-    }
-
-    const [user] = await this.db
-      .select({ targetExamId: users.targetExamId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (user?.targetExamId && course.examId && user.targetExamId === course.examId) {
-      return { hasAccess: true, isTrial: true };
     }
 
     return { hasAccess: false };
