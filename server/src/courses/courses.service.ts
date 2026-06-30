@@ -256,6 +256,16 @@ export class CoursesService {
           if (firstCourse && firstCourse.id === courseId) {
             return { hasAccess: true, isTrial: true };
           }
+        } else if (!user?.targetExamId) {
+          const [firstCourse] = await this.db
+            .select({ id: courses.id })
+            .from(courses)
+            .where(eq(courses.isActive, true))
+            .orderBy(asc(courses.sortOrder))
+            .limit(1);
+          if (firstCourse && firstCourse.id === courseId) {
+            return { hasAccess: true, isTrial: true };
+          }
         }
         return { hasAccess: false };
       }
