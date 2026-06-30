@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "@/routing";
 import { Loader2 } from "lucide-react";
 
-export function AccountTypeGate({ children, allowedTypes = ["full"] }: { children: ReactNode; allowedTypes?: string[] }) {
+export function AccountTypeGate({ children, allowedTypes = ["full", "course_only"] }: { children: ReactNode; allowedTypes?: string[] }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
