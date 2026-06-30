@@ -19,13 +19,15 @@ export class ExamsService {
       const isAdmin = user.role === "admin" || user.role === "super_admin";
       if (!isAdmin) {
         const [sub] = await this.db
-          .select({ examId: subscriptionPlans.examId })
+          .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
           .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
           .limit(1);
-        if (sub?.examId) {
-          allowedExamId = sub.examId;
+        if (sub && !sub.isCourseOnly) {
+          if (sub.examId) {
+            allowedExamId = sub.examId;
+          }
           hasAccess = true;
         } else if (user.targetExamId) {
           allowedExamId = user.targetExamId;
@@ -80,8 +82,10 @@ export class ExamsService {
         .limit(1);
 
       if (sub && sub.isCourseOnly) return [];
-      if (sub?.examId) {
-        allowedExamId = sub.examId;
+      if (sub) {
+        if (sub.examId) {
+          allowedExamId = sub.examId;
+        }
         hasAccess = true;
       } else if (user.targetExamId) {
         allowedExamId = user.targetExamId;
@@ -140,12 +144,14 @@ export class ExamsService {
         if (!sub || sub.isCourseOnly) {
           if (user.targetExamId && user.targetExamId === id) {
             // Allow viewing exam details (specialties/topics) even after trial
-          } else {
+          } else if (!sub) {
             throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
           }
+          // sub exists but isCourseOnly and no targetExamId match -> blocked
         } else if (sub.examId && sub.examId !== id) {
           throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
         }
+        // sub exists, not courseOnly, no examId (general plan) -> allowed
       }
     }
 
