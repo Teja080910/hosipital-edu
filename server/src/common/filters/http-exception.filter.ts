@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from "@nestjs/common";
+import { ThrottlerException } from "@nestjs/throttler";
 import { I18nService } from "../i18n/i18n.service";
 
 @Catch()
@@ -22,7 +23,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const fallbackMsg = locale === "es" ? "Error interno del servidor" : "Internal server error";
     let message: string | string[] = fallbackMsg;
 
-    if (exception instanceof HttpException) {
+    if (exception instanceof ThrottlerException) {
+      status = HttpStatus.TOO_MANY_REQUESTS;
+      message = locale === "es"
+        ? "Demasiados intentos. Intenta de nuevo en un minuto."
+        : "Too many attempts. Please try again in a minute.";
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res = exception.getResponse();
       message =
