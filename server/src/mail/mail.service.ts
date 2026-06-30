@@ -33,7 +33,7 @@ export class MailService {
   }
 
   private get from(): string {
-    return this.config.get<string>("MAIL_FROM", "MD Exam <noreply@mail.agrinp.cloud>");
+    return this.config.get<string>("MAIL_FROM", "MD Exam <onboarding@resend.dev>");
   }
 
   async sendEmail(to: string, subject: string, html: string) {
