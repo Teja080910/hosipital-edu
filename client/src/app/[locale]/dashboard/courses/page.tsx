@@ -67,6 +67,15 @@ export default function CoursesPage() {
         });
         setLockedSet(locked);
 
+        // if user has access via subscription (not trial), mark as enrolled
+        const subscribed = new Set<string>(enrolled);
+        accessChecks.forEach((res, i) => {
+          if (res.status === "fulfilled" && res.value.data.hasAccess && !res.value.data.isTrial && !enrolled.has(data[i].id)) {
+            subscribed.add(data[i].id);
+          }
+        });
+        setEnrolledIds(subscribed);
+
         if (slugs.length > 0) {
           const progressResults = await Promise.allSettled(
             slugs.map((s) => coursesApi.getProgress(s))

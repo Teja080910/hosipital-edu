@@ -240,8 +240,8 @@ export class CoursesService {
 
     if (sub) {
       const plan = sub.subscription_plans;
-      if (plan.isCourseOnly && plan.courseId) {
-        return { hasAccess: plan.courseId === courseId };
+      if (plan.isCourseOnly) {
+        return { hasAccess: true };
       }
       if (plan.examId && course.examId) {
         return { hasAccess: plan.examId === course.examId };
@@ -250,18 +250,18 @@ export class CoursesService {
     }
 
     const [user] = await this.db
-      .select({ targetExamId: users.targetExamId, createdAt: users.createdAt })
+      .select({ createdAt: users.createdAt })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
 
-    if (user && user.targetExamId && course.examId && user.targetExamId === course.examId) {
+    if (user) {
       const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
       if (hoursSinceRegistration <= 24) {
         const [firstCourse] = await this.db
           .select({ id: courses.id })
           .from(courses)
-          .where(and(eq(courses.examId, user.targetExamId), eq(courses.isActive, true)))
+          .where(eq(courses.isActive, true))
           .orderBy(asc(courses.sortOrder))
           .limit(1);
         if (firstCourse && firstCourse.id === courseId) {

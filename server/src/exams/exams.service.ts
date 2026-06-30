@@ -24,15 +24,12 @@ export class ExamsService {
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
           .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
           .limit(1);
-        if (sub && !sub.isCourseOnly) {
+        if (sub) {
           if (sub.examId) {
             allowedExamId = sub.examId;
           } else if (user.targetExamId) {
             allowedExamId = user.targetExamId;
           }
-          hasAccess = true;
-        } else if (sub && sub.isCourseOnly && user.targetExamId) {
-          allowedExamId = user.targetExamId;
           hasAccess = true;
         } else if (user.targetExamId) {
           allowedExamId = user.targetExamId;
