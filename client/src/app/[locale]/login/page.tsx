@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 export default function LoginPage() {
   const t = useTranslations("auth");
@@ -27,7 +27,7 @@ export default function LoginPage() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileRef = useRef<HTMLDivElement>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +47,7 @@ export default function LoginPage() {
       setErrorMsg(Array.isArray(msg) ? msg[0] : msg);
       setLoading(false);
       setTurnstileToken(null);
+      turnstileRef.current?.reset();
     }
   };
 
@@ -154,6 +155,7 @@ export default function LoginPage() {
                 className="flex justify-center"
               >
                 <Turnstile
+                  ref={turnstileRef}
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
                   onSuccess={setTurnstileToken}
                   onExpire={() => setTurnstileToken(null)}
