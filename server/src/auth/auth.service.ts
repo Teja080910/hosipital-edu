@@ -232,11 +232,11 @@ export class AuthService {
   }
 
   private async verifyTurnstile(token?: string) {
+    const secret = this.config.get<string>("TURNSTILE_SECRET_KEY");
+    if (!secret || secret.startsWith("0x")) return;
     if (!token) {
       throw new BadRequestException(this.i18n.t("auth.captchaRequired"));
     }
-    const secret = this.config.get<string>("TURNSTILE_SECRET_KEY");
-    if (!secret) return;
     const form = new URLSearchParams();
     form.append("secret", secret);
     form.append("response", token);

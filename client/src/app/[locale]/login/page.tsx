@@ -30,16 +30,18 @@ export default function LoginPage() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
 
+  const isTurnstileEnabled = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY.startsWith("1x");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!turnstileToken) {
+    if (isTurnstileEnabled && !turnstileToken) {
       setErrorMsg(t("captcha_required"));
       return;
     }
     setLoading(true);
     setErrorMsg(null);
     try {
-      await login(email, password, turnstileToken);
+      await login(email, password, turnstileToken!);
       toast.success(t("welcome_back"));
       setLoading(false);
       router.push("/dashboard");
