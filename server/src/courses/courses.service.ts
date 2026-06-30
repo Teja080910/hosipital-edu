@@ -240,6 +240,25 @@ export class CoursesService {
 
     if (sub) {
       const plan = sub.subscription_plans;
+      if (plan.isDefault) {
+        const [user] = await this.db
+          .select({ targetExamId: users.targetExamId })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (user?.targetExamId && course.examId && user.targetExamId === course.examId) {
+          const [firstCourse] = await this.db
+            .select({ id: courses.id })
+            .from(courses)
+            .where(and(eq(courses.examId, user.targetExamId), eq(courses.isActive, true)))
+            .orderBy(asc(courses.sortOrder))
+            .limit(1);
+          if (firstCourse && firstCourse.id === courseId) {
+            return { hasAccess: true, isTrial: true };
+          }
+        }
+        return { hasAccess: false };
+      }
       if (!plan.examId && !plan.isCourseOnly) return { hasAccess: true };
       if (plan.examId && course.examId && plan.examId === course.examId) return { hasAccess: true };
       if (plan.isCourseOnly && plan.courseId === courseId) return { hasAccess: true };
