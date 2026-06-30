@@ -16,6 +16,139 @@ import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { IsOptional, IsString, IsBoolean, IsNumber, IsArray } from "class-validator";
+
+class CreateExamDto {
+  @IsString()
+  title!: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class UpdateExamDto {
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class CreateSpecialtyDto {
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class UpdateSpecialtyDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class CreateTopicDto {
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class UpdateTopicDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class CreateSubtopicDto {
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class UpdateSubtopicDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
 
 @ApiTags("exams")
 @Controller("exams")
@@ -43,7 +176,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create exam (admin)" })
-  async create(@Body() data: any) {
+  async create(@Body() data: CreateExamDto) {
     return this.examsService.create(data);
   }
 
@@ -52,7 +185,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update exam (admin)" })
-  async update(@Param("id") id: string, @Body() data: any) {
+  async update(@Param("id") id: string, @Body() data: UpdateExamDto) {
     return this.examsService.update(id, data);
   }
 
@@ -63,7 +196,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create specialty (admin)" })
-  async createSpecialty(@Param("examId") examId: string, @Body() data: any) {
+  async createSpecialty(@Param("examId") examId: string, @Body() data: CreateSpecialtyDto) {
     return this.examsService.createSpecialty(examId, data);
   }
 
@@ -72,7 +205,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update specialty (admin)" })
-  async updateSpecialty(@Param("id") id: string, @Body() data: any) {
+  async updateSpecialty(@Param("id") id: string, @Body() data: UpdateSpecialtyDto) {
     return this.examsService.updateSpecialty(id, data);
   }
 
@@ -92,7 +225,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create topic (admin)" })
-  async createTopic(@Param("specialtyId") specialtyId: string, @Body() data: any) {
+  async createTopic(@Param("specialtyId") specialtyId: string, @Body() data: CreateTopicDto) {
     return this.examsService.createTopic(specialtyId, data);
   }
 
@@ -101,7 +234,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update topic (admin)" })
-  async updateTopic(@Param("id") id: string, @Body() data: any) {
+  async updateTopic(@Param("id") id: string, @Body() data: UpdateTopicDto) {
     return this.examsService.updateTopic(id, data);
   }
 
@@ -121,7 +254,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create subtopic (admin)" })
-  async createSubtopic(@Param("topicId") topicId: string, @Body() data: any) {
+  async createSubtopic(@Param("topicId") topicId: string, @Body() data: CreateSubtopicDto) {
     return this.examsService.createSubtopic(topicId, data);
   }
 
@@ -130,7 +263,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update subtopic (admin)" })
-  async updateSubtopic(@Param("id") id: string, @Body() data: any) {
+  async updateSubtopic(@Param("id") id: string, @Body() data: UpdateSubtopicDto) {
     return this.examsService.updateSubtopic(id, data);
   }
 

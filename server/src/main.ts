@@ -11,10 +11,26 @@ import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { LanguageInterceptor } from "./common/interceptors/language.interceptor";
 
 async function bootstrap() {
+  const fastifyInstance = new FastifyAdapter({
+    logger: true,
+    bodyLimit: 1048576,
+  });
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: true }),
+    fastifyInstance,
   );
+
+  const instance = app.getHttpAdapter().getInstance();
+  instance.addContentTypeParser("application/json", { parseAs: "buffer", override: true }, (req: any, body: Buffer, done: any) => {
+    req.rawBody = body;
+    try {
+      const parsed = JSON.parse(body.toString());
+      done(null, parsed);
+    } catch (err) {
+      done(err as Error);
+    }
+  });
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN || "http://localhost:4175",

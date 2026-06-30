@@ -16,6 +16,65 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { IsOptional, IsString, IsBoolean, IsUUID } from "class-validator";
+
+class CreateArticleDto {
+  @IsString()
+  title!: string;
+
+  @IsString()
+  content!: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  excerpt?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+}
+
+class UpdateArticleDto {
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  content?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  excerpt?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+}
 
 @ApiTags("articles")
 @Controller("articles")
@@ -48,7 +107,7 @@ export class ArticlesController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create article (admin)" })
-  async create(@Body() data: any, @CurrentUser() user: any) {
+  async create(@Body() data: CreateArticleDto, @CurrentUser() user: any) {
     return this.articlesService.create({ ...data, authorId: user.id });
   }
 
@@ -57,7 +116,7 @@ export class ArticlesController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update article (admin)" })
-  async update(@Param("id") id: string, @Body() data: any) {
+  async update(@Param("id") id: string, @Body() data: UpdateArticleDto) {
     return this.articlesService.update(id, data);
   }
 

@@ -16,6 +16,29 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { I18nService } from "../common/i18n/i18n.service";
 import { UsersService } from "./users.service";
+import { IsOptional, IsString, IsEmail, IsBoolean } from "class-validator";
+
+class UpdateUserDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  targetExamId?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  emailVerified?: boolean;
+}
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -79,7 +102,7 @@ export class UsersController {
   @ApiOperation({ summary: "Update user" })
   async update(
     @Param("id") id: string,
-    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false })) data: any,
+    @Body() data: UpdateUserDto,
     @CurrentUser() user: any,
   ) {
     if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {

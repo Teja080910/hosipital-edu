@@ -16,6 +16,57 @@ import { RolesGuard } from "../common/guards/roles.guard";
 import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { IsOptional, IsString, IsUUID } from "class-validator";
+
+class CreateFlashcardDto {
+  @IsString()
+  front!: string;
+
+  @IsString()
+  back!: string;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  topicId?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+}
+
+class UpdateFlashcardDto {
+  @IsOptional()
+  @IsString()
+  front?: string;
+
+  @IsOptional()
+  @IsString()
+  back?: string;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  topicId?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+}
 
 @ApiTags("flashcards")
 @Controller("flashcards")
@@ -61,7 +112,7 @@ export class FlashcardsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create flashcard (admin)" })
-  async create(@Body() data: any, @CurrentUser() user: any) {
+  async create(@Body() data: CreateFlashcardDto, @CurrentUser() user: any) {
     return this.flashcardsService.create({ ...data, createdBy: user.id });
   }
 
@@ -70,7 +121,7 @@ export class FlashcardsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update flashcard (admin)" })
-  async update(@Param("id") id: string, @Body() data: any) {
+  async update(@Param("id") id: string, @Body() data: UpdateFlashcardDto) {
     return this.flashcardsService.update(id, data);
   }
 
