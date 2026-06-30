@@ -14,7 +14,14 @@ export async function getAccessibleExamId(
 
   if (sub) {
     if (sub.examId) return sub.examId;
-    return null; // general plan — caller should show all content
+    // general plan — show all content only if user has no target exam
+    const [user] = await db
+      .select({ targetExamId: users.targetExamId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (user?.targetExamId) return user.targetExamId;
+    return null;
   }
 
   const [user] = await db

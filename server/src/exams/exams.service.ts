@@ -27,6 +27,8 @@ export class ExamsService {
         if (sub && !sub.isCourseOnly) {
           if (sub.examId) {
             allowedExamId = sub.examId;
+          } else if (user.targetExamId) {
+            allowedExamId = user.targetExamId;
           }
           hasAccess = true;
         } else if (user.targetExamId) {
@@ -85,6 +87,8 @@ export class ExamsService {
       if (sub) {
         if (sub.examId) {
           allowedExamId = sub.examId;
+        } else if (user.targetExamId) {
+          allowedExamId = user.targetExamId;
         }
         hasAccess = true;
       } else if (user.targetExamId) {
