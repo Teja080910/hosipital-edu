@@ -197,7 +197,7 @@ export default function LoginPage() {
                     className="mb-3 text-center"
                   >
                     <p className="text-sm font-medium text-destructive">{errorMsg}</p>
-                    {errorMsg.includes("verify your email") && (
+                    {(errorMsg.includes("verify your email") || errorMsg.includes("verifica tu correo")) && (
                       <button
                         type="button"
                         onClick={handleResend}

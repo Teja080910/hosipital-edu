@@ -108,7 +108,14 @@ export class AuthService {
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new UnauthorizedException(this.i18n.t("auth.incorrectPassword"));
-    if (!user.emailVerifiedAt) throw new UnauthorizedException(this.i18n.t("auth.emailNotVerified"));
+    if (!user.emailVerifiedAt) {
+      const token = this.jwtService.sign(
+        { sub: user.id, purpose: "email-verify" },
+        { expiresIn: "24h" },
+      );
+      await this.mailService.sendVerificationEmail(user.email, user.name, token);
+      throw new UnauthorizedException(this.i18n.t("auth.emailNotVerified"));
+    }
     const tokens = await this.generateTokens(user);
     return { user: this.sanitizeUser(user), ...tokens };
   }
