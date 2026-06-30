@@ -156,7 +156,7 @@
     "target_exam": "Examen Objetivo",
     "select_exam": "Selecciona tu examen objetivo",
     "something_went_wrong": "Algo salió mal. Inténtalo de nuevo.",
-    "courses_only": "Solo Cursos",
+    "courses_only": "Cursos Clínicos",
     "invalid_reset_token": "Token de restablecimiento inválido o faltante",
     "invalid_link": "Enlace Inválido",
     "invalid_link_desc": "Este enlace de restablecimiento no es válido o ha expirado.",

@@ -156,7 +156,7 @@
     "target_exam": "Target Exam",
     "select_exam": "Select your target exam",
     "something_went_wrong": "Something went wrong. Please try again.",
-    "courses_only": "Courses Only",
+    "courses_only": "Clinical Courses",
     "invalid_reset_token": "Invalid or missing reset token",
     "invalid_link": "Invalid Link",
     "invalid_link_desc": "This password reset link is invalid or has expired.",

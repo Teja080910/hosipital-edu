@@ -40,12 +40,12 @@ import { useAuth } from "@/hooks/use-auth";
 
 const allNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "dashboard" },
-  { href: "/dashboard/flashcards", icon: Library, label: "flashcards", accountTypes: ["full", "course_only"] },
-  { href: "/dashboard/exams", icon: GraduationCap, label: "exams", accountTypes: ["full", "course_only"] },
+  { href: "/dashboard/flashcards", icon: Library, label: "flashcards", accountTypes: ["full"] },
+  { href: "/dashboard/exams", icon: GraduationCap, label: "exams", accountTypes: ["full"] },
   { href: "/dashboard/courses", icon: BookOpen, label: "courses" },
-  { href: "/dashboard/calendar", icon: Calendar, label: "calendar", accountTypes: ["full", "course_only"] },
-  { href: "/dashboard/progress", icon: BarChart3, label: "progress", accountTypes: ["full", "course_only"] },
-  { href: "/dashboard/videos", icon: Video, label: "videos", accountTypes: ["full", "course_only"] },
+  { href: "/dashboard/calendar", icon: Calendar, label: "calendar", accountTypes: ["full"] },
+  { href: "/dashboard/progress", icon: BarChart3, label: "progress", accountTypes: ["full"] },
+  { href: "/dashboard/videos", icon: Video, label: "videos", accountTypes: ["full"] },
 ];
 
 const adminItems = [

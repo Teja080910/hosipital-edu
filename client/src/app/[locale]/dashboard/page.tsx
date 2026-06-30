@@ -27,7 +27,6 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const isFull = user?.accountType === "full" || user?.role === "admin" || user?.role === "super_admin";
-  const hasSubscription = user?.accountType === "full" || user?.accountType === "course_only" || user?.role === "admin" || user?.role === "super_admin";
   const [stats, setStats] = useState<any>(null);
   const [exams, setExams] = useState<any[]>([]);
   const [recentAttempts, setRecentAttempts] = useState<any[]>([]);
@@ -36,13 +35,13 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return;
     const promises: Promise<any>[] = [];
-    if (hasSubscription) {
+    if (isFull) {
       promises.push(analyticsApi.userStats().then(({ data }) => setStats(data)).catch(() => {}));
       promises.push(examsApi.list().then((res) => setExams((res.data || []).slice(0, 4))).catch(() => {}));
       promises.push(attemptsApi.list().then((res) => setRecentAttempts((res.data || []).slice(0, PAGE_SIZE))).catch(() => {}));
     }
     Promise.all(promises).finally(() => setLoading(false));
-  }, [user, hasSubscription]);
+  }, [user, isFull]);
 
   const statCards = stats
     ? [
