@@ -36,6 +36,7 @@ export default function CoursesPage() {
   const [enrolling, setEnrolling] = useState<string | null>(null);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
+  const [lockedSet, setLockedSet] = useState<Set<string>>(new Set());
 
   const fetchCourses = async () => {
     try {
@@ -54,6 +55,18 @@ export default function CoursesPage() {
           }
         });
         setEnrolledIds(enrolled);
+
+        const accessChecks = await Promise.allSettled(
+          data.map((c: Course) => coursesApi.checkAccess(c.slug))
+        );
+        const locked = new Set<string>();
+        accessChecks.forEach((res, i) => {
+          if (res.status === "fulfilled" && !res.value.data.hasAccess && !enrolled.has(data[i].id)) {
+            locked.add(data[i].id);
+          }
+        });
+        setLockedSet(locked);
+
         if (slugs.length > 0) {
           const progressResults = await Promise.allSettled(
             slugs.map((s) => coursesApi.getProgress(s))
@@ -130,6 +143,7 @@ export default function CoursesPage() {
                 enrolled={enrolledIds.has(course.id)}
                 onEnroll={() => handleEnroll(course.id, course.slug)}
                 isEnrolling={enrolling === course.id}
+                locked={lockedSet.has(course.id)}
               />
             ))}
           </div>
