@@ -84,7 +84,7 @@ export default function CoursesPage() {
         }
       }
     } catch {
-      toast.error(t("load_failed"));
+      console.error("Failed to load courses");
     } finally {
       setLoading(false);
     }
