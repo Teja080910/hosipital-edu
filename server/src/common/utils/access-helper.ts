@@ -23,6 +23,8 @@ export async function getAccessibleExamId(
   if (user?.targetExamId) {
     const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
     if (hoursSinceRegistration <= 24) return user.targetExamId;
+    // user was assigned a target exam by admin — show content even after 24h
+    return user.targetExamId;
   }
 
   return null;

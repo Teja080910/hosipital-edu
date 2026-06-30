@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,9 +19,9 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
-import { articlesApi } from "@/lib/api";
+import { articlesApi, uploadApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, ImagePlus, Loader2, EyeOff } from "lucide-react";
 
 export default function AdminArticlesPage() {
   const t = useTranslations("admin");
@@ -34,6 +34,10 @@ export default function AdminArticlesPage() {
   const [editing, setEditing] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     title: "",
     content: "",
@@ -96,6 +100,41 @@ export default function AdminArticlesPage() {
       toast.error(msg);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const ext = file.name.split(".").pop() || "png";
+      const key = `article-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { data } = await uploadApi.uploadFile(key, base64, file.type);
+      const imgTag = `<img src="${data.url}" alt="" />`;
+      const ta = contentRef.current;
+      if (ta) {
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const before = form.content.slice(0, start);
+        const after = form.content.slice(end);
+        setForm({ ...form, content: before + imgTag + after });
+        requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + imgTag.length; ta.focus(); });
+      } else {
+        setForm({ ...form, content: form.content + imgTag });
+      }
+      toast.success(t("image_uploaded"));
+    } catch {
+      toast.error(t("image_upload_failed"));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
@@ -195,14 +234,54 @@ export default function AdminArticlesPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content")}</label>
-              <Textarea
-                value={form.content}
-                onChange={(e) => setForm({ ...form, content: e.target.value })}
-                rows={8}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[200px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder={t("article_content_placeholder")}
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content")}</label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploading}
+                    onClick={() => fileRef.current?.click()}
+                    className="h-8 gap-1.5 rounded-lg text-xs"
+                  >
+                    {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                    {uploading ? c("loading") : t("add_image")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreview(!preview)}
+                    className="h-8 gap-1.5 rounded-lg text-xs"
+                  >
+                    {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    {preview ? "Edit" : "Preview"}
+                  </Button>
+                </div>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
               />
+              {preview ? (
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none w-full min-h-[200px] p-4 rounded-xl border border-border/80 bg-background"
+                  dangerouslySetInnerHTML={{ __html: form.content || `<p class='text-muted-foreground/50 italic'>${t("no_content_yet")}</p>` }}
+                />
+              ) : (
+                <Textarea
+                  ref={contentRef}
+                  value={form.content}
+                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                  rows={8}
+                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[200px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                  placeholder={t("article_content_placeholder")}
+                />
+              )}
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border/60">
