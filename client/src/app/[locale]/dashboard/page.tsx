@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { BookOpen, Brain, GraduationCap, Target, Loader2, ChevronRight, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { BookOpen, Brain, GraduationCap, Target, Loader2, ChevronRight, Clock, CheckCircle2, XCircle, Lock } from "lucide-react";
 import { PageTransition } from "@/components/page-transition";
-import { Link } from "@/routing";
+import { Link, useRouter } from "@/routing";
 import { analyticsApi, examsApi, attemptsApi } from "@/lib/api";
 
 const PAGE_SIZE = 5;
@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const tp = useTranslations("progress");
   const te = useTranslations("exams");
   const { user } = useAuth();
+  const router = useRouter();
   const isFull = user?.accountType === "full" || user?.role === "admin" || user?.role === "super_admin";
   const [stats, setStats] = useState<any>(null);
   const [exams, setExams] = useState<any[]>([]);
@@ -97,17 +98,29 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-3">
                   {exams.map((exam: any) => (
-                    <Link key={exam.id} href={`/dashboard/exams/${exam.id}`}>
-                      <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                    exam.hasAccess === false ? (
+                      <Card key={exam.id} className="cursor-pointer" onClick={() => router.push("/dashboard/subscribe")}>
                         <CardContent className="flex items-center justify-between p-4">
                           <div>
                             <p className="font-medium">{localized(exam.name)}</p>
                             <p className="text-sm text-muted-foreground">{te("questions_count", { count: exam._questionCount ?? "—" })}</p>
                           </div>
-                          <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                          <Lock className="h-5 w-5 text-muted-foreground" />
                         </CardContent>
                       </Card>
-                    </Link>
+                    ) : (
+                      <Link key={exam.id} href={`/dashboard/exams/${exam.id}`}>
+                        <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                          <CardContent className="flex items-center justify-between p-4">
+                            <div>
+                              <p className="font-medium">{localized(exam.name)}</p>
+                              <p className="text-sm text-muted-foreground">{te("questions_count", { count: exam._questionCount ?? "—" })}</p>
+                            </div>
+                            <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    )
                   ))}
                 </div>
               )}

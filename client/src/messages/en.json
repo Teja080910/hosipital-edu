@@ -1012,7 +1012,8 @@
       "step_1": "See your overall stats: questions answered, accuracy, study streak, total hours",
       "step_2": "View the weekly activity chart to see your study pattern",
       "step_3": "Check accuracy by specialty to identify weak areas",
-      "step_4": "Review your streak calendar for the last 30 days"
+      "step_4": "Review your streak calendar for the last 30 days",
+      "subscribe": "Subscribe to Access"
     },
     "subscription": {
       "title": "Subscription & Billing",

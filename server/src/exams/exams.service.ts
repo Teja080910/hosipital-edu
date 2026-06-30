@@ -14,10 +14,28 @@ export class ExamsService {
 
   async findAll(user?: any) {
     let allowedExamId: string | null = null;
+    let hasAccess = false;
     if (user) {
       const isAdmin = user.role === "admin" || user.role === "super_admin";
       if (!isAdmin) {
-        allowedExamId = await getAccessibleExamId(this.db, user.id);
+        const [sub] = await this.db
+          .select({ examId: subscriptionPlans.examId })
+          .from(userSubscriptions)
+          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+          .limit(1);
+        if (sub?.examId) {
+          allowedExamId = sub.examId;
+          hasAccess = true;
+        } else if (user.targetExamId) {
+          allowedExamId = user.targetExamId;
+          const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+          if (hoursSinceRegistration <= 24) {
+            hasAccess = true;
+          }
+        }
+      } else {
+        hasAccess = true;
       }
     }
 
@@ -45,7 +63,61 @@ export class ExamsService {
       .from(exams)
       .where(examFilter)
       .orderBy(asc(exams.sortOrder));
-    return rows;
+    return rows.map((r) => ({ ...r, hasAccess }));
+  }
+
+  async findSubscribed(user: any) {
+    const isAdmin = user.role === "admin" || user.role === "super_admin";
+    let allowedExamId: string | null = null;
+    let hasAccess = false;
+
+    if (!isAdmin) {
+      const [sub] = await this.db
+        .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
+        .from(userSubscriptions)
+        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+        .limit(1);
+
+      if (sub && sub.isCourseOnly) return [];
+      if (sub?.examId) {
+        allowedExamId = sub.examId;
+        hasAccess = true;
+      } else if (user.targetExamId) {
+        allowedExamId = user.targetExamId;
+        const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+        if (hoursSinceRegistration <= 24) {
+          hasAccess = true;
+        }
+      }
+    } else {
+      hasAccess = true;
+    }
+
+    const questionFilter = allowedExamId
+      ? sql`EXISTS (SELECT 1 FROM question_exams WHERE question_exams.exam_id = ${allowedExamId} AND question_exams.question_id = questions.id) OR questions.exam_id = ${allowedExamId}`
+      : sql`EXISTS (SELECT 1 FROM question_exams WHERE question_exams.exam_id = exams.id AND question_exams.question_id = questions.id) OR questions.exam_id = exams.id`;
+
+    const examFilter = allowedExamId
+      ? eq(exams.id, allowedExamId)
+      : eq(exams.isActive, true);
+
+    const rows = await this.db
+      .select({
+        id: exams.id,
+        slug: exams.slug,
+        name: exams.name,
+        description: exams.description,
+        group: exams.group,
+        isActive: exams.isActive,
+        sortOrder: exams.sortOrder,
+        createdAt: exams.createdAt,
+        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE (${questionFilter}) AND questions.is_active = true)`,
+      })
+      .from(exams)
+      .where(examFilter)
+      .orderBy(asc(exams.sortOrder));
+    return rows.map((r) => ({ ...r, hasAccess }));
   }
 
   async findById(id: string, user?: any) {
@@ -59,8 +131,20 @@ export class ExamsService {
     if (user) {
       const isAdmin = user.role === "admin" || user.role === "super_admin";
       if (!isAdmin) {
-        const allowedExamId = await getAccessibleExamId(this.db, user.id);
-        if (allowedExamId && allowedExamId !== id) {
+        const [sub] = await this.db
+          .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
+          .from(userSubscriptions)
+          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+          .limit(1);
+
+        if (!sub || sub.isCourseOnly) {
+          if (user.targetExamId && user.targetExamId === id) {
+            // Allow viewing exam details (specialties/topics) even after trial
+          } else {
+            throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
+          }
+        } else if (sub.examId && sub.examId !== id) {
           throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
         }
       }

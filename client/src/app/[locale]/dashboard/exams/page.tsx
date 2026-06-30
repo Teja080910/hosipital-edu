@@ -11,7 +11,7 @@ import { PageTransition } from "@/components/page-transition";
 import { AccountTypeGate } from "@/components/account-type-gate";
 import { ExamHistory } from "@/components/exams/exam-history";
 import { examsApi } from "@/lib/api";
-import { Check, GraduationCap, Loader2, Play, X } from "lucide-react";
+import { Check, GraduationCap, Loader2, Lock, Play, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
@@ -164,22 +164,28 @@ export default function ExamsPage() {
                         )}
                       </div>
                     )}
-                    <Button
-                      className="w-full"
-                      onClick={() => {
-                        const params = new URLSearchParams();
-                        const specs = selectedExams[exam.id];
-                        if (specs && specs.length > 0) {
-                          specs.forEach((sid) => params.append("specialtyIds", sid));
-                        }
-                        const qs = params.toString();
-                        router.push(`/dashboard/exams/${exam.id}${qs ? `?${qs}` : ""}`);
-                      }}
-                      disabled={!exam._questionCount}
-                      variant={isSelected ? "outline" : "default"}
-                    >
-                      {exam._questionCount ? t("start") : t("no_questions")}
-                    </Button>
+                    {exam.hasAccess === false ? (
+                      <Button className="w-full" onClick={() => router.push("/dashboard/subscribe")}>
+                        <Lock className="h-4 w-4 mr-2" /> {t("subscribe")}
+                      </Button>
+                    ) : (
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          const params = new URLSearchParams();
+                          const specs = selectedExams[exam.id];
+                          if (specs && specs.length > 0) {
+                            specs.forEach((sid) => params.append("specialtyIds", sid));
+                          }
+                          const qs = params.toString();
+                          router.push(`/dashboard/exams/${exam.id}${qs ? `?${qs}` : ""}`);
+                        }}
+                        disabled={!exam._questionCount}
+                        variant={isSelected ? "outline" : "default"}
+                      >
+                        {exam._questionCount ? t("start") : t("no_questions")}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );

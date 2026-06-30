@@ -51,13 +51,15 @@ export class FlashcardsService {
         if (examId && examId !== subExamId) {
           return { data: [], total: 0, page, limit };
         }
-      } else if (examId) {
-        const examFIds = await this.db
+      } else if (user?.targetExamId) {
+        const targetFIds = await this.db
           .select({ flashcardId: flashcardExams.flashcardId })
           .from(flashcardExams)
-          .where(eq(flashcardExams.examId, examId));
-        const eIds = examFIds.map((r: any) => r.flashcardId);
-        conditions.push(inArray(flashcards.id, eIds));
+          .where(eq(flashcardExams.examId, user.targetExamId));
+        const targetIds = targetFIds.map((r: any) => r.flashcardId);
+        conditions.push(inArray(flashcards.id, targetIds));
+      } else {
+        return { data: [], total: 0, page, limit };
       }
     } else if (examId) {
       const examFIds = await this.db
@@ -345,7 +347,16 @@ export class FlashcardsService {
   }
 
   async getSpecialties(userId: string) {
-    const subExamId = await this.getSubscriptionExamId(userId);
+    let subExamId = await this.getSubscriptionExamId(userId);
+
+    if (!subExamId) {
+      const [user] = await this.db
+        .select({ targetExamId: users.targetExamId })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      subExamId = user?.targetExamId || null;
+    }
 
     let query = this.db
       .select({
@@ -366,6 +377,14 @@ export class FlashcardsService {
   }
 
   private async getSubscriptionExamId(userId: string): Promise<string | null> {
-    return getAccessibleExamId(this.db, userId);
+    const examId = await getAccessibleExamId(this.db, userId);
+    if (examId) return examId;
+
+    const [user] = await this.db
+      .select({ targetExamId: users.targetExamId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    return user?.targetExamId || null;
   }
 }
