@@ -20,6 +20,8 @@ interface Course {
   durationDays: number;
   hasCertificate: boolean;
   lessonCount?: number;
+  sortOrder: number;
+  examId: string | null;
 }
 
 function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
@@ -93,7 +95,7 @@ export default function CoursesPage() {
         }
       }
     } catch {
-      console.error("Failed to load courses");
+      toast.error(t("load_failed"));
     } finally {
       setLoading(false);
     }

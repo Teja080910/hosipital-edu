@@ -31,7 +31,10 @@ export default function ExamsPage() {
 
   useEffect(() => {
     examsApi.list()
-      .then((res) => setExams(res.data))
+      .then((res) => {
+        setExams(res.data);
+        res.data.forEach((exam: any) => loadDetails(exam.id));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

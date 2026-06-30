@@ -1,9 +1,9 @@
 import { Pool } from "pg";
 
-const pool = new Pool({ connectionString: "postgresql://postgres:1234@localhost:5432/hospital_edu" });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function main() {
-  const keepEmail = "sailakshmiborra4104@gmail.com";
+  const keepEmail = process.env.KEEP_USER_EMAIL || "";
 
   const { rows: toDelete } = await pool.query(
     `SELECT id, email FROM users WHERE email != $1`,

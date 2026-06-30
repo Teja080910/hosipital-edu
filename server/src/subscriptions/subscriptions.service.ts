@@ -251,21 +251,46 @@ export class SubscriptionsService {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    const [sub] = await this.db
-      .insert(userSubscriptions)
-      .values({
-        userId: data.userId,
-        planId: data.planId,
-        stripeSubscriptionId: data.stripeSubscriptionId,
-        stripeCustomerId: data.stripeCustomerId,
-        status: "active",
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        remainingExamAttempts: plan.maxExamAttempts,
-        remainingFlashcardAttempts: plan.maxFlashcardAttempts,
-        remainingUses: plan.maxUses,
-      })
-      .returning();
+    const [existing] = await this.db
+      .select({ id: userSubscriptions.id })
+      .from(userSubscriptions)
+      .where(eq(userSubscriptions.stripeSubscriptionId, data.stripeSubscriptionId))
+      .limit(1);
+
+    let sub;
+    if (existing) {
+      [sub] = await this.db
+        .update(userSubscriptions)
+        .set({
+          planId: data.planId,
+          status: "active",
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          canceledAt: null,
+          remainingExamAttempts: plan.maxExamAttempts,
+          remainingFlashcardAttempts: plan.maxFlashcardAttempts,
+          remainingUses: plan.maxUses,
+          updatedAt: new Date(),
+        })
+        .where(eq(userSubscriptions.id, existing.id))
+        .returning();
+    } else {
+      [sub] = await this.db
+        .insert(userSubscriptions)
+        .values({
+          userId: data.userId,
+          planId: data.planId,
+          stripeSubscriptionId: data.stripeSubscriptionId,
+          stripeCustomerId: data.stripeCustomerId,
+          status: "active",
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          remainingExamAttempts: plan.maxExamAttempts,
+          remainingFlashcardAttempts: plan.maxFlashcardAttempts,
+          remainingUses: plan.maxUses,
+        })
+        .returning();
+    }
 
     const [user] = await this.db
       .select()
