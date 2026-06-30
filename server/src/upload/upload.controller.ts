@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Body, UseGuards, Req } from "@nestjs/common";
+import { Controller, Get, Post, Put, Param, Body, UseGuards, Req, HttpException, HttpStatus } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { UploadService } from "./upload.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
@@ -28,6 +28,9 @@ export class UploadController {
   @ApiOperation({ summary: "Proxy upload file to R2" })
   async uploadFile(@Param("key") key: string, @Body("base64") base64: string, @Body("contentType") contentType: string) {
     const buffer = Buffer.from(base64, "base64");
+    if (buffer.length > 10 * 1024 * 1024) {
+      throw new HttpException("File too large. Maximum size is 10MB.", HttpStatus.PAYLOAD_TOO_LARGE);
+    }
     return this.uploadService.uploadFile(key, contentType || "image/png", buffer);
   }
 
@@ -37,6 +40,9 @@ export class UploadController {
     const token = this.config.get<string>("CLOUDFLARE_STREAM_TOKEN") || "";
     const accountId = this.config.get<string>("CLOUDFLARE_ACCOUNT_ID") || "";
     const buffer = Buffer.from(base64, "base64");
+    if (buffer.length > 10 * 1024 * 1024) {
+      throw new HttpException("File too large. Maximum size is 10MB.", HttpStatus.PAYLOAD_TOO_LARGE);
+    }
     const ext = contentType?.split("/")[1] || "mp4";
     const boundary = "----FormBoundary" + Date.now();
     const header = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="video.${ext}"\r\nContent-Type: ${contentType || "video/mp4"}\r\n\r\n`;

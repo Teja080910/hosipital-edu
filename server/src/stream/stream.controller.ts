@@ -59,12 +59,16 @@ export class StreamController {
   }
 
   @Get("modules")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "List all video modules with lessons" })
   async listModules() {
     return this.stream.listModules();
   }
 
   @Get("modules/:id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Get a video module with lessons" })
   async getModule(@Param("id") id: string) {
     return this.stream.getModule(id);

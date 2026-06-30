@@ -51,6 +51,7 @@ export class TranslationsService {
   }
 
   async autoTranslate(sourceLocale: string, targetLocale: string, namespace?: string) {
+    // TODO: This currently copies source values without actual translation. Integrate a translation API.
     const conditions: SQL[] = [eq(translations.locale, sourceLocale)];
     if (namespace) conditions.push(eq(translations.namespace, namespace));
     const sourceItems = await this.db.select().from(translations).where(and(...conditions));

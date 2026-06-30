@@ -14,6 +14,8 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkRef = useRef<() => Promise<void>>();
 
   useEffect(() => {
     if (isLoading) return;
@@ -59,11 +61,12 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
         .catch(() => setChecking(false));
     };
 
+    checkRef.current = checkSubscription;
     checkSubscription();
 
     if (pathname.includes("checkout=success")) {
-      pollRef.current = setInterval(checkSubscription, 2000);
-      setTimeout(() => {
+      pollRef.current = setInterval(() => checkRef.current?.(), 2000);
+      timeoutRef.current = setTimeout(() => {
         if (pollRef.current) clearInterval(pollRef.current);
         setChecking(false);
       }, 15000);
@@ -71,6 +74,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [user, isLoading, router, pathname, searchParams]);
 

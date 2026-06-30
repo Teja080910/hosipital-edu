@@ -27,6 +27,8 @@ export class VideosController {
   }
 
   @Get(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Get video module with lessons" })
   async findOne(@Param("id") id: string) {
     return this.videosService.findById(id);
@@ -45,7 +47,8 @@ export class VideosController {
   }
 
   @Post("progress/:lessonId")
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Save watch progress for a lesson" })
   async saveProgress(

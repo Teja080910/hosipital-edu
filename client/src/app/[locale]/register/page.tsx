@@ -78,6 +78,7 @@ function RegisterPage() {
       toast.success(t("account_created"));
       setLoading(false);
       setShowVerificationSent(true);
+      submittingRef.current = false;
     } catch (error) {
       const message = (error as any)?.response?.data?.message;
       if (Array.isArray(message)) {

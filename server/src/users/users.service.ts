@@ -14,7 +14,7 @@ export class UsersService {
     private i18n: I18nService,
   ) {}
 
-  async findAll(page = 1, limit = 1000) {
+  async findAll(page = 1, limit = 50) {
     const offset = (page - 1) * limit;
     const items = await this.db
       .select()

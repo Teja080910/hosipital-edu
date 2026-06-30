@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import {
   courseQuizzes,
@@ -51,13 +51,14 @@ export class QuizAttemptsService {
     return { ...attempt, quiz };
   }
 
-  async findById(id: string) {
+  async findById(id: string, userId: string) {
     const [attempt] = await this.db
       .select()
       .from(courseQuizAttempts)
       .where(eq(courseQuizAttempts.id, id))
       .limit(1);
     if (!attempt) throw new NotFoundException(this.i18n.t("courses.quizAttemptNotFound"));
+    if (attempt.userId !== userId) throw new ForbiddenException();
 
     const [quiz] = await this.db
       .select()

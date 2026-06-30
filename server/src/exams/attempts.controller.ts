@@ -44,8 +44,8 @@ export class AttemptsController {
 
   @Get(":id")
   @ApiOperation({ summary: "Get attempt with answers" })
-  async findOne(@Param("id") id: string) {
-    return this.attemptsService.findById(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.attemptsService.findById(id, user.id);
   }
 
   @Patch(":id/answer")
@@ -53,13 +53,14 @@ export class AttemptsController {
   async answer(
     @Param("id") id: string,
     @Body() data: { questionId: string; selectedOptionId: string; timeSpent: number },
+    @CurrentUser() user: any,
   ) {
-    return this.attemptsService.answerQuestion({ attemptId: id, ...data });
+    return this.attemptsService.answerQuestion({ attemptId: id, ...data }, user.id);
   }
 
   @Patch(":id/complete")
   @ApiOperation({ summary: "Complete attempt" })
-  async complete(@Param("id") id: string) {
-    return this.attemptsService.complete(id);
+  async complete(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.attemptsService.complete(id, user.id);
   }
 }

@@ -41,7 +41,7 @@ export class SubscriptionsService {
     const [plan] = await this.db
       .select()
       .from(subscriptionPlans)
-      .where(eq(subscriptionPlans.id, id))
+      .where(and(eq(subscriptionPlans.id, id), eq(subscriptionPlans.isActive, true)))
       .limit(1);
     return plan;
   }
@@ -136,7 +136,7 @@ export class SubscriptionsService {
     }
 
     const existingSub = await this.getUserSubscription(userId);
-    const appUrl = this.config.get<string>("APP_URL")
+    const appUrl = this.config.get<string>("APP_URL");
 
     if (existingSub?.stripeSubscriptionId) {
       const stripeSub = await this.stripe.subscriptions.retrieve(existingSub.stripeSubscriptionId);
@@ -207,6 +207,9 @@ export class SubscriptionsService {
 
   async confirmCheckout(sessionId: string, userId: string) {
     const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+    if (session.client_reference_id !== userId) {
+      throw new HttpException(this.i18n.t("subscriptions.sessionOwnershipMismatch"), HttpStatus.FORBIDDEN);
+    }
     if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
       return { status: "pending" };
     }
@@ -366,7 +369,7 @@ export class SubscriptionsService {
 
     const [updated] = await this.db
       .update(userSubscriptions)
-      .set({ status: "canceled", canceledAt: new Date(), updatedAt: new Date() })
+      .set({ canceledAt: new Date(), updatedAt: new Date() })
       .where(eq(userSubscriptions.id, sub.id))
       .returning();
     return updated;
@@ -404,6 +407,7 @@ async handleWebhook(event: any) {
               });
             }
           }
+          return;
         } else if (planId && userId && stripeSubscriptionId) {
           await this.activateSubscription({
             userId,
@@ -432,9 +436,10 @@ async handleWebhook(event: any) {
         const invoice = event.data.object as Stripe.Invoice;
         if (invoice.subscription) {
           const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription.id;
+          const periodEnd = invoice.period_end ? new Date(invoice.period_end * 1000) : undefined;
           await this.db
             .update(userSubscriptions)
-            .set({ status: "active", updatedAt: new Date() })
+            .set({ status: "active", currentPeriodEnd: periodEnd, updatedAt: new Date() })
             .where(eq(userSubscriptions.stripeSubscriptionId, subId));
         }
         break;

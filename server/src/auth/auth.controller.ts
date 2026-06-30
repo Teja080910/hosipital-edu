@@ -4,6 +4,9 @@ import { ThrottlerGuard, Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { ResendVerificationDto } from "./dto/resend-verification.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { LocalAuthGuard } from "../common/guards/local-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -51,20 +54,20 @@ export class AuthController {
 
   @Post("resend-verification")
   @ApiOperation({ summary: "Resend verification email" })
-  async resendVerification(@Body("email") email: string) {
-    return this.authService.resendVerification(email);
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    return this.authService.resendVerification(dto.email);
   }
 
   @Post("forgot-password")
   @ApiOperation({ summary: "Send password reset email" })
-  async forgotPassword(@Body("email") email: string) {
-    return this.authService.forgotPassword(email);
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
   }
 
   @Post("reset-password")
   @ApiOperation({ summary: "Reset password with token" })
-  async resetPassword(@Body("token") token: string, @Body("password") password: string) {
-    return this.authService.resetPassword(token, password);
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.password);
   }
 
   @UseGuards(JwtAuthGuard)

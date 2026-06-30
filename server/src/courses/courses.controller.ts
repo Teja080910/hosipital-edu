@@ -27,7 +27,7 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "List courses" })
   async findAll(@Query("all") all?: string, @CurrentUser() user?: any) {
-    return this.coursesService.findAll(all !== "true", user?.id);
+    return this.coursesService.findAll(all !== "true");
   }
 
   @Post()

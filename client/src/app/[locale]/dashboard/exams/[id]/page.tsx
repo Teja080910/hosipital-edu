@@ -33,7 +33,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -60,6 +60,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [allAttemptIds, setAllAttemptIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
@@ -102,11 +103,12 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const topicsRef = useRef<HTMLDivElement>(null);
   const subtopicsRef = useRef<HTMLDivElement>(null);
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     const loadExams = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const examIds = params.getAll("examIds");
-      const specialtyIds = params.getAll("specialtyIds");
+      const examIds = searchParams.getAll("examIds");
+      const specialtyIds = searchParams.getAll("specialtyIds");
       if (specialtyIds.length > 0) {
         setSelectedSpecialties(specialtyIds);
       }
@@ -157,12 +159,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [pageState]);
 
   useEffect(() => {
-    return () => { useExamStore.setState({ isActive: false }); };
+    return () => { useExamStore.getState().endExam(); };
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const modeParam = params.get("mode");
+    const modeParam = searchParams.get("mode");
     if (modeParam === "exam" || modeParam === "study") {
       setMode(modeParam);
     }
@@ -243,15 +244,21 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           }).then((r) => r.data)
         )
       );
-      const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
-      setExamQuestions(shuffled);
+      const shuffled = [...filteredQuestions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const selected = shuffled.slice(0, totalQuestions);
+      setExamQuestions(selected);
       setAttemptId(attempts[0].id);
+      setAllAttemptIds(attempts.map((a: any) => a.id));
       setTimeRemaining(mode === "exam" ? timeLimit * 60 : 0);
       setTotalTimeSpent(0); setAnswers({}); setCurrentIndex(0);
       setSelectedOption(null); setShowAnswer(false);
       setQuestionEntryTime(Date.now()); setPerQuestionTime({});
       setPageState("taking");
-      useExamStore.setState({ isActive: true });
+      useExamStore.getState().startExam(id, selected.map(q => q.id), mode === "exam" ? timeLimit : 0);
       if (mode === "exam") {
         window.history.replaceState({}, "", `${window.location.pathname}?mode=exam`);
         document.documentElement.requestFullscreen().catch(() => {});
@@ -321,22 +328,31 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const total = displayQuestions.length;
     setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
     setPageState("results");
-    useExamStore.setState({ isActive: false });
+    useExamStore.getState().endExam();
     window.history.replaceState({}, "", `/dashboard/exams/${id}`);
     if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
-    try { await attemptsApi.complete(attemptId); } catch { /* silent */ }
+    try {
+      await Promise.all(allAttemptIds.map((aid) => attemptsApi.complete(aid)));
+    } catch { /* silent */ }
     setSubmitting(false);
     isSubmittingRef.current = false;
   };
 
   const handleFinishStudy = async () => {
     if (!attemptId) return;
-    try { await attemptsApi.complete(attemptId); } catch { /* silent */ }
+    try {
+      for (const [questionId, answer] of Object.entries(answers)) {
+        if (answer.optionId) {
+          await attemptsApi.answer(attemptId, { questionId, selectedOptionId: answer.optionId, timeSpent: 0 });
+        }
+      }
+      await Promise.all(allAttemptIds.map((aid) => attemptsApi.complete(aid)));
+    } catch { /* silent */ }
     const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
     const total = displayQuestions.length;
     setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
     setPageState("results");
-    useExamStore.setState({ isActive: false });
+    useExamStore.getState().endExam();
   };
 
   if (loading) return <PageTransition><div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></PageTransition>;
@@ -349,8 +365,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
             onReview={() => { setReviewMode(true); setPageState("taking"); setShowAnswer(true); setCurrentIndex(0); }}
-            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.setState({ isActive: false }); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); }}
-            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }} />
+            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.getState().endExam(); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); }}
+            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
             <Card>
               <CardHeader><CardTitle className="text-lg">{t("topic_breakdown")}</CardTitle></CardHeader>
@@ -382,7 +398,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       <PageTransition>
         <div className="mx-auto max-w-6xl space-y-5 px-4 p-20">
           {reviewMode && (
-            <Button variant="ghost" onClick={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }}>
+            <Button variant="ghost" onClick={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); router.push("/dashboard/exams"); }}>
               <ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}
             </Button>
           )}
@@ -422,7 +438,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           )}
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <Card className="overflow-hidden border-border/70 shadow-card hover:translate-y-0 overflow-hidden">
+            <Card className="overflow-hidden border-border/70 shadow-card hover:translate-y-0">
               <CardHeader className="border-b bg-muted/30">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">

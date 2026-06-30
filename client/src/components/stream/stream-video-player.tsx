@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { streamApi, videosApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface StreamVideoPlayerProps {
   uid?: string | null;
@@ -85,6 +86,3 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
   );
 }
 
-function cn(...classes: (string | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}

@@ -113,7 +113,12 @@ export default function AdminCoursesPage() {
         await coursesApi.update(editing.id, payload);
         toast.success(t("course_updated"));
       } else {
-        payload.slug = form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        payload.slug = form.title
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
         await coursesApi.create(payload);
         toast.success(t("course_created"));
       }

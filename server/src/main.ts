@@ -21,7 +21,7 @@ async function bootstrap() {
     fastifyInstance,
   );
 
-  const instance = app.getHttpAdapter().getInstance();
+  const instance = app.getHttpAdapter().getInstance() as any;
   instance.addContentTypeParser("application/json", { parseAs: "buffer", override: true }, (req: any, body: Buffer, done: any) => {
     req.rawBody = body;
     try {

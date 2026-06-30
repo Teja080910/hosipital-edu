@@ -20,24 +20,34 @@ export class VideosService {
       .where(eq(videoModules.isActive, true))
       .orderBy(asc(videoModules.sortOrder));
 
+    const moduleIds = modules.map(m => m.id);
+    const allExamLinks = await this.db
+      .select()
+      .from(videoModuleExams)
+      .where(inArray(videoModuleExams.moduleId, moduleIds));
+    const allLessons = await this.db
+      .select()
+      .from(videoLessons)
+      .where(inArray(videoLessons.moduleId, moduleIds))
+      .orderBy(asc(videoLessons.sortOrder));
+
+    const examLinksByModule = new Map<string, any[]>();
+    for (const link of allExamLinks) {
+      if (!examLinksByModule.has(link.moduleId)) examLinksByModule.set(link.moduleId, []);
+      examLinksByModule.get(link.moduleId)!.push(link);
+    }
+    const lessonsByModule = new Map<string, any[]>();
+    for (const lesson of allLessons) {
+      if (!lessonsByModule.has(lesson.moduleId)) lessonsByModule.set(lesson.moduleId, []);
+      lessonsByModule.get(lesson.moduleId)!.push(lesson);
+    }
+
     const result: Array<Record<string, unknown>> = [];
     for (const mod of modules) {
-      const examLinks = await this.db
-        .select()
-        .from(videoModuleExams)
-        .where(eq(videoModuleExams.moduleId, mod.id));
-
+      const examLinks = examLinksByModule.get(mod.id) || [];
       const modExamIds = examLinks.map((l: any) => l.examId);
-
-      if (subExamId && modExamIds.length > 0 && !modExamIds.includes(subExamId)) {
-        continue;
-      }
-
-      const lessons = await this.db
-        .select()
-        .from(videoLessons)
-        .where(eq(videoLessons.moduleId, mod.id))
-        .orderBy(asc(videoLessons.sortOrder));
+      if (subExamId && modExamIds.length > 0 && !modExamIds.includes(subExamId)) continue;
+      const lessons = lessonsByModule.get(mod.id) || [];
       result.push({ ...mod, lessons, examIds: modExamIds });
     }
     return result;

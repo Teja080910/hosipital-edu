@@ -51,15 +51,15 @@ export class CalendarController {
   @UseGuards(AccountTypeGuard)
   @AllowedAccountTypes("full")
   @ApiOperation({ summary: "Update event" })
-  async update(@Param("id") id: string, @Body() data: any) {
-    return this.calendarService.update(id, data);
+  async update(@Param("id") id: string, @Body() data: any, @CurrentUser() user: any) {
+    return this.calendarService.update(id, data, user.id);
   }
 
   @Delete(":id")
   @UseGuards(AccountTypeGuard)
   @AllowedAccountTypes("full")
   @ApiOperation({ summary: "Delete event" })
-  async remove(@Param("id") id: string) {
-    return this.calendarService.delete(id);
+  async remove(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.calendarService.delete(id, user.id);
   }
 }

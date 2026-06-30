@@ -13,45 +13,19 @@ export class ExamsService {
   ) {}
 
   async findAll(user?: any) {
-    let allowedExamId: string | null = null;
-    let hasAccess = false;
+    let sub: any = null;
+    let isAdmin = false;
     if (user) {
-      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      isAdmin = user.role === "admin" || user.role === "super_admin";
       if (!isAdmin) {
-        const [sub] = await this.db
+        [sub] = await this.db
           .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
           .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
           .limit(1);
-        if (sub) {
-          if (sub.examId) {
-            allowedExamId = sub.examId;
-          } else if (user.targetExamId) {
-            allowedExamId = user.targetExamId;
-          }
-          hasAccess = true;
-        } else if (user.targetExamId) {
-          allowedExamId = user.targetExamId;
-          const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
-          if (hoursSinceRegistration <= 24) {
-            hasAccess = true;
-          }
-        }
-      } else {
-        hasAccess = true;
       }
     }
-
-    if (user && !allowedExamId && !hasAccess && user.role !== "admin" && user.role !== "super_admin") return [];
-
-    const questionFilter = allowedExamId
-      ? sql`(SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = ${allowedExamId} AND question_exams.question_id = questions.id)`
-      : sql`(SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = exams.id AND question_exams.question_id = questions.id)`;
-
-    const examFilter = allowedExamId
-      ? eq(exams.id, allowedExamId)
-      : eq(exams.isActive, true);
 
     const rows = await this.db
       .select({
@@ -62,12 +36,28 @@ export class ExamsService {
         isActive: exams.isActive,
         sortOrder: exams.sortOrder,
         createdAt: exams.createdAt,
-        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE ${questionFilter} > 0 AND questions.is_active = true)`,
+        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE (SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = exams.id AND question_exams.question_id = questions.id) > 0 AND questions.is_active = true)`,
       })
       .from(exams)
-      .where(examFilter)
+      .where(eq(exams.isActive, true))
       .orderBy(asc(exams.sortOrder));
-    return rows.map((r) => ({ ...r, hasAccess }));
+
+    return rows.map((r) => {
+      let hasAccess = false;
+      if (isAdmin) {
+        hasAccess = true;
+      } else if (sub) {
+        if (!sub.examId || sub.examId === r.id) {
+          hasAccess = true;
+        }
+      } else if (user && user.targetExamId === r.id) {
+        const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+        if (hoursSinceRegistration <= 24) {
+          hasAccess = true;
+        }
+      }
+      return { ...r, hasAccess };
+    });
   }
 
   async findById(id: string, user?: any) {

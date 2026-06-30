@@ -258,9 +258,8 @@ export class AnalyticsService {
     for (const [cohortKey, data] of Object.entries(cohorts)) {
       const retention: Record<string, number> = {};
       for (let m = 0; m <= 6; m++) {
-        retention[`month_${m}`] = data.activeMonths.has(m)
-          ? Math.round((data.activeMonths.size / data.total) * 100)
-          : 0;
+        const activeCount = data.activeMonths.has(m) ? 1 : 0;
+        retention[`month_${m}`] = Math.round((activeCount / data.total) * 100);
       }
       result.push({
         cohort: new Date(Number(cohortKey)).toISOString().slice(0, 7),

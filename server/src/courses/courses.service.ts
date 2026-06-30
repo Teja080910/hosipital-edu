@@ -29,7 +29,7 @@ export class CoursesService {
     @Inject(STRIPE) private stripe: Stripe,
   ) {}
 
-  async findAll(onlyActive = true, _userId?: string) {
+  async findAll(onlyActive = true) {
     const conditions: SQL[] = [];
     if (onlyActive) conditions.push(eq(courses.isActive, true));
 
@@ -62,9 +62,9 @@ export class CoursesService {
     const [course] = await this.db
       .select()
       .from(courses)
-      .where(eq(courses.slug, slug))
+      .where(and(eq(courses.slug, slug), eq(courses.isActive, true)))
       .limit(1);
-    if (!course || !course.isActive) throw new NotFoundException(this.i18n.t("courses.notFound"));
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
 
     const mods = await this.db
       .select()
@@ -471,7 +471,14 @@ export class CoursesService {
       .from(courseQuizzes)
       .where(eq(courseQuizzes.lessonId, lessonId))
       .limit(1);
-    return quiz || null;
+    if (!quiz) return null;
+    if (quiz.questions && Array.isArray(quiz.questions)) {
+      quiz.questions = quiz.questions.map((q: any) => {
+        const { correctAnswer, isCorrect, ...rest } = q;
+        return rest;
+      });
+    }
+    return quiz;
   }
 
   async getCourseQuiz(courseId: string, type: "pre_test" | "post_test") {
@@ -485,7 +492,14 @@ export class CoursesService {
         ),
       )
       .limit(1);
-    return quiz || null;
+    if (!quiz) return null;
+    if (quiz.questions && Array.isArray(quiz.questions)) {
+      quiz.questions = quiz.questions.map((q: any) => {
+        const { correctAnswer, isCorrect, ...rest } = q;
+        return rest;
+      });
+    }
+    return quiz;
   }
 
   async getTestResults(userId: string, courseId: string) {

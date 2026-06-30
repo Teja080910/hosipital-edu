@@ -3,14 +3,13 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { Pen, Highlighter, Eraser } from "lucide-react";
 
-const drawings = new Map<string, [{ x: number; y: number }[], string][]>();
-
 export function QuestionPenOverlay({ questionId, children }: { questionId: string; children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tool, setTool] = useState<"pen" | "highlighter" | null>(null);
   const drawing = useRef(false);
-  const paths = useRef<[{ x: number; y: number }[], string][]>(drawings.get(questionId) || []);
+  const drawingsRef = useRef<Map<string, [{ x: number; y: number }[], string][]>>(new Map());
+  const paths = useRef<[{ x: number; y: number }[], string][]>(drawingsRef.current.get(questionId) || []);
   const currentPath = useRef<{ x: number; y: number }[]>([]);
 
   const getPos = (e: React.MouseEvent) => {
@@ -71,7 +70,7 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
     if (currentPath.current.length > 0) {
       const color = tool === "highlighter" ? "rgba(253, 224, 71, 0.2)" : "#ef4444";
       paths.current.push([[...currentPath.current], color]);
-      drawings.set(questionId, paths.current);
+      drawingsRef.current.set(questionId, paths.current);
     }
     currentPath.current = [];
   };
@@ -79,7 +78,7 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
   const clear = () => {
     paths.current = [];
     currentPath.current = [];
-    drawings.set(questionId, []);
+    drawingsRef.current.set(questionId, []);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -88,7 +87,7 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
   };
 
   useEffect(() => {
-    paths.current = drawings.get(questionId) || [];
+    paths.current = drawingsRef.current.get(questionId) || [];
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -113,8 +112,9 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
     return () => {
       window.removeEventListener("resize", updateSize);
       observer.disconnect();
+      drawingsRef.current.delete(questionId);
     };
-  }, [redraw]);
+  }, [redraw, questionId]);
 
   return (
     <div className="space-y-2">

@@ -83,7 +83,12 @@ export default function AdminArticlesPage() {
         title: { en: form.title },
         content: { en: form.content },
         excerpt: { en: form.excerpt },
-        slug: form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+        slug: form.title
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, ""),
         isPublished: form.isPublished,
       };
       if (editing) {

@@ -16,15 +16,15 @@ import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { IsOptional, IsString, IsBoolean, IsNumber, IsArray } from "class-validator";
+import { IsOptional, IsString, IsBoolean, IsNumber, IsArray, IsObject } from "class-validator";
 
 class CreateExamDto {
-  @IsString()
-  title!: string;
+  @IsObject()
+  title!: object;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  description?: object;
 
   @IsOptional()
   @IsString()
@@ -45,12 +45,12 @@ class CreateExamDto {
 
 class UpdateExamDto {
   @IsOptional()
-  @IsString()
-  title?: string;
+  @IsObject()
+  title?: object;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  description?: object;
 
   @IsOptional()
   @IsString()

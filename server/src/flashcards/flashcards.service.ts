@@ -278,7 +278,7 @@ export class FlashcardsService {
 
       await this.db
         .update(userSubscriptions)
-        .set({ remainingFlashcardAttempts: sub.remainingFlashcardAttempts - 1 })
+        .set({ remainingFlashcardAttempts: sql`${userSubscriptions.remainingFlashcardAttempts} - 1` })
         .where(eq(userSubscriptions.id, sub.id));
     }
 

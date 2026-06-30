@@ -1,4 +1,4 @@
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { calendarEvents } from "../database/schema";
@@ -29,7 +29,14 @@ export class CalendarService {
     return event;
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: any, userId: string) {
+    const [existing] = await this.db
+      .select({ userId: calendarEvents.userId })
+      .from(calendarEvents)
+      .where(eq(calendarEvents.id, id))
+      .limit(1);
+    if (!existing) throw new NotFoundException(this.i18n.t("common.eventNotFound"));
+    if (existing.userId !== userId) throw new ForbiddenException();
     const cleaned: any = stripTimestamps(data);
     if (cleaned.eventDate && typeof cleaned.eventDate === "string") {
       cleaned.eventDate = new Date(cleaned.eventDate);
@@ -42,7 +49,14 @@ export class CalendarService {
     return event;
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId: string) {
+    const [existing] = await this.db
+      .select({ userId: calendarEvents.userId })
+      .from(calendarEvents)
+      .where(eq(calendarEvents.id, id))
+      .limit(1);
+    if (!existing) throw new NotFoundException(this.i18n.t("common.eventNotFound"));
+    if (existing.userId !== userId) throw new ForbiddenException();
     await this.db.delete(calendarEvents).where(eq(calendarEvents.id, id));
     return { message: this.i18n.t("common.eventDeleted") };
   }

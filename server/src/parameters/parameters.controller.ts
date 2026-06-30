@@ -21,12 +21,18 @@ export class ParametersController {
   constructor(private parametersService: ParametersService) {}
 
   @Get("parameters")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
   @ApiOperation({ summary: "List all system parameters" })
   async findAll() {
     return this.parametersService.findAll();
   }
 
   @Get("parameters/:key")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Get parameter by key" })
   async findOne(@Param("key") key: string) {
     return this.parametersService.findByKey(key);

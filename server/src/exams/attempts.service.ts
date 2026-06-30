@@ -6,7 +6,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { DRIZZLE } from "../database/database.provider";
 import {
   examAnswers,
@@ -37,6 +37,20 @@ export class AttemptsService {
     timeLimit?: number;
     customTitle?: string;
   }) {
+    const [exam] = await this.db
+      .select({ id: exams.id })
+      .from(exams)
+      .where(eq(exams.id, data.examId))
+      .limit(1);
+    if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
+
+    const [existingActive] = await this.db
+      .select({ id: examAttempts.id })
+      .from(examAttempts)
+      .where(and(eq(examAttempts.userId, data.userId), eq(examAttempts.examId, data.examId), eq(examAttempts.status, "in_progress")))
+      .limit(1);
+    if (existingActive) throw new HttpException(this.i18n.t("exams.duplicateActiveAttempt"), HttpStatus.BAD_REQUEST);
+
     const [user] = await this.db
       .select({ role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
       .from(users)
@@ -126,27 +140,34 @@ export class AttemptsService {
     if (sub && sub.user_subscriptions.remainingExamAttempts != null) {
       await this.db
         .update(userSubscriptions)
-        .set({ remainingExamAttempts: sub.user_subscriptions.remainingExamAttempts - 1 })
-        .where(eq(userSubscriptions.id, sub.user_subscriptions.id));
+        .set({ remainingExamAttempts: sql`${userSubscriptions.remainingExamAttempts} - 1` })
+        .where(and(
+          eq(userSubscriptions.id, sub.user_subscriptions.id),
+          gt(userSubscriptions.remainingExamAttempts, 0),
+        ));
     }
 
     if (sub && sub.user_subscriptions.remainingUses != null) {
       await this.db
         .update(userSubscriptions)
-        .set({ remainingUses: sub.user_subscriptions.remainingUses - 1 })
-        .where(eq(userSubscriptions.id, sub.user_subscriptions.id));
+        .set({ remainingUses: sql`${userSubscriptions.remainingUses} - 1` })
+        .where(and(
+          eq(userSubscriptions.id, sub.user_subscriptions.id),
+          gt(userSubscriptions.remainingUses, 0),
+        ));
     }
 
     return attempt;
   }
 
-  async findById(id: string) {
+  async findById(id: string, userId: string) {
     const [attempt] = await this.db
       .select()
       .from(examAttempts)
       .where(eq(examAttempts.id, id))
       .limit(1);
     if (!attempt) throw new NotFoundException(this.i18n.t("exams.attemptNotFound"));
+    if (attempt.userId !== userId) throw new ForbiddenException();
 
     const answers = await this.db
       .select()
@@ -215,12 +236,22 @@ export class AttemptsService {
     questionId: string;
     selectedOptionId: string;
     timeSpent: number;
-  }) {
+  }, userId: string) {
+    const [attemptCheck] = await this.db
+      .select({ userId: examAttempts.userId, status: examAttempts.status })
+      .from(examAttempts)
+      .where(eq(examAttempts.id, data.attemptId))
+      .limit(1);
+    if (!attemptCheck) throw new NotFoundException(this.i18n.t("exams.attemptNotFound"));
+    if (attemptCheck.userId !== userId) throw new ForbiddenException();
+    if (attemptCheck.status === "completed") throw new HttpException(this.i18n.t("exams.attemptAlreadyCompleted"), HttpStatus.BAD_REQUEST);
+
     const [option] = await this.db
       .select()
       .from(questionOptions)
-      .where(eq(questionOptions.id, data.selectedOptionId))
+      .where(and(eq(questionOptions.id, data.selectedOptionId), eq(questionOptions.questionId, data.questionId)))
       .limit(1);
+    if (!option) throw new HttpException(this.i18n.t("exams.invalidOption"), HttpStatus.BAD_REQUEST);
 
     const isCorrect = option?.isCorrect || false;
 
@@ -260,25 +291,20 @@ export class AttemptsService {
         .returning();
     }
 
+    await this.db
+      .update(examAttempts)
+      .set({
+        answeredCount: sql`${examAttempts.answeredCount} + 1`,
+        correctCount: sql`${examAttempts.correctCount} + ${isCorrect ? 1 : 0}`,
+        timeSpent: sql`${examAttempts.timeSpent} + ${data.timeSpent}`,
+      })
+      .where(eq(examAttempts.id, data.attemptId));
+
     const [attempt] = await this.db
-      .select()
+      .select({ userId: examAttempts.userId })
       .from(examAttempts)
       .where(eq(examAttempts.id, data.attemptId))
       .limit(1);
-
-    const allAnswers = await this.db
-      .select()
-      .from(examAnswers)
-      .where(eq(examAnswers.attemptId, data.attemptId));
-
-    const answeredCount = allAnswers.length;
-    const totalCorrect = allAnswers.filter((a: any) => a.isCorrect).length;
-    const accumulatedTime = allAnswers.reduce((sum: number, a: any) => sum + (a.timeSpent || 0), 0);
-
-    await this.db
-      .update(examAttempts)
-      .set({ answeredCount, correctCount: totalCorrect, timeSpent: accumulatedTime })
-      .where(eq(examAttempts.id, data.attemptId));
 
     const [existing] = await this.db
       .select()
@@ -316,7 +342,15 @@ export class AttemptsService {
     return { answer, isCorrect };
   }
 
-  async complete(id: string) {
+  async complete(id: string, userId: string) {
+    const [attemptCheck] = await this.db
+      .select({ userId: examAttempts.userId })
+      .from(examAttempts)
+      .where(eq(examAttempts.id, id))
+      .limit(1);
+    if (!attemptCheck) throw new NotFoundException(this.i18n.t("exams.attemptNotFound"));
+    if (attemptCheck.userId !== userId) throw new ForbiddenException();
+
     const [attempt] = await this.db
       .update(examAttempts)
       .set({ status: "completed", completedAt: new Date() })
