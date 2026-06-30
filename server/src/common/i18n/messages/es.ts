@@ -16,7 +16,9 @@ const es = {
     "ifEmailExistsReset": "Si el correo existe, se ha enviado un enlace de restablecimiento",
     "passwordResetSuccess": "Contraseña restablecida exitosamente",
     "loggedOut": "Sesión cerrada exitosamente",
-    "accessDenied": "Acceso denegado"
+    "accessDenied": "Acceso denegado",
+    "tempEmailNotAllowed": "No se permiten direcciones de correo temporales. Usa un correo electrónico válido.",
+    "emailNotVerified": "Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada para el enlace de verificación."
   },
   "users": {
     "notFound": "Usuario no encontrado",

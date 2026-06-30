@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, Sparkles, Eye, EyeOff, Check, X, ArrowRight } from "lucide-react";
+import { GraduationCap, Sparkles, Eye, EyeOff, Check, X, ArrowRight, Mail, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { examsApi } from "@/lib/api";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showVerificationSent, setShowVerificationSent] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const submittingRef = useRef(false);
 
@@ -75,7 +76,7 @@ function RegisterPage() {
       await register(name, email, password, referralCode, targetExamId === COURSES_OPTION ? undefined : targetExamId || undefined, targetExamId === COURSES_OPTION ? "course_only" : undefined);
       toast.success(t("account_created"));
       setLoading(false);
-      router.push("/dashboard");
+      setShowVerificationSent(true);
     } catch (error) {
       const message = (error as any)?.response?.data?.message;
       if (Array.isArray(message)) {
@@ -120,7 +121,41 @@ function RegisterPage() {
           </CardHeader>
 
           <CardContent className="pb-8 px-7">
-            <form onSubmit={handleSubmit} className="space-y-4.5">
+            {showVerificationSent ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="space-y-6 text-center"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                  className="flex justify-center"
+                >
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/25">
+                    <Mail className="h-8 w-8 text-white" />
+                  </div>
+                </motion.div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">{t("check_email")}</h3>
+                  <p className="text-sm text-muted-foreground">{t("verification_sent_desc")}</p>
+                </div>
+                <div className="bg-muted/50 rounded-xl p-4 text-left">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t("verification_email_hint")}
+                  </p>
+                </div>
+                <Link href="/login">
+                  <Button variant="outline" className="w-full h-11">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    {t("back_to_login")}
+                  </Button>
+                </Link>
+              </motion.div>
+            ) : (
+              <>
+              <form onSubmit={handleSubmit} className="space-y-4.5">
               <motion.div
                 className="space-y-2"
                 animate={{ opacity: 1, x: 0 }}
@@ -340,6 +375,8 @@ function RegisterPage() {
                 {t("login_submit")}
               </Link>
             </motion.div>
+            </>
+            )}
           </CardContent>
         </Card>
 

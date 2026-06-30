@@ -6,7 +6,7 @@ import * as crypto from "crypto";
 import { DRIZZLE } from "../database/database.provider";
 import { users, userSubscriptions, subscriptionPlans } from "../database/schema";
 import { and, eq, isNull } from "drizzle-orm";
-import { RegisterDto } from "./dto/register.dto";
+import { RegisterDto, TEMP_EMAIL_DOMAINS } from "./dto/register.dto";
 import { MailService } from "../mail/mail.service";
 import { I18nService } from "../common/i18n/i18n.service";
 
@@ -21,6 +21,11 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    const domain = dto.email.split("@")[1]?.toLowerCase();
+    if (domain && TEMP_EMAIL_DOMAINS.includes(domain)) {
+      throw new BadRequestException(this.i18n.t("auth.tempEmailNotAllowed"));
+    }
+
     const existing = await this.db
       .select()
       .from(users)
@@ -102,6 +107,7 @@ export class AuthService {
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new UnauthorizedException(this.i18n.t("auth.incorrectPassword"));
+    if (!user.emailVerifiedAt) throw new UnauthorizedException(this.i18n.t("auth.emailNotVerified"));
     const tokens = await this.generateTokens(user);
     return { user: this.sanitizeUser(user), ...tokens };
   }

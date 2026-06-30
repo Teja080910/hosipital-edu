@@ -16,7 +16,9 @@ const en = {
     "ifEmailExistsReset": "If the email exists, a reset link has been sent",
     "passwordResetSuccess": "Password reset successfully",
     "loggedOut": "Logged out successfully",
-    "accessDenied": "Access denied"
+    "accessDenied": "Access denied",
+    "tempEmailNotAllowed": "Temporary email addresses are not allowed. Please use a valid email address.",
+    "emailNotVerified": "Please verify your email address before signing in. Check your inbox for the verification link."
   },
   "users": {
     "notFound": "User not found",
