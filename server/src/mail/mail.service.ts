@@ -12,7 +12,6 @@ import {
   SubscriptionPlanDetails,
 } from "./templates";
 import { t } from "./templates/mail-messages";
-import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class MailService {
@@ -21,7 +20,6 @@ export class MailService {
 
   constructor(
     private config: ConfigService,
-    private i18n: I18nService,
   ) {
     const apiKey = this.config.get<string>("RESEND_API_KEY");
     if (apiKey && apiKey !== "re_placeholder") {
@@ -39,7 +37,7 @@ export class MailService {
 
   async sendEmail(to: string, subject: string, html: string) {
     if (!this.resend) {
-      return { message: this.i18n.t("common.mailNotConfigured"), to, subject };
+      return { message: "Mail not configured - skipping send", to, subject };
     }
     try {
       const result = await this.resend.emails.send({

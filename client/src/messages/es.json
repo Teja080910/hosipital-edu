@@ -262,7 +262,9 @@
     "previous": "Anterior",
     "next": "Siguiente",
     "confirm": "Confirmar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "error_title": "Algo salió mal",
+    "error_description": "Ocurrió un error inesperado. Intenta actualizar la página."
   },
   "settings": {
     "title": "Configuración",
@@ -856,6 +858,7 @@
     "submit": "Enviar",
     "submit_confirm": "¿Estás seguro de que quieres enviar? No podrás cambiar tus respuestas después del envío.",
     "submit_failed": "Error al enviar el examen",
+    "answer_failed": "Error al guardar la respuesta",
     "tab_warning": "Advertencia {count}/{max}: Salir de la página del examen enviará automáticamente en el próximo intento.",
     "review_answers": "Revisar Respuestas",
     "try_again": "Intentar de Nuevo",

@@ -188,7 +188,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     confirmSubmitRef.current = handleConfirmSubmit;
-  }, []);
+  });
 
   useEffect(() => {
     if (pageState !== "taking" && pageState !== "results") return;
@@ -279,7 +279,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       [currentQuestion.id]: { optionId: selectedOption, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
     }));
     if (mode === "exam") {
-      try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { /* silent */ }
+      try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { toast.error(t("answer_failed")); }
       if (currentIndex < examQuestions.length - 1) {
         handleNext();
       }
@@ -343,11 +343,20 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const handleFinishStudy = async () => {
     if (!attemptId) return;
     try {
-      for (const [questionId, answer] of Object.entries(answers)) {
-        if (answer.optionId) {
-          await attemptsApi.answer(attemptId, { questionId, selectedOptionId: answer.optionId, timeSpent: 0 });
-        }
-      }
+      const questionEntries = Object.entries(answers);
+      const questionsPerAttempt = Math.ceil(questionEntries.length / allAttemptIds.length);
+      await Promise.all(
+        allAttemptIds.map((aid, idx) => {
+          const slice = questionEntries.slice(idx * questionsPerAttempt, (idx + 1) * questionsPerAttempt);
+          return Promise.all(
+            slice.map(([questionId, answer]) =>
+              answer.optionId
+                ? attemptsApi.answer(aid, { questionId, selectedOptionId: answer.optionId, timeSpent: 0 })
+                : Promise.resolve()
+            )
+          );
+        })
+      );
       await Promise.all(allAttemptIds.map((aid) => attemptsApi.complete(aid)));
     } catch { /* silent */ }
     const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;

@@ -382,9 +382,19 @@ export class SubscriptionsService {
       .returning();
     return updated;
   }
+  // In-memory dedup set — not shared across instances; use Redis or DB for multi-instance setups
   private processedEvents = new Set<string>();
+  private readonly EVENT_TTL_MS = 60 * 60 * 1000; // 1 hour
+  private lastCleanup = Date.now();
+
+  private cleanupProcessedEvents() {
+    if (Date.now() - this.lastCleanup < this.EVENT_TTL_MS) return;
+    this.processedEvents.clear();
+    this.lastCleanup = Date.now();
+  }
 
   async handleWebhook(event: any) {
+    this.cleanupProcessedEvents();
     if (this.processedEvents.has(event.id)) {
       return;
     }

@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [loadingRef, setLoadingRef] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [studyReminders, setStudyReminders] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -37,6 +38,11 @@ export default function SettingsPage() {
       usersApi.getReferral(user.id).then(({ data }) => setReferral(data)).catch(() => {}).finally(() => setLoadingRef(false));
     }
   }, [user]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("studyReminders");
+    if (stored !== null) setStudyReminders(stored === "true");
+  }, []);
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -187,7 +193,7 @@ export default function SettingsPage() {
                 <Label>{t("study_reminders")}</Label>
                 <p className="text-sm text-muted-foreground">{t("study_reminders_desc")}</p>
               </div>
-              <Switch defaultChecked />
+              <Switch checked={studyReminders} onCheckedChange={(v) => { setStudyReminders(v); localStorage.setItem("studyReminders", String(v)); }} />
             </div>
             <Separator />
             <div className="flex items-center justify-between">

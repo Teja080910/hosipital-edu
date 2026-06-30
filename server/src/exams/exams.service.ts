@@ -1,9 +1,8 @@
-import { Inject, Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
-import { getAccessibleExamId } from "../common/utils/access-helper";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, questionExams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions } from "../database/schema";
+import { exams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions } from "../database/schema";
 
 @Injectable()
 export class ExamsService {

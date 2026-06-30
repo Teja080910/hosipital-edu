@@ -31,6 +31,7 @@ const es = {
     "notFound": "Curso no encontrado",
     "deleted": "Curso eliminado",
     "alreadyEnrolled": "Ya estás inscrito en este curso",
+    "notEnrolled": "No estás inscrito en este curso",
     "paymentRequired": "Se requiere pago para este curso",
     "moduleNotFound": "Módulo no encontrado",
     "moduleDeleted": "Módulo eliminado",
@@ -57,7 +58,11 @@ const es = {
     "subscriptionNotIncludeExam": "Tu suscripción no incluye este tipo de examen.",
     "noRemainingAttempts": "No tienes intentos de examen restantes. Mejora tu plan.",
     "usageLimitExceeded": "Has excedido el límite de uso total de tu plan.",
-    "planExpired": "La duración de tu plan ha expirado."
+    "planExpired": "La duración de tu plan ha expirado.",
+    "duplicateActiveAttempt": "Ya tienes un intento activo para este examen",
+    "notSubscribed": "Necesitas una suscripción activa para acceder a esta función",
+    "attemptAlreadyCompleted": "Este intento ya ha sido completado",
+    "invalidOption": "Opción de respuesta inválida"
   },
   "flashcards": {
     "notFound": "Tarjeta de estudio no encontrada",
@@ -67,12 +72,14 @@ const es = {
   "subscriptions": {
     "planNotFound": "Plan no encontrado",
     "noActiveSubscription": "Sin suscripción activa",
-    "descriptionTemplate": "{name} - {interval}"
+    "descriptionTemplate": "{name} - {interval}",
+    "sessionOwnershipMismatch": "La sesión de pago no te pertenece"
   },
   "articles": {
     "notFound": "Artículo no encontrado",
     "deleted": "Artículo eliminado",
-    "slugExists": "Ya existe un artículo con este slug"
+    "slugExists": "Ya existe un artículo con este slug",
+    "subscriptionRequired": "Suscripción requerida para ver este artículo"
   },
   "certificates": {
     "notFound": "Certificado no encontrado o inválido",
@@ -96,7 +103,8 @@ const es = {
   "common": {
     "internalError": "Error interno del servidor",
     "eventDeleted": "Evento eliminado",
-    "mailNotConfigured": "Correo no configurado - omitiendo envío"
+    "mailNotConfigured": "Correo no configurado - omitiendo envío",
+    "eventNotFound": "Evento no encontrado"
   },
   "stream": {
     "failedListVideos": "Error al listar videos",

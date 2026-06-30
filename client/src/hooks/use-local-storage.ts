@@ -24,7 +24,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         return valueToStore;
       });
     } catch {
-      console.warn(`Error reading localStorage key "${key}"`);
+      console.warn(`Error setting localStorage key "${key}"`);
     }
   };
 

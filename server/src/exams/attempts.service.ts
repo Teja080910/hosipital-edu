@@ -37,127 +37,130 @@ export class AttemptsService {
     timeLimit?: number;
     customTitle?: string;
   }) {
-    const [exam] = await this.db
-      .select({ id: exams.id })
-      .from(exams)
-      .where(eq(exams.id, data.examId))
-      .limit(1);
-    if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
+    return this.db.transaction(async (tx: any) => {
+      const [exam] = await tx
+        .select({ id: exams.id })
+        .from(exams)
+        .where(eq(exams.id, data.examId))
+        .limit(1);
+      if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
 
-    const [existingActive] = await this.db
-      .select({ id: examAttempts.id })
-      .from(examAttempts)
-      .where(and(eq(examAttempts.userId, data.userId), eq(examAttempts.examId, data.examId), eq(examAttempts.status, "in_progress")))
-      .limit(1);
-    if (existingActive) throw new HttpException(this.i18n.t("exams.duplicateActiveAttempt"), HttpStatus.BAD_REQUEST);
+      const [existingActive] = await tx
+        .select({ id: examAttempts.id })
+        .from(examAttempts)
+        .where(and(eq(examAttempts.userId, data.userId), eq(examAttempts.examId, data.examId), eq(examAttempts.status, "in_progress")))
+        .for("update")
+        .limit(1);
+      if (existingActive) throw new HttpException(this.i18n.t("exams.duplicateActiveAttempt"), HttpStatus.BAD_REQUEST);
 
-    const [user] = await this.db
-      .select({ role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
-      .from(users)
-      .where(eq(users.id, data.userId))
-      .limit(1);
-
-    const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
-
-    if (!isAdmin && user.targetExamId && user.targetExamId !== data.examId) {
-      throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
-    }
-
-    let sub: any = null;
-
-    if (!isAdmin) {
-      [sub] = await this.db
-        .select()
-        .from(userSubscriptions)
-        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-        .where(
-          and(
-            eq(userSubscriptions.userId, data.userId),
-            eq(userSubscriptions.status, "active"),
-          ),
-        )
+      const [user] = await tx
+        .select({ role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
+        .from(users)
+        .where(eq(users.id, data.userId))
         .limit(1);
 
-      if (!sub) {
-        if (user.targetExamId && user.targetExamId === data.examId) {
-          const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
-          if (hoursSinceRegistration <= 24) {
-            const [attempt] = await this.db
-              .insert(examAttempts)
-              .values({
-                userId: data.userId,
-                examId: data.examId,
-                mode: data.mode,
-                questionCount: data.questionCount,
-                timeLimit: data.timeLimit,
-                customTitle: data.customTitle,
-              })
-              .returning();
-            return attempt;
+      const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+
+      if (!isAdmin && user.targetExamId && user.targetExamId !== data.examId) {
+        throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
+      }
+
+      let sub: any = null;
+
+      if (!isAdmin) {
+        [sub] = await tx
+          .select()
+          .from(userSubscriptions)
+          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+          .where(
+            and(
+              eq(userSubscriptions.userId, data.userId),
+              eq(userSubscriptions.status, "active"),
+            ),
+          )
+          .limit(1);
+
+        if (!sub) {
+          if (user.targetExamId && user.targetExamId === data.examId) {
+            const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+            if (hoursSinceRegistration <= 24) {
+              const [attempt] = await tx
+                .insert(examAttempts)
+                .values({
+                  userId: data.userId,
+                  examId: data.examId,
+                  mode: data.mode,
+                  questionCount: data.questionCount,
+                  timeLimit: data.timeLimit,
+                  customTitle: data.customTitle,
+                })
+                .returning();
+              return attempt;
+            }
+          }
+          throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
+        }
+
+        const plan = sub.subscription_plans;
+        if (plan.isCourseOnly) {
+          throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
+        }
+
+        if (plan.examId && plan.examId !== data.examId) {
+          throw new HttpException(this.i18n.t("exams.subscriptionNotIncludeExam"), HttpStatus.FORBIDDEN);
+        }
+
+        if (sub.user_subscriptions.remainingExamAttempts != null && sub.user_subscriptions.remainingExamAttempts < 1) {
+          throw new HttpException(this.i18n.t("exams.noRemainingAttempts"), HttpStatus.FORBIDDEN);
+        }
+
+        if (sub.user_subscriptions.remainingUses != null && sub.user_subscriptions.remainingUses < 1) {
+          throw new HttpException(this.i18n.t("exams.usageLimitExceeded"), HttpStatus.FORBIDDEN);
+        }
+
+        if (plan.maxDays) {
+          const created = new Date(sub.user_subscriptions.createdAt);
+          const expired = new Date(created.getTime() + plan.maxDays * 24 * 60 * 60 * 1000);
+          if (new Date() > expired) {
+            throw new HttpException(this.i18n.t("exams.planExpired"), HttpStatus.FORBIDDEN);
           }
         }
-        throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
       }
 
-      const plan = sub.subscription_plans;
-      if (plan.isCourseOnly) {
-        throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
+      const [attempt] = await tx
+        .insert(examAttempts)
+        .values({
+          userId: data.userId,
+          examId: data.examId,
+          mode: data.mode,
+          questionCount: data.questionCount,
+          timeLimit: data.timeLimit,
+          customTitle: data.customTitle,
+        })
+        .returning();
+
+      if (sub && sub.user_subscriptions.remainingExamAttempts != null) {
+        await tx
+          .update(userSubscriptions)
+          .set({ remainingExamAttempts: sql`${userSubscriptions.remainingExamAttempts} - 1` })
+          .where(and(
+            eq(userSubscriptions.id, sub.user_subscriptions.id),
+            gt(userSubscriptions.remainingExamAttempts, 0),
+          ));
       }
 
-      if (plan.examId && plan.examId !== data.examId) {
-        throw new HttpException(this.i18n.t("exams.subscriptionNotIncludeExam"), HttpStatus.FORBIDDEN);
+      if (sub && sub.user_subscriptions.remainingUses != null) {
+        await tx
+          .update(userSubscriptions)
+          .set({ remainingUses: sql`${userSubscriptions.remainingUses} - 1` })
+          .where(and(
+            eq(userSubscriptions.id, sub.user_subscriptions.id),
+            gt(userSubscriptions.remainingUses, 0),
+          ));
       }
 
-      if (sub.user_subscriptions.remainingExamAttempts != null && sub.user_subscriptions.remainingExamAttempts < 1) {
-        throw new HttpException(this.i18n.t("exams.noRemainingAttempts"), HttpStatus.FORBIDDEN);
-      }
-
-      if (sub.user_subscriptions.remainingUses != null && sub.user_subscriptions.remainingUses < 1) {
-        throw new HttpException(this.i18n.t("exams.usageLimitExceeded"), HttpStatus.FORBIDDEN);
-      }
-
-      if (plan.maxDays) {
-        const created = new Date(sub.user_subscriptions.createdAt);
-        const expired = new Date(created.getTime() + plan.maxDays * 24 * 60 * 60 * 1000);
-        if (new Date() > expired) {
-          throw new HttpException(this.i18n.t("exams.planExpired"), HttpStatus.FORBIDDEN);
-        }
-      }
-    }
-
-    const [attempt] = await this.db
-      .insert(examAttempts)
-      .values({
-        userId: data.userId,
-        examId: data.examId,
-        mode: data.mode,
-        questionCount: data.questionCount,
-        timeLimit: data.timeLimit,
-        customTitle: data.customTitle,
-      })
-      .returning();
-
-    if (sub && sub.user_subscriptions.remainingExamAttempts != null) {
-      await this.db
-        .update(userSubscriptions)
-        .set({ remainingExamAttempts: sql`${userSubscriptions.remainingExamAttempts} - 1` })
-        .where(and(
-          eq(userSubscriptions.id, sub.user_subscriptions.id),
-          gt(userSubscriptions.remainingExamAttempts, 0),
-        ));
-    }
-
-    if (sub && sub.user_subscriptions.remainingUses != null) {
-      await this.db
-        .update(userSubscriptions)
-        .set({ remainingUses: sql`${userSubscriptions.remainingUses} - 1` })
-        .where(and(
-          eq(userSubscriptions.id, sub.user_subscriptions.id),
-          gt(userSubscriptions.remainingUses, 0),
-        ));
-    }
-
-    return attempt;
+      return attempt;
+    });
   }
 
   async findById(id: string, userId: string) {

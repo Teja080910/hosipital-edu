@@ -411,32 +411,6 @@ const sb = useTranslations("subscribe");
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </section>
 
-      {/* Platform Showcase */}
-      {/* <section className="relative py-16 lg:py-24 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-primary/[0.01] to-transparent" />
-        <div className="absolute top-40 left-20 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px]" />
-        <div className="absolute bottom-40 right-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px]" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.7, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            whileHover={{ y: -4, scale: 1.005 }}
-            className="group relative mt-8 max-w-3xl mx-auto"
-          >
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <Image
-              src="/hero-3.jpg"
-              alt="MD Exam Study Interface"
-              width={800}
-              height={534}
-              className="w-full h-auto rounded-xl border border-border/50 shadow-lg group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-500 relative"
-            />
-          </motion.div>
-        </div>
-      </section> */}
-
       {/* Features */}
       <section id="features" className="relative py-24 lg:py-32">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] to-transparent" />

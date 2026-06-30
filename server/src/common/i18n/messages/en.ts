@@ -31,6 +31,7 @@ const en = {
     "notFound": "Course not found",
     "deleted": "Course deleted",
     "alreadyEnrolled": "Already enrolled in this course",
+    "notEnrolled": "You are not enrolled in this course",
     "paymentRequired": "Payment required for this course",
     "moduleNotFound": "Module not found",
     "moduleDeleted": "Module deleted",
@@ -57,7 +58,11 @@ const en = {
     "subscriptionNotIncludeExam": "Your subscription does not include this exam type.",
     "noRemainingAttempts": "No remaining exam attempts. Please upgrade your plan.",
     "usageLimitExceeded": "You have exceeded the total usage limit for your plan.",
-    "planExpired": "Your plan duration has expired."
+    "planExpired": "Your plan duration has expired.",
+    "duplicateActiveAttempt": "You already have an active attempt for this exam",
+    "notSubscribed": "You need an active subscription to access this feature",
+    "attemptAlreadyCompleted": "This attempt has already been completed",
+    "invalidOption": "Invalid answer option"
   },
   "flashcards": {
     "notFound": "Flashcard not found",
@@ -67,12 +72,14 @@ const en = {
   "subscriptions": {
     "planNotFound": "Plan not found",
     "noActiveSubscription": "No active subscription",
-    "descriptionTemplate": "{name} - {interval}"
+    "descriptionTemplate": "{name} - {interval}",
+    "sessionOwnershipMismatch": "Checkout session does not belong to you"
   },
   "articles": {
     "notFound": "Article not found",
     "deleted": "Article deleted",
-    "slugExists": "An article with this slug already exists"
+    "slugExists": "An article with this slug already exists",
+    "subscriptionRequired": "Subscription required to view this article"
   },
   "certificates": {
     "notFound": "Certificate not found or invalid",
@@ -96,7 +103,8 @@ const en = {
   "common": {
     "internalError": "Internal server error",
     "eventDeleted": "Event deleted",
-    "mailNotConfigured": "Mail not configured - skipping send"
+    "mailNotConfigured": "Mail not configured - skipping send",
+    "eventNotFound": "Event not found"
   },
   "stream": {
     "failedListVideos": "Failed to list videos",

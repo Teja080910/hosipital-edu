@@ -133,6 +133,9 @@ export class UsersController {
     if (!validRoles.includes(role)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(", ")}`);
     }
+    if (role === "super_admin" && admin.role !== "super_admin") {
+      throw new ForbiddenException("Only super_admins can assign the super_admin role");
+    }
     if (role === "super_admin" && admin.id === id) {
       throw new ForbiddenException("Cannot self-promote to super_admin");
     }
