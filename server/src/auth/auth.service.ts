@@ -87,7 +87,8 @@ export class AuthService {
     return { user: this.sanitizeUser(user), ...tokens };
   }
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string, turnstileToken?: string) {
+    await this.verifyTurnstile(turnstileToken);
     const [user] = await this.db
       .select()
       .from(users)
@@ -228,6 +229,25 @@ export class AuthService {
         expiresIn: this.config.get("JWT_REFRESH_EXPIRES_IN", "7d"),
       }),
     };
+  }
+
+  private async verifyTurnstile(token?: string) {
+    if (!token) {
+      throw new BadRequestException(this.i18n.t("auth.captchaRequired"));
+    }
+    const secret = this.config.get<string>("TURNSTILE_SECRET_KEY");
+    if (!secret) return;
+    const form = new URLSearchParams();
+    form.append("secret", secret);
+    form.append("response", token);
+    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body: form,
+    });
+    const data = await res.json() as { success: boolean };
+    if (!data.success) {
+      throw new BadRequestException(this.i18n.t("auth.captchaFailed"));
+    }
   }
 
   sanitizeUser(user: any) {

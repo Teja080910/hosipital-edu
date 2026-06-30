@@ -18,7 +18,9 @@ const es = {
     "loggedOut": "Sesión cerrada exitosamente",
     "accessDenied": "Acceso denegado",
     "tempEmailNotAllowed": "No se permiten direcciones de correo temporales. Usa un correo electrónico válido.",
-    "emailNotVerified": "Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada para el enlace de verificación."
+    "emailNotVerified": "Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada para el enlace de verificación.",
+    "captchaRequired": "Se requiere verificación de seguridad. Por favor completa el CAPTCHA.",
+    "captchaFailed": "La verificación de seguridad falló. Por favor inténtalo de nuevo."
   },
   "users": {
     "notFound": "Usuario no encontrado",

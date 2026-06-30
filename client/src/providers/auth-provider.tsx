@@ -15,7 +15,7 @@ import { useAuthStore } from "@/store/auth-store";
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, turnstileToken?: string) => Promise<void>;
   register: (name: string, email: string, password: string, referralCode?: string, targetExamId?: string, accountType?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -55,9 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, turnstileToken?: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    const { data } = await authApi.login({ email: normalizedEmail, password });
+    const { data } = await authApi.login({ email: normalizedEmail, password, turnstileToken });
     setTokens(data.access_token ?? data.accessToken, data.refresh_token ?? data.refreshToken);
     setUser(data.user);
   };

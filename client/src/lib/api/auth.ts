@@ -3,6 +3,7 @@ import api from "../client";
 interface LoginData {
   email: string;
   password: string;
+  turnstileToken?: string;
 }
 
 interface RegisterData {

@@ -121,6 +121,7 @@
     "signing_in": "Iniciando sesión...",
     "welcome_back": "¡Bienvenido de nuevo!",
     "invalid_credentials": "Credenciales inválidas",
+    "captcha_required": "Completa la verificación de seguridad para continuar.",
     "trusted_by": "Confiado por más de 10,000 médicos",
     "exam_prep": "Preparación para el examen de residencias médicas",
     "register_subtitle": "Preparación para el examen de residencias médicas",

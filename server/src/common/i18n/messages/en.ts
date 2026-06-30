@@ -18,7 +18,9 @@ const en = {
     "loggedOut": "Logged out successfully",
     "accessDenied": "Access denied",
     "tempEmailNotAllowed": "Temporary email addresses are not allowed. Please use a valid email address.",
-    "emailNotVerified": "Please verify your email address before signing in. Check your inbox for the verification link."
+    "emailNotVerified": "Please verify your email address before signing in. Check your inbox for the verification link.",
+    "captchaRequired": "Security verification is required. Please complete the CAPTCHA.",
+    "captchaFailed": "Security verification failed. Please try again."
   },
   "users": {
     "notFound": "User not found",
