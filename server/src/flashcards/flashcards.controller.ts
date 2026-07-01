@@ -16,7 +16,8 @@ import { RolesGuard } from "../common/guards/roles.guard";
 import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { IsOptional, IsString, IsUUID } from "class-validator";
+import { IsOptional, IsString, IsUUID, IsInt, IsBoolean, Min } from "class-validator";
+import { Type } from "class-transformer";
 
 class CreateFlashcardDto {
   @IsString()
@@ -66,6 +67,41 @@ class UpdateFlashcardDto {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+}
+
+class StartFlashcardExamDto {
+  @IsString()
+  mode!: string;
+
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  questionCount!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  timeLimit?: number;
+
+  @IsOptional()
+  @IsString()
+  customTitle?: string;
+
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  topicId?: string;
+}
+
+class AnswerFlashcardDto {
+  @IsUUID()
+  flashcardId!: string;
+
+  @IsBoolean()
+  isCorrect!: boolean;
 }
 
 @ApiTags("flashcards")
@@ -164,5 +200,34 @@ export class FlashcardsController {
   @ApiOperation({ summary: "Get flashcard exam attempt detail" })
   async getExamAttemptDetail(@Param("id") id: string, @CurrentUser() user: any) {
     return this.flashcardsService.getExamAttemptDetail(id, user.id);
+  }
+
+  @Post("exam/start")
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full", "course_only")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Start a flashcard exam" })
+  async startExam(@Body() data: StartFlashcardExamDto, @CurrentUser() user: any) {
+    return this.flashcardsService.startExam({ ...data, userId: user.id });
+  }
+
+  @Patch("exam/:id/answer")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Answer a flashcard in an exam" })
+  async answerFlashcard(
+    @Param("id") id: string,
+    @Body() data: AnswerFlashcardDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.flashcardsService.answerFlashcardQuestion({ attemptId: id, ...data }, user.id);
+  }
+
+  @Patch("exam/:id/complete")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Complete a flashcard exam" })
+  async completeExam(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.flashcardsService.completeExam(id, user.id);
   }
 }

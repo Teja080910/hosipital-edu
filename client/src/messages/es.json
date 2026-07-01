@@ -254,7 +254,16 @@
     "back_to_study": "Volver a Estudiar",
     "back_to_history": "Volver al Historial",
     "no_exam_history": "Aún no hay historial de exámenes de tarjetas",
-    "flashcard_exam": "Examen de Tarjetas"
+    "flashcard_exam": "Examen de Tarjetas",
+    "exam_config_title": "Configuración del Examen de Tarjetas",
+    "exam_config_desc": "Configura tu sesión de examen de tarjetas",
+    "practice_mode": "Práctica",
+    "practice_mode_desc": "Aprende a tu propio ritmo",
+    "exam_mode": "Examen",
+    "exam_mode_desc": "Modo de examen cronometrado",
+    "correct": "Correcto",
+    "incorrect": "Incorrecto",
+    "start_exam": "Iniciar Examen de Tarjetas"
   },
   "common": {
     "loading": "Cargando...",

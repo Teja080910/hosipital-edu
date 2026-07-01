@@ -254,7 +254,16 @@
     "back_to_study": "Back to Study",
     "back_to_history": "Back to History",
     "no_exam_history": "No flashcard exam history yet",
-    "flashcard_exam": "Flashcard Exam"
+    "flashcard_exam": "Flashcard Exam",
+    "exam_config_title": "Flashcard Exam Configuration",
+    "exam_config_desc": "Configure your flashcard exam session",
+    "practice_mode": "Practice",
+    "practice_mode_desc": "Learn at your own pace",
+    "exam_mode": "Exam",
+    "exam_mode_desc": "Timed exam mode",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "start_exam": "Start Flashcard Exam"
   },
   "common": {
     "loading": "Loading...",

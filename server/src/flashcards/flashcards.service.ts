@@ -434,6 +434,197 @@ export class FlashcardsService {
     return user?.targetExamId || null;
   }
 
+  async startExam(data: {
+    userId: string;
+    mode: string;
+    questionCount: number;
+    timeLimit?: number;
+    customTitle?: string;
+    specialtyId?: string;
+    topicId?: string;
+  }) {
+    const { userId, mode, questionCount, timeLimit, customTitle, specialtyId, topicId } = data;
+
+    const [user] = await this.db
+      .select({ role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!user) throw new NotFoundException("User not found");
+
+    const isAdmin = user.role === "admin" || user.role === "super_admin";
+
+    let sub: any = null;
+    let accessibleExamId: string | null = null;
+
+    if (!isAdmin) {
+      accessibleExamId = await this.getSubscriptionExamId(userId);
+      if (!accessibleExamId) {
+        const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+        if (user.targetExamId && hoursSinceRegistration <= 24) {
+          accessibleExamId = user.targetExamId;
+        } else {
+          throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
+        }
+      }
+
+      [sub] = await this.db
+        .select()
+        .from(userSubscriptions)
+        .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active")))
+        .limit(1);
+
+      if (sub) {
+        if (sub.remainingFlashcardAttempts != null && sub.remainingFlashcardAttempts < 1) {
+          throw new HttpException(this.i18n.t("flashcards.noRemainingAttempts"), HttpStatus.FORBIDDEN);
+        }
+        if (sub.remainingUses != null && sub.remainingUses < 1) {
+          throw new HttpException(this.i18n.t("exams.usageLimitExceeded"), HttpStatus.FORBIDDEN);
+        }
+      }
+    }
+
+    const conditions: SQL[] = [eq(flashcards.isActive, true)];
+    if (accessibleExamId) {
+      const examFIds = await this.db
+        .select({ flashcardId: flashcardExams.flashcardId })
+        .from(flashcardExams)
+        .where(eq(flashcardExams.examId, accessibleExamId));
+      const ids = examFIds.map((r: any) => r.flashcardId);
+      if (!ids.length) throw new HttpException("No flashcards available for this exam", HttpStatus.BAD_REQUEST);
+      conditions.push(inArray(flashcards.id, ids));
+    }
+    if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
+    if (topicId) conditions.push(eq(flashcards.topicId, topicId));
+
+    const allCards = await this.db
+      .select({ id: flashcards.id })
+      .from(flashcards)
+      .where(and(...conditions));
+
+    if (!allCards.length) throw new HttpException("No flashcards available", HttpStatus.BAD_REQUEST);
+
+    const shuffled = allCards.sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(questionCount || shuffled.length, shuffled.length));
+    const selectedIds = selected.map((c: any) => c.id);
+
+    const [existingActive] = await this.db
+      .select({ id: flashcardExamAttempts.id })
+      .from(flashcardExamAttempts)
+      .where(and(eq(flashcardExamAttempts.userId, userId), eq(flashcardExamAttempts.status, "in_progress")))
+      .limit(1);
+    if (existingActive) {
+      throw new HttpException("You already have an active flashcard exam. Complete it first.", HttpStatus.BAD_REQUEST);
+    }
+
+    const [attempt] = await this.db
+      .insert(flashcardExamAttempts)
+      .values({
+        userId,
+        mode: mode || "practice",
+        status: "in_progress",
+        customTitle,
+        questionCount: selectedIds.length,
+        timeLimit,
+        startedAt: new Date(),
+      })
+      .returning();
+
+    if (sub && sub.remainingFlashcardAttempts != null) {
+      await this.db
+        .update(userSubscriptions)
+        .set({ remainingFlashcardAttempts: sql`${userSubscriptions.remainingFlashcardAttempts} - 1` })
+        .where(and(eq(userSubscriptions.id, sub.id), sql`${userSubscriptions.remainingFlashcardAttempts} > 0`));
+    }
+    if (sub && sub.remainingUses != null) {
+      await this.db
+        .update(userSubscriptions)
+        .set({ remainingUses: sql`${userSubscriptions.remainingUses} - 1` })
+        .where(and(eq(userSubscriptions.id, sub.id), sql`${userSubscriptions.remainingUses} > 0`));
+    }
+
+    const cardDetails = await this.db
+      .select({
+        id: flashcards.id,
+        front: flashcards.front,
+        back: flashcards.back,
+        reference: flashcards.reference,
+        specialtyId: flashcards.specialtyId,
+        topicId: flashcards.topicId,
+        specialty: specialties.name,
+        topic: topics.name,
+      })
+      .from(flashcards)
+      .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+      .leftJoin(topics, eq(flashcards.topicId, topics.id))
+      .where(inArray(flashcards.id, selectedIds));
+
+    return { ...attempt, flashcards: cardDetails };
+  }
+
+  async answerFlashcardQuestion(data: {
+    attemptId: string;
+    flashcardId: string;
+    isCorrect: boolean;
+  }, userId: string) {
+    const [attempt] = await this.db
+      .select({ userId: flashcardExamAttempts.userId, status: flashcardExamAttempts.status })
+      .from(flashcardExamAttempts)
+      .where(eq(flashcardExamAttempts.id, data.attemptId))
+      .limit(1);
+    if (!attempt) throw new NotFoundException("Flashcard exam attempt not found");
+    if (attempt.userId !== userId) throw new HttpException("Forbidden", HttpStatus.FORBIDDEN);
+    if (attempt.status === "completed") throw new HttpException("Exam already completed", HttpStatus.BAD_REQUEST);
+
+    const [existing] = await this.db
+      .select()
+      .from(flashcardExamAnswers)
+      .where(and(eq(flashcardExamAnswers.attemptId, data.attemptId), eq(flashcardExamAnswers.flashcardId, data.flashcardId)))
+      .limit(1);
+    if (existing) throw new HttpException("Already answered this flashcard", HttpStatus.BAD_REQUEST);
+
+    const [answer] = await this.db
+      .insert(flashcardExamAnswers)
+      .values({
+        attemptId: data.attemptId,
+        flashcardId: data.flashcardId,
+        isCorrect: data.isCorrect,
+        answeredAt: new Date(),
+      })
+      .returning();
+
+    await this.db
+      .update(flashcardExamAttempts)
+      .set({
+        answeredCount: sql`${flashcardExamAttempts.answeredCount} + 1`,
+        correctCount: sql`${flashcardExamAttempts.correctCount} + ${data.isCorrect ? 1 : 0}`,
+      })
+      .where(eq(flashcardExamAttempts.id, data.attemptId));
+
+    return answer;
+  }
+
+  async completeExam(attemptId: string, userId: string) {
+    const [attempt] = await this.db
+      .select({ userId: flashcardExamAttempts.userId, status: flashcardExamAttempts.status, startedAt: flashcardExamAttempts.startedAt })
+      .from(flashcardExamAttempts)
+      .where(eq(flashcardExamAttempts.id, attemptId))
+      .limit(1);
+    if (!attempt) throw new NotFoundException("Flashcard exam attempt not found");
+    if (attempt.userId !== userId) throw new HttpException("Forbidden", HttpStatus.FORBIDDEN);
+    if (attempt.status === "completed") throw new HttpException("Exam already completed", HttpStatus.BAD_REQUEST);
+
+    const timeSpent = Math.round((Date.now() - new Date(attempt.startedAt).getTime()) / 1000);
+
+    const [updated] = await this.db
+      .update(flashcardExamAttempts)
+      .set({ status: "completed", completedAt: new Date(), timeSpent })
+      .where(eq(flashcardExamAttempts.id, attemptId))
+      .returning();
+
+    return updated;
+  }
+
   async getExamHistory(userId: string) {
     return this.db
       .select({

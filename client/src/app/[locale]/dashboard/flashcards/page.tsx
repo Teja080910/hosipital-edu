@@ -11,9 +11,10 @@ import { FlashcardCard } from "@/components/flashcards/flashcard-card";
 import { FlashcardReview } from "@/components/flashcards/flashcard-review";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Library, RefreshCw } from "lucide-react";
+import { Library, RefreshCw, Play } from "lucide-react";
 import { flashcardsApi } from "@/lib/api/flashcards";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/routing";
 
 const SESSION_KEY = "flashcard_session";
 const PAGE_SIZE = 20;
@@ -251,6 +252,12 @@ export default function FlashcardsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <div className="flex items-center gap-2">
+            <Link href="/dashboard/flashcards/exam">
+              <Button variant="default" size="sm" className="gap-2">
+                <Play className="h-3.5 w-3.5" />
+                {t("start_exam")}
+              </Button>
+            </Link>
             <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
               <RefreshCw className="h-3.5 w-3.5" />
               {t("reshuffle")}

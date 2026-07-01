@@ -11,4 +11,10 @@ export const flashcardsApi = {
     api.post(`/flashcards/${id}/review`, { quality }),
   examHistory: () => api.get("/flashcards/exam-history"),
   examHistoryDetail: (id: string) => api.get(`/flashcards/exam-history/${id}`),
+  startExam: (data: { mode: string; questionCount: number; timeLimit?: number; customTitle?: string; specialtyId?: string; topicId?: string }) =>
+    api.post("/flashcards/exam/start", data),
+  answerExam: (id: string, data: { flashcardId: string; isCorrect: boolean }) =>
+    api.patch(`/flashcards/exam/${id}/answer`, data),
+  completeExam: (id: string) =>
+    api.patch(`/flashcards/exam/${id}/complete`),
 };
