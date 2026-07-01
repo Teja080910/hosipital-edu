@@ -12,26 +12,30 @@ import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { LanguageInterceptor } from "./common/interceptors/language.interceptor";
 
 async function bootstrap() {
-  const fastifyInstance = new FastifyAdapter({
+  const fastifyAdapter = new FastifyAdapter({
     logger: true,
     bodyLimit: 1048576,
   });
 
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    fastifyInstance,
+  const instance = fastifyAdapter.getInstance() as any;
+  const { onProtoPoisoning, onConstructorPoisoning } = instance.initialConfig;
+  const defaultJsonParser = instance.getDefaultJsonParser(
+    onProtoPoisoning || "error",
+    onConstructorPoisoning || "error",
+  );
+  fastifyAdapter.useBodyParser(
+    "application/json",
+    true,
+    { bodyLimit: 1048576 },
+    (req: any, body: Buffer, done: any) => {
+      defaultJsonParser(req, body, done);
+    },
   );
 
-  const instance = app.getHttpAdapter().getInstance() as any;
-  instance.addContentTypeParser("application/json", { parseAs: "buffer", override: true }, (req: any, body: Buffer, done: any) => {
-    req.rawBody = body;
-    try {
-      const parsed = JSON.parse(body.toString());
-      done(null, parsed);
-    } catch (err) {
-      done(err as Error);
-    }
-  });
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    fastifyAdapter,
+  );
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN || "http://localhost:4175",
