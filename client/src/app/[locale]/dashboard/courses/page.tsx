@@ -25,7 +25,7 @@ interface Course {
   examId: string | null;
 }
 
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
+function localizedText(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
   if (!obj) return "";
   if (typeof obj === "string") return obj;
   return obj[locale] || Object.values(obj)[0] || "";
@@ -144,8 +144,8 @@ export default function CoursesPage() {
                 course={{
                   id: course.id,
                   slug: course.slug,
-                  title: localized(course.title),
-                  description: localized(course.shortDescription) || localized(course.description),
+                  title: localizedText(course.title),
+                  description: localizedText(course.shortDescription) || localizedText(course.description),
                   thumbnail: course.coverImage || "",
                   progress: progressMap[course.id] || 0,
                   lessons: course.lessonCount || 0,
