@@ -7,6 +7,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -54,6 +56,8 @@
   --foreground: #0b1120;
   --card: #ffffff;
   --card-foreground: #0b1120;
+  --popover: #ffffff;
+  --popover-foreground: #0b1120;
   --primary: #2563eb;
   --primary-foreground: #ffffff;
   --secondary: #f0f4ff;
@@ -75,6 +79,8 @@
   --foreground: #edf2f7;
   --card: #121b2d;
   --card-foreground: #edf2f7;
+  --popover: #121b2d;
+  --popover-foreground: #edf2f7;
   --primary: #3b82f6;
   --primary-foreground: #ffffff;
   --secondary: #162040;

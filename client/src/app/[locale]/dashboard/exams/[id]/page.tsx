@@ -10,9 +10,11 @@ import { QuestionTimer } from "@/components/questions/question-timer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 
 import { attemptsApi, examsApi, questionsApi } from "@/lib/api";
@@ -114,7 +116,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         );
         setCombinedExams(results);
         const allQuestions = await Promise.all(
-          examIds.map((eid) => questionsApi.list({ examId: eid }).then((r) => r.data))
+          examIds.map((eid) => questionsApi.list({ examId: eid }).then((r) => r.data.data))
         );
         const merged = allQuestions.flat();
         setAllQuestions(merged);
@@ -126,8 +128,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           questionsApi.list({ examId: id, limit: 10000 }),
         ]);
         setExam(examRes.data);
-        setAllQuestions(questionsRes.data);
-        setFilteredQuestions(questionsRes.data);
+        setAllQuestions(questionsRes.data.data);
+        setFilteredQuestions(questionsRes.data.data);
       }
     };
     loadExams()
@@ -139,9 +141,6 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (pageState !== "config") return;
-      if (specialtiesRef.current && !specialtiesRef.current.contains(target)) {
-        setShowSpecialties(false);
-      }
       if (topicsRef.current && !topicsRef.current.contains(target)) {
         setShowTopics(false);
       }
@@ -207,6 +206,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     if (selectedTopic) filtered = filtered.filter((q) => q.topicId === selectedTopic);
     if (selectedSubtopic) filtered = filtered.filter((q) => q.subtopicId === selectedSubtopic);
     setFilteredQuestions(filtered);
+    setQuestionLimit(Math.min(10, filtered.length));
   }, [selectedSpecialties, selectedTopic, selectedSubtopic, allQuestions]);
 
   const specialties = combinedExams.length > 0
@@ -214,6 +214,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     : exam?.specialties || [];
   const validSpecialtyIds = new Set(specialties.map((s: any) => s.id));
   const effectiveSelected = selectedSpecialties.filter((id) => validSpecialtyIds.has(id));
+  const isAllSelected = selectedSpecialties.length === 0 || (specialties.length > 0 && effectiveSelected.length === specialties.length);
   const currentSpecialties = specialties.filter((s: any) => effectiveSelected.includes(s.id));
   const topics = currentSpecialties.length > 0 ? currentSpecialties.flatMap((s: any) => s.topics || []) : specialties.flatMap((s: any) => s.topics || []);
   const currentTopic = topics.find((t: any) => t.id === selectedTopic);
@@ -585,10 +586,26 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const maxQuestions = filteredQuestions.length;
   const timeOptions = [5, 10, 15, 20, 30, 60];
 
+  const handleToggleSpecialty = (sId: string) => {
+    if (selectedSpecialties.length === 0) {
+      setSelectedSpecialties([sId]);
+    } else if (selectedSpecialties.includes(sId)) {
+      const next = selectedSpecialties.filter((id) => id !== sId);
+      setSelectedSpecialties(next);
+    } else {
+      const next = [...selectedSpecialties, sId];
+      setSelectedSpecialties(next.length === specialties.length ? [] : next);
+    }
+  };
+
+  const handleToggleAllSpecialties = () => {
+    setSelectedSpecialties([]);
+  };
+
   return (
     <AccountTypeGate>
     <PageTransition>
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto space-y-6">
         <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
         <Card>
           <CardHeader className="text-center">
@@ -622,70 +639,98 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             {specialties.length > 0 && (
               <div ref={specialtiesRef}>
                 <label className="text-sm font-medium mb-2 block">{t("specialty")}</label>
-                <div className="relative">
-                  <button onClick={() => { setShowSpecialties(!showSpecialties); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
-                    <span className={effectiveSelected.length > 0 ? "" : "text-muted-foreground"}>
-                      {effectiveSelected.length > 0
-                        ? `${effectiveSelected.length} ${t("selected")}`
-                        : t("all_specialties")}
-                    </span><ChevronDown className="h-4 w-4 flex-shrink-0" />
-                  </button>
-                  {showSpecialties && (
-                    <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
-                      <div className="max-h-72 overflow-y-auto p-1">
-                        <button onClick={() => { setSelectedSpecialties([]); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{effectiveSelected.length === 0 && <Check className="h-4 w-4 text-primary" />}{t("all_specialties")}</button>
-                        {[...specialties].sort((a: any, b: any) => {
-                          const aSel = effectiveSelected.includes(a.id) ? 0 : 1;
-                          const bSel = effectiveSelected.includes(b.id) ? 0 : 1;
-                          return aSel - bSel;
-                        }).map((s: any) => {
-                          const isSelected = effectiveSelected.includes(s.id);
-                          return (
-                            <button key={s.id} onClick={() => {
-                              setSelectedSpecialties((prev) =>
-                                prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id]
-                              );
-                            }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">
-                              <div className={`h-4 w-4 rounded border flex items-center justify-center ${isSelected ? "bg-primary border-primary" : "border-input"}`}>
-                                {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                              </div>
-                              {localized(s.name, locale)}
-                            </button>
-                          );
-                        })}
+                <Popover open={showSpecialties} onOpenChange={setShowSpecialties}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className={isAllSelected ? "text-muted-foreground" : ""}>
+                        {isAllSelected
+                          ? t("all_specialties")
+                          : `${effectiveSelected.length} ${t("selected")}`}
+                      </span>
+                      <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-1" align="start">
+                    <div className="max-h-72 overflow-y-auto">
+                      <div 
+                        onClick={handleToggleAllSpecialties}
+                        className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer text-sm"
+                      >
+                        <Checkbox
+                          className="h-5 w-5 pointer-events-none"
+                          checked={isAllSelected}
+                        />
+                        <span>{t("all_specialties")}</span>
                       </div>
-                    </Card>
-                  )}
+                      {specialties.map((s: any) => {
+                        const isChecked = isAllSelected || effectiveSelected.includes(s.id);
+                        return (
+                          <div 
+                            key={s.id} 
+                            onClick={() => handleToggleSpecialty(s.id)}
+                            className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer text-sm"
+                          >
+                            <Checkbox
+                              className="h-5 w-5 pointer-events-none"
+                              checked={isChecked}
+                            />
+                            <span>{localized(s.name, locale)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            {maxQuestions > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">{t("select_questions")} (max {maxQuestions})</label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min={1}
+                    max={Math.max(1, maxQuestions)}
+                    step={1}
+                    value={Math.min(questionLimit, maxQuestions)}
+                    onChange={(e) => setQuestionLimit(Number(e.target.value))}
+                    className="flex-1 h-1.5 rounded-lg appearance-none cursor-pointer bg-border [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:active:scale-110 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:active:scale-110"
+                    style={{
+                      background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${
+                        maxQuestions > 1 
+                          ? ((Math.min(questionLimit, maxQuestions) - 1) / (maxQuestions - 1)) * 100 
+                          : 100
+                      }%, var(--border) ${
+                        maxQuestions > 1 
+                          ? ((Math.min(questionLimit, maxQuestions) - 1) / (maxQuestions - 1)) * 100 
+                          : 100
+                      }%, var(--border) 100%)`
+                    }}
+                  />
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={questionLimit || ""}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, "");
+                      if (v === "") { setQuestionLimit(0); return; }
+                      const n = parseInt(v, 10);
+                      setQuestionLimit(Math.min(n, maxQuestions));
+                    }}
+                    onBlur={() => { if (questionLimit < 1 || isNaN(questionLimit)) setQuestionLimit(Math.max(1, maxQuestions)); }}
+                    className="w-20 text-center"
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>1</span>
+                  <span className="font-medium text-sm">{t("questions_count", { count: Math.min(questionLimit, maxQuestions) })}</span>
+                  <span>{maxQuestions}</span>
                 </div>
               </div>
             )}
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">{t("select_questions")} (max {maxQuestions})</label>
-              <div className="flex items-center gap-4">
-                <input type="range" min={1} max={Math.max(1, maxQuestions)} step={1} value={Math.min(questionLimit, maxQuestions)} onChange={(e) => setQuestionLimit(Number(e.target.value))} className="flex-1 accent-primary" />
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  value={questionLimit || ""}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, "");
-                    if (v === "") { setQuestionLimit(0); return; }
-                    const n = parseInt(v, 10);
-                    setQuestionLimit(Math.min(n, maxQuestions));
-                  }}
-                  onBlur={() => { if (questionLimit < 1 || isNaN(questionLimit)) setQuestionLimit(Math.max(1, maxQuestions)); }}
-                  className="w-20 text-center"
-                />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>1</span>
-                <span className="font-medium text-sm">{t("questions_count", { count: Math.min(questionLimit, maxQuestions) })}</span>
-                <span>{maxQuestions}</span>
-              </div>
-            </div>
-
-          {mode === "exam" && !reviewMode && (
+          {mode === "exam" && !reviewMode && maxQuestions > 0 && (
               <div>
                 <label className="text-sm font-medium mb-2 block">{t("time_limit")}</label>
                 <div className="grid grid-cols-3 gap-2">

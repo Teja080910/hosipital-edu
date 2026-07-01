@@ -8,7 +8,6 @@ import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { localizedText as localized } from "@/lib/utils";
 
 interface Course {
   id: string;

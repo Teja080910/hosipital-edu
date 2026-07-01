@@ -46,7 +46,7 @@ const typeIcons: Record<string, any> = {
 };
 
 const typeColors: Record<string, string> = {
-  exam: "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400 border-red-200 dark:border-red-800",
+  exam: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
   study_schedule: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
   personal: "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400 border-green-200 dark:border-green-800",
 };
@@ -326,8 +326,8 @@ export default function CalendarPage() {
             <div className="space-y-4">
               {Array.from({ length: Math.ceil((firstDay + daysInMonth) / 7) }, (_, w) => {
                 const weekStart = new Date(currentYear, currentMonth, 1 + w * 7 - firstDay);
-                const weekEnd = new Date(currentYear, currentMonth, Math.min(7 + w * 7 - firstDay, daysInMonth));
-                if (weekStart.getMonth() !== currentMonth) return null;
+                const weekEnd = new Date(currentYear, currentMonth, Math.min(7 + w * 7 - firstDay, daysInMonth), 23, 59, 59, 999);
+                if (weekStart.getMonth() !== currentMonth && weekEnd.getMonth() !== currentMonth) return null;
                 const weekEvents = events.filter((e: any) => {
                   const d = new Date(e.eventDate);
                   return d >= weekStart && d <= weekEnd;
