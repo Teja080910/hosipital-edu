@@ -94,6 +94,7 @@ export const specialties = pgTable("specialties", {
     .references(() => exams.id, { onDelete: "cascade" }),
   name: jsonb("name").notNull(),
   slug: text("slug").notNull(),
+  type: text("type").notNull().default("question"),
   maxQuestions: integer("max_questions"),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -279,6 +280,37 @@ export const flashcards = pgTable("flashcards", {
     .references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const flashcardExamAttempts = pgTable("flashcard_exam_attempts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  mode: text("mode").notNull().default("practice"),
+  status: text("status").notNull().default("completed"),
+  customTitle: text("custom_title"),
+  isShowTimeCounter: boolean("is_show_time_counter").default(false),
+  questionCount: integer("question_count").notNull().default(0),
+  answeredCount: integer("answered_count").notNull().default(0),
+  correctCount: integer("correct_count").notNull().default(0),
+  timeLimit: integer("time_limit"),
+  timeSpent: integer("time_spent").default(0).notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const flashcardExamAnswers = pgTable("flashcard_exam_answers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  attemptId: uuid("attempt_id")
+    .notNull()
+    .references(() => flashcardExamAttempts.id, { onDelete: "cascade" }),
+  flashcardId: uuid("flashcard_id")
+    .notNull()
+    .references(() => flashcards.id, { onDelete: "cascade" }),
+  isCorrect: boolean("is_correct").notNull(),
+  answeredAt: timestamp("answered_at").defaultNow().notNull(),
 });
 
 export const userFlashcardReviews = pgTable(

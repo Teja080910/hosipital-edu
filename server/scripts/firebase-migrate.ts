@@ -1,26 +1,20 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { sql, eq, and } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import * as schema from "../src/database/schema";
 import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
 
-const UUID_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-function firebaseIdToUuid(firebaseId: string): string {
-  return crypto.createHash("md5").update(UUID_NAMESPACE + firebaseId).digest("hex").replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
+if (!process.env.DATABASE_URL) {
+  console.error("FATAL: DATABASE_URL environment variable is required");
+  process.exit(1);
 }
-
-const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    "process.env.DATABASE_URL",
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
 
 const DATA_DIR = path.join(__dirname, "../exports");
 
-// Safe timestamp converter — handles string, number, Firestore object, null
 function toDate(val: any): Date | null {
   if (!val) return null;
   if (val instanceof Date) return val;
@@ -37,7 +31,6 @@ function getFlashcardBack(f: any): string {
   return f.explanation || "";
 }
 
-// Progress tracking
 let totalUsers = 0;
 let totalPlans = 0;
 let totalQuestions = 0;
@@ -53,10 +46,6 @@ let totalExamAttempts = 0;
 let totalExamAnswers = 0;
 let totalUserQuestionProgress = 0;
 let totalFlashcardReviews = 0;
-
-function getDocId(doc: any): string {
-  return doc._id || "";
-}
 
 // ─── Exam / Category helpers ─────────────────────────────────────────────────
 
@@ -110,7 +99,7 @@ async function ensureExams(): Promise<Record<string, string>> {
 }
 
 async function getOrCreateSpecialtyTopic(
-  examId: string, catTitle: string,
+  examId: string, catTitle: string, type: string = "question",
 ): Promise<{ specialtyId: string; topicId: string }> {
   const slug = toSlug(catTitle);
   let { rows: specs } = await pool.query(
@@ -119,8 +108,8 @@ async function getOrCreateSpecialtyTopic(
   const specialtyId = specs.length
     ? specs[0].id
     : (await pool.query(
-        "INSERT INTO specialties (exam_id, name, slug, sort_order) VALUES ($1, $2, $3, 0) RETURNING id",
-        [examId, JSON.stringify({ en: catTitle, es: catTitle }), slug],
+        "INSERT INTO specialties (exam_id, name, slug, type, sort_order) VALUES ($1, $2, $3, $4, 0) RETURNING id",
+        [examId, JSON.stringify({ en: catTitle, es: catTitle }), slug, type],
       )).rows[0].id;
 
   let { rows: topics } = await pool.query(
@@ -179,7 +168,7 @@ async function migrateUsers(docs: any[]) {
           zipCode: f.zipCode || null,
           role: f.isAdministrator ? "admin" : "student",
           emailVerifiedAt: new Date(),
-          createdAt: toDate(f.creationTime) || new Date(),
+          createdAt: toDate(f._createTime) || new Date(),
           updatedAt: new Date(),
           deletedAt: f.enabled === false ? new Date() : null,
         })
@@ -192,7 +181,6 @@ async function migrateUsers(docs: any[]) {
     }
   }
 
-  // If no admin found, create default
   if (!adminId) {
     const [admin] = (await db
       .insert(schema.users)
@@ -210,7 +198,7 @@ async function migrateUsers(docs: any[]) {
   return adminId;
 }
 
-async function migrateMemberships(docs: any[], adminId: string) {
+async function migrateMemberships(docs: any[]) {
   console.log("\n=== Memberships (memberships → subscription_plans) ===");
 
   for (const doc of docs) {
@@ -218,41 +206,44 @@ async function migrateMemberships(docs: any[], adminId: string) {
       const f = doc;
       const title = f.title || "Untitled Plan";
 
-      const existing = await db
-        .select()
-        .from(schema.subscriptionPlans)
-        .where(
-          sql`${schema.subscriptionPlans.name}->>'en' = ${title}`,
-        )
-        .limit(1);
-      if (existing.length) {
-        totalPlans++;
-        continue;
-      }
-
       let interval = "month";
       if (f.maxDays >= 350) interval = "year";
       else if (f.maxDays >= 80) interval = "quarter";
 
-      await db
-        .insert(schema.subscriptionPlans)
-        .values({
-          name: { en: title, es: title },
-          description: { en: f.detail || "", es: f.detail || "" },
-          interval,
-          price: String(f.price ?? 0),
-          currency: "USD",
-          maxQuestions: f.maxQuestions ?? null,
-          maxFlashcards: f.maxFlashcards ?? null,
-          maxVideos: f.maxVideos ?? null,
-          isDefault: f.isDefault ?? false,
-          isCourseOnly: f.isCourseOnly ?? false,
-          isVisible: f.isVisible ?? true,
-          sortOrder: f.order ?? 0,
-          isActive: true,
+      const planData = {
+        name: { en: title, es: title } as any,
+        description: { en: f.detail || "", es: f.detail || "" } as any,
+        interval,
+        price: String(f.price ?? 0),
+        currency: "USD",
+        maxQuestions: f.maxQuestions ?? null,
+        maxFlashcards: f.maxFlashcards ?? null,
+        maxVideos: f.maxVideos ?? null,
+        isDefault: f.isDefault ?? false,
+        isCourseOnly: f.isCourseOnly ?? false,
+        isVisible: f.isVisible ?? true,
+        sortOrder: f.order ?? 0,
+        isActive: true,
+        updatedAt: new Date(),
+      };
+
+      const existing = await db
+        .select()
+        .from(schema.subscriptionPlans)
+        .where(sql`${schema.subscriptionPlans.name}->>'en' = ${title}`)
+        .limit(1);
+
+      if (existing.length) {
+        await db
+          .update(schema.subscriptionPlans)
+          .set(planData)
+          .where(eq(schema.subscriptionPlans.id, existing[0].id));
+      } else {
+        await db.insert(schema.subscriptionPlans).values({
+          ...planData,
           createdAt: toDate(f.creationTime) || new Date(),
-          updatedAt: new Date(),
         });
+      }
 
       totalPlans++;
     } catch (err: any) {
@@ -270,7 +261,7 @@ async function migrateQuestions(docs: any[], adminId: string, examSlugToId: Reco
   for (const c of catDocs) catMap[c.id] = c.title;
 
   const specTopicCache: Record<string, { specialtyId: string; topicId: string }> = {};
-  let linked = 0;
+  let inserted = 0;
   let skipped = 0;
 
   for (const doc of docs) {
@@ -279,20 +270,40 @@ async function migrateQuestions(docs: any[], adminId: string, examSlugToId: Reco
       const text = (f.title || "").trim();
       if (!text) { skipped++; continue; }
 
+      const answers: any[] = (f.answers || []).filter((a: any) => a.title && a.title.trim());
+      if (answers.length === 0) { skipped++; continue; }
+
+      // Resolve exam / specialty / topic from category
+      const catId = getCatIdFromDoc(doc);
+      const catTitle = catMap[catId || ""];
+      if (!catTitle) { skipped++; continue; }
+
+      let examSlug = EXAM_TYPE_TO_SLUG[f.examType];
+      if (!examSlug) examSlug = detectExamSlug(catTitle);
+      const examId = examSlugToId[examSlug];
+      if (!examId) { skipped++; continue; }
+
+      const cacheKey = `${examSlug}::${catTitle}`;
+      if (!specTopicCache[cacheKey]) {
+        specTopicCache[cacheKey] = await getOrCreateSpecialtyTopic(examId, catTitle);
+      }
+      const { specialtyId, topicId } = specTopicCache[cacheKey];
+
+      // Upsert by unique text
       const existing = await db
         .select()
         .from(schema.questions)
         .where(eq(schema.questions.text, text))
         .limit(1);
-      if (existing.length) {
-        totalQuestions++;
-        // Still try to link
-      } else {
-        const answers: any[] = (f.answers || []).filter(
-          (a: any) => a.title && a.title.trim(),
-        );
-        if (answers.length === 0) { skipped++; continue; }
 
+      let questionId: string;
+      if (existing.length) {
+        questionId = existing[0].id;
+        await pool.query(
+          "UPDATE questions SET exam_id = $1, specialty_id = $2, topic_id = $3 WHERE id = $4",
+          [examId, specialtyId, topicId, questionId],
+        );
+      } else {
         const [question] = (await db
           .insert(schema.questions)
           .values({
@@ -302,24 +313,25 @@ async function migrateQuestions(docs: any[], adminId: string, examSlugToId: Reco
             difficulty: "medium",
             isActive: f.isEnabled !== false,
             createdBy: adminId,
+            examId,
+            specialtyId,
+            topicId,
             createdAt: toDate(f.creationTime) || new Date(),
             updatedAt: new Date(),
           })
           .returning()) as any[];
+        questionId = question.id;
+        inserted++;
 
-        totalQuestions++;
-
-        if (answers.length) {
-          await db.insert(schema.questionOptions).values(
-            answers.map((a: any, i: number) => ({
-              questionId: question.id,
-              text: a.title || "",
-              isCorrect: a.isCorrect === true,
-              sortOrder: i,
-            })),
-          );
-          totalOptions += answers.length;
-        }
+        await db.insert(schema.questionOptions).values(
+          answers.map((a: any, i: number) => ({
+            questionId,
+            text: a.title || "",
+            isCorrect: a.isCorrect === true,
+            sortOrder: i,
+          })),
+        );
+        totalOptions += answers.length;
 
         const imgFields = [
           { url: f.urlTitle01, sort: 0 },
@@ -336,7 +348,7 @@ async function migrateQuestions(docs: any[], adminId: string, examSlugToId: Reco
         if (imgFields.length) {
           await db.insert(schema.questionImages).values(
             imgFields.map((x) => ({
-              questionId: question.id,
+              questionId,
               url: x.url!,
               sortOrder: x.sort,
             })),
@@ -345,39 +357,18 @@ async function migrateQuestions(docs: any[], adminId: string, examSlugToId: Reco
         }
       }
 
-      // Link to exam / specialty / topic
-      const catId = getCatIdFromDoc(doc);
-      const catTitle = catMap[catId || ""];
-      if (!catTitle) { continue; }
-
-      let examSlug = EXAM_TYPE_TO_SLUG[f.examType];
-      if (!examSlug) {
-        examSlug = detectExamSlug(catTitle);
-      }
-      const examId = examSlugToId[examSlug];
-      if (!examId) { continue; }
-
-      const cacheKey = `${examSlug}::${catTitle}`;
-      if (!specTopicCache[cacheKey]) {
-        specTopicCache[cacheKey] = await getOrCreateSpecialtyTopic(examId, catTitle);
-      }
-      const { specialtyId, topicId } = specTopicCache[cacheKey];
-
-      const { rows: qs } = await pool.query(
-        "SELECT id FROM questions WHERE text = $1 LIMIT 1", [text],
+      // Link to exam via junction table
+      await pool.query(
+        "INSERT INTO question_exams (question_id, exam_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        [questionId, examId],
       );
-      if (qs.length) {
-        await pool.query(
-          "UPDATE questions SET exam_id = $1, specialty_id = $2, topic_id = $3 WHERE id = $4",
-          [examId, specialtyId, topicId, qs[0].id],
-        );
-        linked++;
-      }
+
+      totalQuestions++;
     } catch (err: any) {
       console.error(`  Error migrating question: ${err.message}`);
     }
   }
-  console.log(`  Questions: ${totalQuestions}, Options: ${totalOptions}, Images: ${totalImages}, linked to exam: ${linked}, skipped: ${skipped}`);
+  console.log(`  Questions: ${totalQuestions} (inserted: ${inserted}, skipped: ${skipped}), Options: ${totalOptions}, Images: ${totalImages}`);
 }
 
 async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Record<string, string>) {
@@ -388,7 +379,7 @@ async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Rec
   for (const c of catDocs) catMap[c.id] = c.title;
 
   const specTopicCache: Record<string, { specialtyId: string; topicId: string }> = {};
-  let linked = 0;
+  let inserted = 0;
   let skipped = 0;
 
   for (const doc of docs) {
@@ -397,13 +388,37 @@ async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Rec
       const front = (f.title || "").trim();
       if (!front) { skipped++; continue; }
 
+      // Resolve exam / specialty / topic from category
+      const catId = getCatIdFromDoc(doc);
+      const catTitle = catMap[catId || ""];
+      if (!catTitle) { skipped++; continue; }
+
+      const examSlug = detectExamSlug(catTitle);
+      const examId = examSlugToId[examSlug];
+      if (!examId) { skipped++; continue; }
+
+      const cacheKey = `${examSlug}::${catTitle}`;
+      if (!specTopicCache[cacheKey]) {
+        specTopicCache[cacheKey] = await getOrCreateSpecialtyTopic(examId, catTitle, "flashcard");
+      }
+      const { specialtyId, topicId } = specTopicCache[cacheKey];
+
+      // Upsert by unique front
       const existing = await db
         .select()
         .from(schema.flashcards)
         .where(eq(schema.flashcards.front, front))
         .limit(1);
-      if (!existing.length) {
-        await db
+
+      let flashcardId: string;
+      if (existing.length) {
+        flashcardId = existing[0].id;
+        await pool.query(
+          "UPDATE flashcards SET exam_id = $1, specialty_id = $2, topic_id = $3, back = $4, updated_at = NOW() WHERE id = $5",
+          [examId, specialtyId, topicId, getFlashcardBack(f), flashcardId],
+        );
+      } else {
+        const [fc] = (await db
           .insert(schema.flashcards)
           .values({
             front,
@@ -411,48 +426,29 @@ async function migrateFlashcards(docs: any[], adminId: string, examSlugToId: Rec
             reference: f.reference || null,
             isActive: f.isEnabled !== false,
             createdBy: adminId,
+            examId,
+            specialtyId,
+            topicId,
             createdAt: toDate(f.creationTime) || new Date(),
             updatedAt: new Date(),
-          });
-        totalFlashcards++;
-      } else {
-        await db
-          .update(schema.flashcards)
-          .set({ back: getFlashcardBack(f), updatedAt: new Date() })
-          .where(eq(schema.flashcards.id, existing[0].id));
-        totalFlashcards++;
+          })
+          .returning()) as any[];
+        flashcardId = fc.id;
+        inserted++;
       }
 
-      // Link to exam / specialty / topic
-      const catId = getCatIdFromDoc(doc);
-      const catTitle = catMap[catId || ""];
-      if (!catTitle) { continue; }
-
-      const examSlug = detectExamSlug(catTitle);
-      const examId = examSlugToId[examSlug];
-      if (!examId) { continue; }
-
-      const cacheKey = `${examSlug}::${catTitle}`;
-      if (!specTopicCache[cacheKey]) {
-        specTopicCache[cacheKey] = await getOrCreateSpecialtyTopic(examId, catTitle);
-      }
-      const { specialtyId, topicId } = specTopicCache[cacheKey];
-
-      const { rows: fc } = await pool.query(
-        "SELECT id FROM flashcards WHERE front = $1 AND is_active = true LIMIT 1", [front],
+      // Link to exam via junction table
+      await pool.query(
+        "INSERT INTO flashcard_exams (flashcard_id, exam_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        [flashcardId, examId],
       );
-      if (fc.length) {
-        await pool.query(
-          "UPDATE flashcards SET exam_id = $1, specialty_id = $2, topic_id = $3 WHERE id = $4",
-          [examId, specialtyId, topicId, fc[0].id],
-        );
-        linked++;
-      }
+
+      totalFlashcards++;
     } catch (err: any) {
       console.error(`  Error migrating flashcard [${doc._id || "?"}]: ${err.message}`);
     }
   }
-  console.log(`  Flashcards: ${totalFlashcards}, linked to exam: ${linked}, skipped: ${skipped}`);
+  console.log(`  Flashcards: ${totalFlashcards} (inserted: ${inserted}, skipped: ${skipped})`);
 }
 
 async function migrateVideoCategories(docs: any[]) {
@@ -467,25 +463,21 @@ async function migrateVideoCategories(docs: any[]) {
       const existing = await db
         .select()
         .from(schema.videoModules)
-        .where(
-          sql`${schema.videoModules.title}->>'en' = ${title}`,
-        )
+        .where(sql`${schema.videoModules.title}->>'en' = ${title}`)
         .limit(1);
       if (existing.length) {
         totalModules++;
         continue;
       }
 
-      await db
-        .insert(schema.videoModules)
-        .values({
-          title: { en: title, es: title },
-          description: { en: "", es: "" },
-          maxWatching: f.maxWatching ?? null,
-          isActive: true,
-          sortOrder: 0,
-          createdAt: toDate(f.creationTime) || new Date(),
-        });
+      await db.insert(schema.videoModules).values({
+        title: { en: title, es: title },
+        description: { en: "", es: "" },
+        maxWatching: f.maxWatching ?? null,
+        isActive: true,
+        sortOrder: 0,
+        createdAt: toDate(f.creationTime) || new Date(),
+      });
 
       totalModules++;
     } catch (err: any) {
@@ -504,21 +496,17 @@ async function migrateVideos(docs: any[]) {
       const title = (f.title || "").trim();
       if (!title) continue;
 
-      // Find matching module by category title
       let moduleId: string | null = null;
       if (f.category && f.category.title) {
         const mods = await db
           .select()
           .from(schema.videoModules)
-          .where(
-            sql`${schema.videoModules.title}->>'en' = ${f.category.title}`,
-          )
+          .where(sql`${schema.videoModules.title}->>'en' = ${f.category.title}`)
           .limit(1);
         if (mods.length) moduleId = mods[0].id;
       }
 
       if (!moduleId) {
-        // Create a default module
         const [mod] = (await db
           .insert(schema.videoModules)
           .values({
@@ -534,10 +522,7 @@ async function migrateVideos(docs: any[]) {
         .select()
         .from(schema.videoLessons)
         .where(
-          and(
-            eq(schema.videoLessons.moduleId, moduleId!),
-            sql`${schema.videoLessons.title}->>'en' = ${title}`,
-          ),
+          sql`${schema.videoLessons.moduleId} = ${moduleId} AND ${schema.videoLessons.title}->>'en' = ${title}`,
         )
         .limit(1);
       if (existing.length) {
@@ -545,18 +530,16 @@ async function migrateVideos(docs: any[]) {
         continue;
       }
 
-      await db
-        .insert(schema.videoLessons)
-        .values({
-moduleId: moduleId!,
-          title: { en: title, es: title },
-          description: { en: "", es: "" },
-          videoUrl: f.url || "",
-          isActive: f.isEnabled !== false,
-          duration: 0,
-          sortOrder: 0,
-          createdAt: toDate(f.creationTime) || new Date(),
-        });
+      await db.insert(schema.videoLessons).values({
+        moduleId: moduleId!,
+        title: { en: title, es: title },
+        description: { en: "", es: "" },
+        videoUrl: f.url || "",
+        isActive: f.isEnabled !== false,
+        duration: 0,
+        sortOrder: 0,
+        createdAt: toDate(f.creationTime) || new Date(),
+      });
 
       totalLessons++;
     } catch (err: any) {
@@ -572,21 +555,18 @@ async function migratePayments(docs: any[], adminId: string) {
   for (const doc of docs) {
     try {
       const f = doc;
-      const paymentNumber = f.paymentNumber || getDocId(doc);
+      const paymentNumber = f.paymentNumber || f._id || "";
 
       const existing = await db
         .select()
         .from(schema.payments)
-        .where(
-          sql`${schema.payments.paymentNumber} = ${paymentNumber}`,
-        )
+        .where(sql`${schema.payments.paymentNumber} = ${paymentNumber}`)
         .limit(1);
       if (existing.length) {
         totalPayments++;
         continue;
       }
 
-      // Resolve user
       const username = (f.username || "").toLowerCase().trim();
       let userId = adminId;
       if (username) {
@@ -601,17 +581,15 @@ async function migratePayments(docs: any[], adminId: string) {
       const toMembership = f.toMembership || {};
       const amount = toMembership.price ?? 0;
 
-      await db
-        .insert(schema.payments)
-        .values({
-          userId,
-          paymentNumber,
-          amount: String(amount),
-          currency: "USD",
-          status: "succeeded",
-          description: `Membership purchase: ${toMembership.title || ""}`,
-          createdAt: toDate(f.creationTime) || new Date(),
-        });
+      await db.insert(schema.payments).values({
+        userId,
+        paymentNumber,
+        amount: String(amount),
+        currency: "USD",
+        status: "succeeded",
+        description: `Membership purchase: ${toMembership.title || ""}`,
+        createdAt: toDate(f.creationTime) || new Date(),
+      });
 
       totalPayments++;
     } catch (err: any) {
@@ -624,14 +602,20 @@ async function migratePayments(docs: any[], adminId: string) {
 async function migrateUserSubscriptions(docs: any[], adminId: string) {
   console.log("\n=== User Subscriptions (appusermembershippurchases → user_subscriptions) ===");
 
-  const plans = await db
-    .select({ id: schema.subscriptionPlans.id, name: schema.subscriptionPlans.name })
-    .from(schema.subscriptionPlans);
   const users = await db
     .select({ id: schema.users.id, email: schema.users.email })
     .from(schema.users);
   const userByEmail: Record<string, string> = {};
   for (const u of users) userByEmail[u.email.toLowerCase()] = u.id;
+
+  const planCache: Record<string, string> = {};
+  const existingPlans = await db
+    .select({ id: schema.subscriptionPlans.id, name: schema.subscriptionPlans.name })
+    .from(schema.subscriptionPlans);
+  for (const p of existingPlans) {
+    const en = (p.name as any)?.en;
+    if (en) planCache[en] = p.id;
+  }
 
   for (const doc of docs) {
     try {
@@ -646,44 +630,72 @@ async function migrateUserSubscriptions(docs: any[], adminId: string) {
       const planTitle = (toMembership.title || "").trim();
       if (!planTitle) continue;
 
-      const plan = plans.find(
-        (p) => (p.name as any)?.en === planTitle || (p.name as any)?.es === planTitle,
-      );
-      if (!plan) continue;
+      // Get or create plan
+      let planId = planCache[planTitle];
+      if (!planId) {
+        let interval = "month";
+        const maxDays = toMembership.maxDays || 30;
+        if (maxDays >= 350) interval = "year";
+        else if (maxDays >= 80) interval = "quarter";
 
+        const [plan] = (await db
+          .insert(schema.subscriptionPlans)
+          .values({
+            name: { en: planTitle, es: planTitle } as any,
+            description: { en: toMembership.detail || "", es: toMembership.detail || "" } as any,
+            interval,
+            price: String(toMembership.price ?? 0),
+            currency: "USD",
+            maxQuestions: toMembership.maxQuestions ?? null,
+            maxFlashcards: toMembership.maxFlashcards ?? null,
+            maxVideos: toMembership.maxVideos ?? null,
+            maxUses: toMembership.maxUses ?? null,
+            isDefault: toMembership.isDefault ?? false,
+            isCourseOnly: toMembership.isCourseOnly ?? false,
+            isVisible: toMembership.isVisible ?? true,
+            sortOrder: toMembership.order ?? 0,
+            isActive: true,
+            createdAt: toDate(f.creationTime) || new Date(),
+            updatedAt: new Date(),
+          })
+          .returning()) as any[];
+        planId = plan.id;
+        planCache[planTitle] = planId;
+        console.log(`  Created plan: ${planTitle}`);
+      }
+
+      const paymentNumber = f.paymentNumber || f._id || "";
       const existing = await db
         .select()
         .from(schema.userSubscriptions)
-        .where(
-          and(
-            eq(schema.userSubscriptions.userId, userId),
-            eq(schema.userSubscriptions.planId, plan.id),
-          ),
-        )
+        .where(sql`${schema.userSubscriptions.stripeSubscriptionId} = ${paymentNumber}`)
         .limit(1);
       if (existing.length) {
         totalUserSubscriptions++;
         continue;
       }
 
+      const current = f.currentMembership || {};
       const now = new Date();
       const maxDays = toMembership.maxDays || 30;
       const periodEnd = new Date(now.getTime() + maxDays * 24 * 60 * 60 * 1000);
 
-      await db
-        .insert(schema.userSubscriptions)
-        .values({
-          userId,
-          planId: plan.id,
-          status: "active",
-          currentPeriodStart: toDate(f.creationTime) || now,
-          currentPeriodEnd: periodEnd,
-          remainingExamAttempts: toMembership.maxQuestions ?? null,
-          remainingFlashcardAttempts: toMembership.maxFlashcards ?? null,
-          remainingUses: toMembership.maxUses ?? null,
-          createdAt: toDate(f.creationTime) || now,
-          updatedAt: now,
-        });
+      const statusMap: Record<string, string> = { End: "expired", Pending: "active" };
+      const fbStatus = f.userMembershipPurchaseStatusModel?.id || "Pending";
+
+      await db.insert(schema.userSubscriptions).values({
+        userId,
+        planId,
+        stripeSubscriptionId: paymentNumber,
+        status: statusMap[fbStatus] || "active",
+        currentPeriodStart: toDate(f.creationTime) || now,
+        currentPeriodEnd: periodEnd,
+        remainingExamAttempts: current.maxQuestions ?? null,
+        remainingFlashcardAttempts: current.maxFlashcards ?? null,
+        remainingUses: current.maxUses ?? null,
+        createdAt: toDate(f.creationTime) || now,
+        updatedAt: now,
+      });
 
       totalUserSubscriptions++;
     } catch (err: any) {
@@ -706,7 +718,12 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
     .select({ id: schema.questions.id, text: schema.questions.text })
     .from(schema.questions);
   const questionByText: Record<string, string> = {};
-  for (const q of questions) questionByText[q.text] = q.id;
+  const questionByPrefix: Record<string, string> = {};
+  for (const q of questions) {
+    if (!questionByText[q.text]) questionByText[q.text] = q.id;
+    const prefix = q.text.slice(0, 60);
+    if (!questionByPrefix[prefix]) questionByPrefix[prefix] = q.id;
+  }
 
   const options = await db
     .select({
@@ -718,7 +735,7 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
   const optionByQText: Record<string, Record<string, string>> = {};
   for (const o of options) {
     if (!optionByQText[o.questionId]) optionByQText[o.questionId] = {};
-    optionByQText[o.questionId][o.text] = o.id;
+    if (!optionByQText[o.questionId][o.text]) optionByQText[o.questionId][o.text] = o.id;
   }
 
   for (const doc of docs) {
@@ -729,9 +746,9 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
       const userId = userByEmail[email];
       if (!userId) continue;
 
-      const firebaseId = f.id || getDocId(doc);
+      const firebaseId = f.id || f._id || "";
       if (!firebaseId) continue;
-      const attemptId = firebaseIdToUuid(firebaseId);
+      const attemptId = crypto.createHash("md5").update("6ba7b810-9dad-11d1-80b4-00c04fd430c8" + firebaseId).digest("hex").replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
 
       const existing = await db
         .select()
@@ -743,11 +760,11 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
         continue;
       }
 
-      // Detect exam from category titles
       const cats = f.categorys || [];
       const catTitle = cats.length > 0 ? (cats[0].title || "") : "";
       const examSlug = detectExamSlug(catTitle);
-      const examId = examSlugToId[examSlug] || adminId;
+      const examId = examSlugToId[examSlug];
+      if (!examId) continue;
 
       const qas = f.questionAnswers || [];
       const totalQ = qas.length;
@@ -757,25 +774,23 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
       const endTime = toDate(f.endTime);
       const timeSpent = endTime ? Math.round((endTime.getTime() - startTime.getTime()) / 1000) : 0;
 
-      await db
-        .insert(schema.examAttempts)
-        .values({
-          id: attemptId,
-          userId,
-          examId,
-          mode: f.isOpen ? "practice" : "exam",
-          status: "completed",
-          customTitle: f.customTitle || null,
-          isShowTimeCounter: f.isShowTimeCounter || false,
-          questionCount: totalQ,
-          answeredCount: answeredQ,
-          correctCount: correctQ,
-          timeLimit: f.maxTime || null,
-          timeSpent,
-          startedAt: startTime,
-          completedAt: endTime,
-          createdAt: startTime,
-        });
+      await db.insert(schema.examAttempts).values({
+        id: attemptId,
+        userId,
+        examId,
+        mode: f.isOpen ? "practice" : "exam",
+        status: "completed",
+        customTitle: f.customTitle || null,
+        isShowTimeCounter: f.isShowTimeCounter || false,
+        questionCount: totalQ,
+        answeredCount: answeredQ,
+        correctCount: correctQ,
+        timeLimit: f.maxTime || null,
+        timeSpent,
+        startedAt: startTime,
+        completedAt: endTime,
+        createdAt: startTime,
+      });
 
       totalExamAttempts++;
 
@@ -784,7 +799,11 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
         if (!answer) continue;
 
         const qText = (qa.question?.title || "").trim();
-        const questionId = questionByText[qText];
+        let questionId = questionByText[qText];
+        if (!questionId) {
+          const prefix = qText.slice(0, 60);
+          questionId = questionByPrefix[prefix];
+        }
         if (!questionId) continue;
 
         const answerText = (answer.title || "").trim();
@@ -808,10 +827,7 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
           .select()
           .from(schema.userQuestionProgress)
           .where(
-            and(
-              eq(schema.userQuestionProgress.userId, userId),
-              eq(schema.userQuestionProgress.questionId, questionId),
-            ),
+            sql`${schema.userQuestionProgress.userId} = ${userId} AND ${schema.userQuestionProgress.questionId} = ${questionId}`,
           )
           .limit(1);
 
@@ -826,15 +842,13 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
             })
             .where(eq(schema.userQuestionProgress.id, existingProgress[0].id));
         } else {
-          await db
-            .insert(schema.userQuestionProgress)
-            .values({
-              userId,
-              questionId,
-              timesAnswered: 1,
-              timesCorrect: answer.isCorrect ? 1 : 0,
-              lastAnsweredAt: startTime,
-            });
+          await db.insert(schema.userQuestionProgress).values({
+            userId,
+            questionId,
+            timesAnswered: 1,
+            timesCorrect: answer.isCorrect ? 1 : 0,
+            lastAnsweredAt: startTime,
+          });
         }
         totalUserQuestionProgress++;
       }
@@ -858,7 +872,9 @@ async function migrateFlashcardReviews(docs: any[]) {
     .select({ id: schema.flashcards.id, front: schema.flashcards.front })
     .from(schema.flashcards);
   const flashcardByFront: Record<string, string> = {};
-  for (const f of flashcards) flashcardByFront[f.front] = f.id;
+  for (const f of flashcards) {
+    if (!flashcardByFront[f.front]) flashcardByFront[f.front] = f.id;
+  }
 
   for (const doc of docs) {
     try {
@@ -876,10 +892,7 @@ async function migrateFlashcardReviews(docs: any[]) {
         .select()
         .from(schema.userFlashcardReviews)
         .where(
-          and(
-            eq(schema.userFlashcardReviews.userId, userId),
-            eq(schema.userFlashcardReviews.flashcardId, flashcardId),
-          ),
+          sql`${schema.userFlashcardReviews.userId} = ${userId} AND ${schema.userFlashcardReviews.flashcardId} = ${flashcardId}`,
         )
         .limit(1);
       if (existing.length) {
@@ -890,19 +903,17 @@ async function migrateFlashcardReviews(docs: any[]) {
       const lastReview = toDate(f.lastReviewDate) || new Date();
       const nextReview = toDate(f.nextReviewDate) || new Date();
 
-      await db
-        .insert(schema.userFlashcardReviews)
-        .values({
-          userId,
-          flashcardId,
-          easeFactor: Math.round((f.easeFactor || 2.5) * 100),
-          interval: f.intervalDays || 0,
-          repetitions: f.repetitions || 0,
-          nextReviewAt: nextReview,
-          lastReviewedAt: lastReview,
-          createdAt: lastReview,
-          updatedAt: lastReview,
-        });
+      await db.insert(schema.userFlashcardReviews).values({
+        userId,
+        flashcardId,
+        easeFactor: Math.round((f.easeFactor || 2.5) * 100),
+        interval: f.intervalDays || 0,
+        repetitions: f.repetitions || 0,
+        nextReviewAt: nextReview,
+        lastReviewedAt: lastReview,
+        createdAt: lastReview,
+        updatedAt: lastReview,
+      });
 
       totalFlashcardReviews++;
     } catch (err: any) {
@@ -910,6 +921,103 @@ async function migrateFlashcardReviews(docs: any[]) {
     }
   }
   console.log(`  Flashcard reviews imported: ${totalFlashcardReviews}`);
+}
+
+async function migrateFlashcardExamHistory(docs: any[]) {
+  console.log("\n=== Flashcard Exam History (appuserflashcardexams → flashcard_exam_attempts + answers) ===");
+
+  const users = await db
+    .select({ id: schema.users.id, email: schema.users.email })
+    .from(schema.users);
+  const userByEmail: Record<string, string> = {};
+  for (const u of users) userByEmail[u.email.toLowerCase()] = u.id;
+
+  const flashcards = await db
+    .select({ id: schema.flashcards.id, front: schema.flashcards.front })
+    .from(schema.flashcards);
+  const flashcardByFront: Record<string, string> = {};
+  const flashcardByPrefix: Record<string, string> = {};
+  for (const f of flashcards) {
+    if (!flashcardByFront[f.front]) flashcardByFront[f.front] = f.id;
+    const prefix = f.front.slice(0, 60);
+    if (!flashcardByPrefix[prefix]) flashcardByPrefix[prefix] = f.id;
+  }
+
+  let attempts = 0;
+  let answers = 0;
+  let skipped = 0;
+
+  for (const doc of docs) {
+    try {
+      const f = doc;
+      const email = (f.username || "").toLowerCase().trim();
+      if (!email) { skipped++; continue; }
+      const userId = userByEmail[email];
+      if (!userId) { skipped++; continue; }
+
+      const firebaseId = f.id || f._id || "";
+      if (!firebaseId) { skipped++; continue; }
+      const attemptId = crypto.createHash("md5").update("6ba7b810-9dad-11d1-80b4-00c04fd430c8" + firebaseId).digest("hex").replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
+
+      const existing = await db
+        .select()
+        .from(schema.flashcardExamAttempts)
+        .where(eq(schema.flashcardExamAttempts.id, attemptId))
+        .limit(1);
+      if (existing.length) { attempts++; continue; }
+
+      const qas = f.questionAnswers || [];
+      const totalQ = qas.length;
+      const answeredQ = qas.filter((qa: any) => qa.answer).length;
+      const correctQ = qas.filter((qa: any) => qa.answer?.isCorrect).length;
+      const startTime = toDate(f.creationTime) || new Date();
+      const endTime = toDate(f.endTime);
+      const timeSpent = endTime ? Math.round((endTime.getTime() - startTime.getTime()) / 1000) : 0;
+
+      await db.insert(schema.flashcardExamAttempts).values({
+        id: attemptId,
+        userId,
+        mode: f.isOpen ? "practice" : "exam",
+        status: "completed",
+        customTitle: f.customTitle || null,
+        isShowTimeCounter: f.isShowTimeCounter || false,
+        questionCount: totalQ,
+        answeredCount: answeredQ,
+        correctCount: correctQ,
+        timeLimit: f.maxTime || null,
+        timeSpent,
+        startedAt: startTime,
+        completedAt: endTime,
+      });
+
+      attempts++;
+
+      for (const qa of qas) {
+        const answer = qa.answer;
+        if (!answer) continue;
+
+        const front = (qa.question?.title || "").trim();
+        let flashcardId = flashcardByFront[front];
+        if (!flashcardId) {
+          const prefix = front.slice(0, 60);
+          flashcardId = flashcardByPrefix[prefix];
+        }
+        if (!flashcardId) continue;
+
+        await db.insert(schema.flashcardExamAnswers).values({
+          attemptId,
+          flashcardId,
+          isCorrect: answer.isCorrect === true,
+          answeredAt: startTime,
+        });
+
+        answers++;
+      }
+    } catch (err: any) {
+      console.error(`  Error migrating flashcard exam [${doc._id || "?"}]: ${err.message}`);
+    }
+  }
+  console.log(`  Flashcard exam attempts: ${attempts}, Answers: ${answers}, Skipped: ${skipped}`);
 }
 
 async function migrateParameters(docs: any[]) {
@@ -925,19 +1033,11 @@ async function migrateParameters(docs: any[]) {
         const exists = await db
           .select()
           .from(schema.translations)
-          .where(
-            and(
-              eq(schema.translations.key, key),
-              eq(schema.translations.locale, "es"),
-            ),
-          )
+          .where(sql`${schema.translations.key} = ${key} AND ${schema.translations.locale} = 'es'`)
           .limit(1);
         if (!exists.length) {
           await db.insert(schema.translations).values({
-            key,
-            locale: "es",
-            value: f.title,
-            namespace: "firebase",
+            key, locale: "es", value: f.title, namespace: "firebase",
           });
           totalTranslations++;
         }
@@ -947,19 +1047,11 @@ async function migrateParameters(docs: any[]) {
         const existsEn = await db
           .select()
           .from(schema.translations)
-          .where(
-            and(
-              eq(schema.translations.key, key),
-              eq(schema.translations.locale, "en"),
-            ),
-          )
+          .where(sql`${schema.translations.key} = ${key} AND ${schema.translations.locale} = 'en'`)
           .limit(1);
         if (!existsEn.length) {
           await db.insert(schema.translations).values({
-            key,
-            locale: "en",
-            value: f.titleEn,
-            namespace: "firebase",
+            key, locale: "en", value: f.titleEn, namespace: "firebase",
           });
           totalTranslations++;
         }
@@ -970,19 +1062,11 @@ async function migrateParameters(docs: any[]) {
         const exists = await db
           .select()
           .from(schema.translations)
-          .where(
-            and(
-              eq(schema.translations.key, addKey),
-              eq(schema.translations.locale, "es"),
-            ),
-          )
+          .where(sql`${schema.translations.key} = ${addKey} AND ${schema.translations.locale} = 'es'`)
           .limit(1);
         if (!exists.length) {
           await db.insert(schema.translations).values({
-            key: addKey,
-            locale: "es",
-            value: f.additional,
-            namespace: "firebase",
+            key: addKey, locale: "es", value: f.additional, namespace: "firebase",
           });
           totalTranslations++;
         }
@@ -1031,18 +1115,20 @@ async function main() {
 
   const examSlugToId = await ensureExams();
 
-  await migrateMemberships(readDocs("memberships.json"), adminId);
+  await migrateMemberships(readDocs("memberships.json"));
   await migrateParameters(readDocs("parameters.json"));
   await migrateVideoCategories(readDocs("videocategorys.json"));
   await migrateVideos(readDocs("videos.json"));
   await migrateFlashcards(readDocs("flashcardquestions.json"), adminId, examSlugToId);
   await migratePayments(readDocs("appusermembershippurchases.json"), adminId);
   await migrateUserSubscriptions(readDocs("appusermembershippurchases.json"), adminId);
+
+  // Questions must be migrated before exam history (questionByText lookup)
+  await migrateQuestions(readDocs("questions.json"), adminId, examSlugToId);
+
   await migrateExamHistory(readDocs("appuserexams.json"), adminId, examSlugToId);
   await migrateFlashcardReviews(readDocs("flashcard_sr.json"));
-
-  // Questions — largest file, process last
-  await migrateQuestions(readDocs("questions.json"), adminId, examSlugToId);
+  await migrateFlashcardExamHistory(readDocs("appuserflashcardexams.json"));
 
   console.log("\n=== Migration Complete ===");
   console.log(`  Users:        ${totalUsers}`);
