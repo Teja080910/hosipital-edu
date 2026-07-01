@@ -14,8 +14,9 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { attemptsApi, examsApi, questionsApi } from "@/lib/api";
+import { cn, localizedText as localized } from "@/lib/utils";
 import { useRouter } from "@/routing";
 import type { Question } from "@/types";
 import { useExamStore } from "@/store/exam-store";
@@ -38,12 +39,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type PageState = "config" | "taking" | "results";
-
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
-  if (!obj) return "";
-  if (typeof obj === "string") return obj;
-  return obj[locale] || Object.values(obj)[0] || "";
-}
 
 export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -260,7 +255,9 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       setPageState("taking");
       useExamStore.getState().startExam(id, selected.map(q => q.id), mode === "exam" ? timeLimit : 0);
       if (mode === "exam") {
-        window.history.replaceState({}, "", `${window.location.pathname}?mode=exam`);
+        const params = new URLSearchParams(window.location.search);
+        params.set("mode", "exam");
+        window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
         document.documentElement.requestFullscreen().catch(() => {});
       }
     } catch (err: any) {
@@ -331,7 +328,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
       setPageState("results");
       useExamStore.getState().endExam();
-      window.history.replaceState({}, "", `/dashboard/exams/${id}`);
+      window.history.replaceState({}, "", `/${locale}/dashboard/exams/${id}`);
       if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
     } catch {
       toast.error(t("submit_failed"));
@@ -376,7 +373,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
             onReview={() => { setReviewMode(true); setPageState("taking"); setShowAnswer(true); setCurrentIndex(0); }}
-            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.getState().endExam(); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); }}
+            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.getState().endExam(); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); setTimeLimit(20); setCustomTitle(""); setCombinedExamIds([]); setCombinedExams([]); setMode("exam"); setShowSpecialties(false); setShowTopics(false); setShowSubtopics(false); setPerQuestionTime({}); setTotalTimeSpent(0); setTimeRemaining(0); setQuestionEntryTime(Date.now()); setSubmitting(false); setReviewMode(false); setAllAttemptIds([]); setShowSubmitDialog(false); setShowTimeWarning(false); setLightboxImage(null); tabWarningsRef.current = 0; setTabWarnings(0); submittedRef.current = false; isSubmittingRef.current = false; }}
             onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
             <Card>
@@ -499,7 +496,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                         optionClass = "border-primary bg-primary/10 shadow-subtle";
                       }
                       return (
-                        <button key={option.id} onClick={() => setSelectedOption(option.id)} disabled={showAnswer || answers[currentQuestion.id]?.optionId != null} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
+                        <button key={option.id} onClick={() => setSelectedOption(option.id)} disabled={showAnswer || answers[currentQuestion.id]?.optionId !== null} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
                         <div className="flex items-start gap-4">
                           <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
                             showAnswer && isCorrectOption ? "border-green-500 bg-green-500 text-white" :

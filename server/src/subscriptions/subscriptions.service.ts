@@ -545,6 +545,7 @@ export class SubscriptionsService {
       }
     } catch (err) {
       console.error("Webhook handler error:", err);
+      throw err;
     }
   }
 }

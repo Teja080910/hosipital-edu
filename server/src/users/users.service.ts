@@ -49,7 +49,7 @@ export class UsersService {
   }
 
   async update(id: string, data: Partial<typeof users.$inferInsert>, currentUser?: any) {
-    const { emailVerified, ...rest } = data;
+    const { emailVerifiedAt, ...rest } = data;
     if (currentUser && currentUser.role !== "admin" && currentUser.role !== "super_admin") {
       return this.updateInternal(id, rest);
     }

@@ -46,7 +46,7 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
           if (++attempts > 10) { clearInterval(id); return; }
           iframeRef.current?.contentWindow?.postMessage(
             { __privateUnstableMessageType: "setProperty", property: "currentTime", value: seek },
-            "*",
+            "https://iframe.cloudflarestream.com",
           );
         }, 1000);
       }

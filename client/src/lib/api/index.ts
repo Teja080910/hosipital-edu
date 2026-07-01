@@ -16,3 +16,4 @@ export { usersApi } from "./users";
 export { videosApi } from "./videos";
 export { streamApi } from "./stream";
 export { testimonialsApi } from "./testimonials";
+export { leadsApi } from "./leads";

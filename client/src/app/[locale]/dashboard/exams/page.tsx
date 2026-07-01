@@ -12,12 +12,7 @@ import { AccountTypeGate } from "@/components/account-type-gate";
 import { ExamHistory } from "@/components/exams/exam-history";
 import { examsApi } from "@/lib/api";
 import { GraduationCap, Loader2, Lock, Play, X } from "lucide-react";
-
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
-  if (!obj) return "";
-  if (typeof obj === "string") return obj;
-  return obj[locale] || Object.values(obj)[0] || "";
-}
+import { localizedText as localized } from "@/lib/utils";
 
 export default function ExamsPage() {
   const t = useTranslations("exams");

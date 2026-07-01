@@ -8,12 +8,7 @@ import { videosApi } from "@/lib/api";
 import { BookOpen, Clock, Loader2, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
-  if (!obj) return "";
-  if (typeof obj === "string") return obj;
-  return obj[locale] || Object.values(obj)[0] || "";
-}
+import { localizedText as localized } from "@/lib/utils";
 
 export default function VideosPage() {
   const t = useTranslations("videos");

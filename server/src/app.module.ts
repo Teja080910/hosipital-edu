@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
-import { ScheduleModule } from "@nestjs/schedule";
+
 import { DatabaseModule } from "./database/database.module";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
@@ -21,6 +21,7 @@ import { MailModule } from "./mail/mail.module";
 import { UploadModule } from "./upload/upload.module";
 import { StreamModule } from "./stream/stream.module";
 import { ParametersModule } from "./parameters/parameters.module";
+import { LeadsModule } from "./leads/leads.module";
 import { I18nModule } from "./common/i18n/i18n.module";
 
 @Module({
@@ -28,7 +29,6 @@ import { I18nModule } from "./common/i18n/i18n.module";
     I18nModule,
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ name: "default", ttl: 60000, limit: 100 }]),
-    ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,
     UsersModule,
@@ -48,6 +48,7 @@ import { I18nModule } from "./common/i18n/i18n.module";
     UploadModule,
     StreamModule,
     ParametersModule,
+    LeadsModule,
   ],
 })
 export class AppModule {}

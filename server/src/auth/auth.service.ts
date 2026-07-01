@@ -60,9 +60,10 @@ export class AuthService {
       })
       .returning();
 
+    const emailSecret = this.config.get<string>("JWT_SECRET") + "-email-verify";
     const token = this.jwtService.sign(
       { sub: user.id, purpose: "email-verify" },
-      { expiresIn: "24h" },
+      { secret: emailSecret, expiresIn: "24h" },
     );
     await this.mailService.sendVerificationEmail(user.email, user.name, token);
 

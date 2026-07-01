@@ -17,7 +17,7 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { I18nService } from "../common/i18n/i18n.service";
 import { UsersService } from "./users.service";
-import { IsOptional, IsString, IsEmail, IsBoolean, IsIn } from "class-validator";
+import { IsOptional, IsString, IsEmail } from "class-validator";
 
 class UpdateUserDto {
   @IsOptional()

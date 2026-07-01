@@ -22,11 +22,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
+import { leadsApi } from "@/lib/api/leads";
 import { subscriptionsApi } from "@/lib/api";
 import { testimonialsApi } from "@/lib/api/testimonials";
 import { cn } from "@/lib/utils";
-import { Link, usePathname } from "@/routing";
+import { Link } from "@/routing";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -41,8 +43,11 @@ import {
   Instagram,
   Languages,
   Library,
+  Loader2,
+  Mail,
   Menu,
   Moon,
+  Play,
   Sparkles,
   Star,
   Sun,
@@ -74,7 +79,6 @@ const sb = useTranslations("subscribe");
   const n = useTranslations("nav");
   const c = useTranslations("common");
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const currentLocale = useParams().locale as string;
@@ -95,6 +99,8 @@ const sb = useTranslations("subscribe");
     return () => mq.removeEventListener("change", handler);
   }, []);
   const [plans, setPlans] = useState<any[]>([]);
+  const [leadLoading, setLeadLoading] = useState(false);
+  const [leadMsg, setLeadMsg] = useState<string | null>(null);
 
   useEffect(() => {
     subscriptionsApi.plans().then(({ data }) => {
@@ -603,6 +609,116 @@ const sb = useTranslations("subscribe");
               </motion.div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Promotional Video */}
+      <section className="relative py-24 lg:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-primary/[0.02]" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center mb-12">
+            <Badge variant="secondary" className="mb-4">
+              <Play className="h-3.5 w-3.5 mr-1.5 text-primary" />
+              {t("video_title")}
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {t("video_title")}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              {t("video_subtitle")}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, margin: "-50px" }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            className="relative mx-auto max-w-4xl aspect-video rounded-2xl overflow-hidden border border-border/50 shadow-xl group"
+          >
+            <iframe
+              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+              title="MD Exam Promotional Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Lead Capture */}
+      <section className="relative py-24 lg:py-32 overflow-hidden bg-muted/30">
+        <div className="absolute top-0 left-0 w-72 h-72 bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full blur-[120px]" />
+        <div className="relative mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div {...fadeUp}>
+            <Badge variant="secondary" className="mb-4">
+              <Mail className="h-3.5 w-3.5 mr-1.5 text-primary" />
+              {t("lead_title")}
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {t("lead_title")}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
+              {t("lead_subtitle")}
+            </p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const email = formData.get("email") as string;
+                const name = formData.get("name") as string;
+                if (!email?.trim()) return;
+                setLeadLoading(true);
+                setLeadMsg(null);
+                try {
+                  await leadsApi.create({ email, name: name || undefined, source: "landing", locale: currentLocale });
+                  setLeadMsg("success");
+                  e.currentTarget.reset();
+                } catch (err: any) {
+                  if (err?.response?.status === 409) {
+                    setLeadMsg("exists");
+                  } else {
+                    setLeadMsg("error");
+                  }
+                } finally {
+                  setLeadLoading(false);
+                }
+              }}
+              className="mt-10 max-w-md mx-auto space-y-4"
+            >
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 space-y-3">
+                  <Input
+                    type="email"
+                    name="email"
+                    placeholder={t("lead_placeholder")}
+                    required
+                    className="h-12 text-base"
+                  />
+                  <Input
+                    type="text"
+                    name="name"
+                    placeholder={t("lead_name_placeholder")}
+                    className="h-12 text-base"
+                  />
+                </div>
+                <Button type="submit" size="xl" className="h-12 shrink-0" disabled={leadLoading}>
+                  {leadLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("lead_button")}
+                </Button>
+              </div>
+              {leadMsg === "success" && (
+                <p className="text-sm text-green-600 dark:text-green-400 font-medium">{t("lead_success")}</p>
+              )}
+              {leadMsg === "error" && (
+                <p className="text-sm text-destructive font-medium">{t("lead_error")}</p>
+              )}
+              {leadMsg === "exists" && (
+                <p className="text-sm text-muted-foreground font-medium">{t("lead_exists")}</p>
+              )}
+            </form>
+          </motion.div>
         </div>
       </section>
 

@@ -4,7 +4,7 @@ const TIMESTAMP_FIELDS = new Set([
   "completedAt", "startedAt",
   "currentPeriodStart", "currentPeriodEnd", "canceledAt",
   "accessExpiresAt",
-  "lastReviewAt", "nextReviewAt",
+  "lastReviewedAt", "nextReviewAt",
 ]);
 
 export function stripTimestamps<T extends Record<string, any>>(data: T): Partial<T> {

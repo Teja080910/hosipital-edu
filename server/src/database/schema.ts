@@ -75,7 +75,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
-}) as any;
+});
 
 export const exams = pgTable("exams", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -746,6 +746,15 @@ export const auditLogs = pgTable("audit_logs", {
   entityType: text("entity_type").notNull(),
   entityId: text("entity_id").notNull(),
   metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const leads = pgTable("leads", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull(),
+  name: text("name"),
+  source: text("source").default("landing").notNull(),
+  locale: text("locale").default("en").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

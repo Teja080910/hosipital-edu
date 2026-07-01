@@ -93,7 +93,17 @@
     "period_quarter": "/trimestre",
     "period_month": "/mes",
     "study_interface_alt": "Interfaz de Estudio MD Exam",
-    "mobile_view_alt": "Vista Móvil MD Exam"
+    "mobile_view_alt": "Vista Móvil MD Exam",
+    "video_title": "Ve MD Exam en Acción",
+    "video_subtitle": "Mira cómo nuestra plataforma ayuda a profesionales médicos a dominar sus exámenes",
+    "lead_title": "Mantente Actualizado",
+    "lead_subtitle": "Recibe los mejores consejos para exámenes médicos, estrategias de estudio y actualizaciones de la plataforma en tu correo",
+    "lead_placeholder": "Ingresa tu correo",
+    "lead_name_placeholder": "Tu nombre (opcional)",
+    "lead_button": "Suscribirse",
+    "lead_success": "¡Gracias por suscribirte! Te mantendremos informado.",
+    "lead_error": "Algo salió mal. Intenta de nuevo.",
+    "lead_exists": "Este correo ya está suscrito."
   },
   "blog": {
     "title": "Blog",

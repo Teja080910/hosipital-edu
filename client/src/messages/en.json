@@ -93,7 +93,17 @@
     "period_quarter": "/quarter",
     "period_month": "/month",
     "study_interface_alt": "MD Exam Study Interface",
-    "mobile_view_alt": "MD Exam Mobile View"
+    "mobile_view_alt": "MD Exam Mobile View",
+    "video_title": "See MD Exam in Action",
+    "video_subtitle": "Watch how our platform helps medical professionals master their exams",
+    "lead_title": "Stay Updated",
+    "lead_subtitle": "Get the latest medical exam tips, study strategies, and platform updates delivered to your inbox",
+    "lead_placeholder": "Enter your email",
+    "lead_name_placeholder": "Your name (optional)",
+    "lead_button": "Subscribe",
+    "lead_success": "Thanks for subscribing! We'll keep you updated.",
+    "lead_error": "Something went wrong. Please try again.",
+    "lead_exists": "This email is already subscribed."
   },
   "blog": {
     "title": "Blog",

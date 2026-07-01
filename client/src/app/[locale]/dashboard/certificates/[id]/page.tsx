@@ -10,6 +10,7 @@ import { Loader2, Download, ArrowLeft, CheckCircle2 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Link } from "@/routing";
+import { localizedText as localized } from "@/lib/utils";
 
 interface Certificate {
   id: string;

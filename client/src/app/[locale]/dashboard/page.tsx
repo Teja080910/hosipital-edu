@@ -10,14 +10,9 @@ import { BookOpen, Brain, GraduationCap, Target, Loader2, ChevronRight, Clock, C
 import { PageTransition } from "@/components/page-transition";
 import { Link, useRouter } from "@/routing";
 import { analyticsApi, examsApi, attemptsApi } from "@/lib/api";
+import { localizedText as localized } from "@/lib/utils";
 
 const PAGE_SIZE = 5;
-
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
-  if (!obj) return "";
-  if (typeof obj === "string") return obj;
-  return obj[locale] || Object.values(obj)[0] || "";
-}
 
 export default function DashboardPage() {
   const t = useTranslations("nav");

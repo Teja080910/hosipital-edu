@@ -274,6 +274,7 @@ export class AttemptsService {
       const oldIsCorrect = existingAnswer.isCorrect;
       const correctDelta = (isCorrect ? 1 : 0) - (oldIsCorrect ? 1 : 0);
 
+      const oldTimeSpent = existingAnswer.timeSpent || 0;
       [answer] = await this.db
         .update(examAnswers)
         .set({
@@ -289,7 +290,7 @@ export class AttemptsService {
         .update(examAttempts)
         .set({
           correctCount: sql`${examAttempts.correctCount} + ${correctDelta}`,
-          timeSpent: sql`${examAttempts.timeSpent} + ${data.timeSpent}`,
+          timeSpent: sql`${examAttempts.timeSpent} - ${oldTimeSpent} + ${data.timeSpent}`,
         })
         .where(eq(examAttempts.id, data.attemptId));
     } else {
