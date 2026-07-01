@@ -103,8 +103,30 @@ export default function SubscribePage() {
                     </p>
                   </div>
                 </div>
+                {(currentSub.remainingExamAttempts != null || currentSub.remainingFlashcardAttempts != null || currentSub.remainingUses != null) && (
+                  <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t">
+                    {currentSub.remainingExamAttempts != null && (
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{currentSub.remainingExamAttempts}</p>
+                        <p className="text-xs text-muted-foreground">{t("remaining_exams")}</p>
+                      </div>
+                    )}
+                    {currentSub.remainingFlashcardAttempts != null && (
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{currentSub.remainingFlashcardAttempts}</p>
+                        <p className="text-xs text-muted-foreground">{t("remaining_flashcards")}</p>
+                      </div>
+                    )}
+                    {currentSub.remainingUses != null && (
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{currentSub.remainingUses}</p>
+                        <p className="text-xs text-muted-foreground">{t("remaining_uses")}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {currentSub.currentPeriodEnd && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mt-3">
                     {t("renews_on", { date: new Date(currentSub.currentPeriodEnd).toLocaleDateString() })}
                   </p>
                 )}

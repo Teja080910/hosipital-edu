@@ -5,6 +5,8 @@ import { DRIZZLE } from "../database/database.provider";
 import {
   flashcards,
   flashcardExams,
+  flashcardExamAttempts,
+  flashcardExamAnswers,
   userFlashcardReviews,
   users,
   userSubscriptions,
@@ -430,5 +432,51 @@ export class FlashcardsService {
       .where(eq(users.id, userId))
       .limit(1);
     return user?.targetExamId || null;
+  }
+
+  async getExamHistory(userId: string) {
+    return this.db
+      .select({
+        id: flashcardExamAttempts.id,
+        mode: flashcardExamAttempts.mode,
+        status: flashcardExamAttempts.status,
+        customTitle: flashcardExamAttempts.customTitle,
+        questionCount: flashcardExamAttempts.questionCount,
+        answeredCount: flashcardExamAttempts.answeredCount,
+        correctCount: flashcardExamAttempts.correctCount,
+        scorePercentage: sql<number>`CASE WHEN ${flashcardExamAttempts.questionCount} > 0 THEN ROUND((${flashcardExamAttempts.correctCount}::numeric / ${flashcardExamAttempts.questionCount}) * 100, 1) ELSE 0 END`,
+        timeLimit: flashcardExamAttempts.timeLimit,
+        timeSpent: flashcardExamAttempts.timeSpent,
+        startedAt: flashcardExamAttempts.startedAt,
+        completedAt: flashcardExamAttempts.completedAt,
+        createdAt: flashcardExamAttempts.createdAt,
+      })
+      .from(flashcardExamAttempts)
+      .where(eq(flashcardExamAttempts.userId, userId))
+      .orderBy(sql`${flashcardExamAttempts.createdAt} DESC`);
+  }
+
+  async getExamAttemptDetail(attemptId: string, userId: string) {
+    const [attempt] = await this.db
+      .select()
+      .from(flashcardExamAttempts)
+      .where(and(eq(flashcardExamAttempts.id, attemptId), eq(flashcardExamAttempts.userId, userId)))
+      .limit(1);
+    if (!attempt) throw new NotFoundException("Flashcard exam attempt not found");
+
+    const answers = await this.db
+      .select({
+        id: flashcardExamAnswers.id,
+        flashcardId: flashcardExamAnswers.flashcardId,
+        flashcardFront: flashcards.front,
+        flashcardBack: flashcards.back,
+        isCorrect: flashcardExamAnswers.isCorrect,
+        answeredAt: flashcardExamAnswers.answeredAt,
+      })
+      .from(flashcardExamAnswers)
+      .innerJoin(flashcards, eq(flashcards.id, flashcardExamAnswers.flashcardId))
+      .where(eq(flashcardExamAnswers.attemptId, attemptId));
+
+    return { ...attempt, answers };
   }
 }

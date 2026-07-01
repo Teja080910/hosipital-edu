@@ -248,7 +248,13 @@
     "total_due": "Total Pendientes",
     "in_session": "En Sesión",
     "current_card": "Tarjeta Actual",
-    "remaining": "Restantes"
+    "remaining": "Restantes",
+    "exam_history": "Historial de Exámenes de Tarjetas",
+    "exam_history_desc": "Revisa tus intentos de exámenes de tarjetas anteriores",
+    "back_to_study": "Volver a Estudiar",
+    "back_to_history": "Volver al Historial",
+    "no_exam_history": "Aún no hay historial de exámenes de tarjetas",
+    "flashcard_exam": "Examen de Tarjetas"
   },
   "common": {
     "loading": "Cargando...",
@@ -934,7 +940,10 @@
     "cancel": "Cancelar Suscripción",
     "cancel_success": "Suscripción cancelada",
     "cancel_failed": "Error al cancelar",
-    "checkout_failed": "Error al iniciar el pago"
+    "checkout_failed": "Error al iniciar el pago",
+    "remaining_exams": "Exámenes Restantes",
+    "remaining_flashcards": "Tarjetas Restantes",
+    "remaining_uses": "Usos Restantes"
   },
   "sidebar": {
     "brand": "MD Exam",
@@ -1181,6 +1190,7 @@
     "study_questions": "Preguntas de Estudio",
     "take_an_exam": "Tomar un Examen",
     "review_flashcards": "Revisar Tarjetas",
+    "flashcard_history": "Historial de Exámenes de Tarjetas",
     "recent_attempts": "Intentos Recientes"
   },
   "content": {

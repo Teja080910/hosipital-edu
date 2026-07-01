@@ -248,7 +248,13 @@
     "total_due": "Total Due",
     "in_session": "In Session",
     "current_card": "Current Card",
-    "remaining": "Remaining"
+    "remaining": "Remaining",
+    "exam_history": "Flashcard Exam History",
+    "exam_history_desc": "Review your past flashcard exam attempts",
+    "back_to_study": "Back to Study",
+    "back_to_history": "Back to History",
+    "no_exam_history": "No flashcard exam history yet",
+    "flashcard_exam": "Flashcard Exam"
   },
   "common": {
     "loading": "Loading...",
@@ -939,7 +945,10 @@
     "cancel": "Cancel Subscription",
     "cancel_success": "Subscription canceled",
     "cancel_failed": "Failed to cancel",
-    "checkout_failed": "Failed to start checkout"
+    "checkout_failed": "Failed to start checkout",
+    "remaining_exams": "Exams Left",
+    "remaining_flashcards": "Flashcards Left",
+    "remaining_uses": "Uses Left"
   },
   "sidebar": {
     "brand": "MD Exam",
@@ -1186,6 +1195,7 @@
     "study_questions": "Study Questions",
     "take_an_exam": "Take an Exam",
     "review_flashcards": "Review Flashcards",
+    "flashcard_history": "Flashcard Exam History",
     "recent_attempts": "Recent Attempts"
   },
   "content": {

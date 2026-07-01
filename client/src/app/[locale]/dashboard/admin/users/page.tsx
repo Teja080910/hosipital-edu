@@ -39,7 +39,7 @@ export default function AdminUsersPage() {
   const [subUser, setSubUser] = useState<any | null>(null);
   const [userSub, setUserSub] = useState<any | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
-  const [subForm, setSubForm] = useState({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "" });
+  const [subForm, setSubForm] = useState({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "", remainingUses: "" });
   const [savingSub, setSavingSub] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -82,10 +82,11 @@ const deleteUser = async () => {
         status: data?.status || "active",
         remainingExamAttempts: data?.remainingExamAttempts?.toString() || "",
         remainingFlashcardAttempts: data?.remainingFlashcardAttempts?.toString() || "",
+        remainingUses: data?.remainingUses?.toString() || "",
       });
     } catch {
       setUserSub(null);
-      setSubForm({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "" });
+      setSubForm({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "", remainingUses: "" });
     }
     setSubDialogOpen(true);
   };
@@ -97,6 +98,7 @@ const deleteUser = async () => {
       if (subForm.planId) payload.planId = subForm.planId;
       if (subForm.remainingExamAttempts) payload.remainingExamAttempts = parseInt(subForm.remainingExamAttempts);
       if (subForm.remainingFlashcardAttempts) payload.remainingFlashcardAttempts = parseInt(subForm.remainingFlashcardAttempts);
+      if (subForm.remainingUses) payload.remainingUses = parseInt(subForm.remainingUses);
       await usersApi.updateSubscription(subUser!.id, payload);
       toast.success(t("subscription_updated"));
       setSubDialogOpen(false);
@@ -251,6 +253,10 @@ const deleteUser = async () => {
               <div className="space-y-2">
                 <label className="text-xs font-medium">{t("remaining_flashcard_attempts")}</label>
                 <Input type="number" value={subForm.remainingFlashcardAttempts} onChange={(e) => setSubForm({ ...subForm, remainingFlashcardAttempts: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium">{t("remaining_uses")}</label>
+                <Input type="number" value={subForm.remainingUses} onChange={(e) => setSubForm({ ...subForm, remainingUses: e.target.value })} />
               </div>
             </div>
           </div>

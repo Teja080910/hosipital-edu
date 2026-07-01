@@ -81,6 +81,9 @@ export class SubscriptionsService {
         currentPeriodStart: userSubscriptions.currentPeriodStart,
         currentPeriodEnd: userSubscriptions.currentPeriodEnd,
         canceledAt: userSubscriptions.canceledAt,
+        remainingExamAttempts: userSubscriptions.remainingExamAttempts,
+        remainingFlashcardAttempts: userSubscriptions.remainingFlashcardAttempts,
+        remainingUses: userSubscriptions.remainingUses,
         createdAt: userSubscriptions.createdAt,
         updatedAt: userSubscriptions.updatedAt,
         plan: {

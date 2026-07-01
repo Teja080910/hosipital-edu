@@ -9,4 +9,6 @@ export const flashcardsApi = {
   remove: (id: string) => api.delete(`/flashcards/${id}`),
   review: (id: string, quality: number) =>
     api.post(`/flashcards/${id}/review`, { quality }),
+  examHistory: () => api.get("/flashcards/exam-history"),
+  examHistoryDetail: (id: string) => api.get(`/flashcards/exam-history/${id}`),
 };

@@ -125,7 +125,7 @@ export class UsersService {
     return sub || null;
   }
 
-  async updateSubscription(userId: string, data: { planId?: string; status?: string; remainingExamAttempts?: number; remainingFlashcardAttempts?: number; currentPeriodEnd?: string }) {
+  async updateSubscription(userId: string, data: { planId?: string; status?: string; remainingExamAttempts?: number; remainingFlashcardAttempts?: number; remainingUses?: number; currentPeriodEnd?: string }) {
     const [existing] = await this.db
       .select()
       .from(userSubscriptions)
@@ -138,6 +138,7 @@ export class UsersService {
       if (data.status !== undefined) updateData.status = data.status;
       if (data.remainingExamAttempts !== undefined) updateData.remainingExamAttempts = data.remainingExamAttempts;
       if (data.remainingFlashcardAttempts !== undefined) updateData.remainingFlashcardAttempts = data.remainingFlashcardAttempts;
+      if (data.remainingUses !== undefined) updateData.remainingUses = data.remainingUses;
       if (data.currentPeriodEnd !== undefined) updateData.currentPeriodEnd = new Date(data.currentPeriodEnd);
       const [updated] = await this.db
         .update(userSubscriptions)

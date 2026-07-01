@@ -149,4 +149,20 @@ export class FlashcardsController {
       quality,
     });
   }
+
+  @Get("exam-history")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get flashcard exam history" })
+  async getExamHistory(@CurrentUser() user: any) {
+    return this.flashcardsService.getExamHistory(user.id);
+  }
+
+  @Get("exam-history/:id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get flashcard exam attempt detail" })
+  async getExamAttemptDetail(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.flashcardsService.getExamAttemptDetail(id, user.id);
+  }
 }
