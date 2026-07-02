@@ -147,14 +147,13 @@ export default function FlashcardsPage() {
     const quality = qualityMap[rating] ?? 3;
     try {
       await flashcardsApi.review(currentCard.id, quality as number);
-      const dueRes = await flashcardsApi.due(10000);
-      setTotalDue((dueRes.data ?? dueRes).length ?? 0);
     } catch {
     }
     if (rating === "again") {
       setIsFlipped(false);
       return;
     }
+    setTotalDue((prev) => Math.max(0, prev - 1));
     if (currentIndex < cards.length - 1) {
       setCurrentIndex((i) => i + 1);
       setIsFlipped(false);
