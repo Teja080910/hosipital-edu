@@ -14,7 +14,7 @@ import {
   specialties,
   topics,
 } from "../database/schema";
-import { eq, and, inArray, isNull, count, sql, lte, type SQL } from "drizzle-orm";
+import { eq, and, inArray, notInArray, isNull, count, sql, lte, ne, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -139,19 +139,14 @@ export class FlashcardsService {
 
   async findDue(userId: string, limit = 20) {
     const subExamId = await this.getSubscriptionExamId(userId);
-    const now = new Date();
-    const conditions = [
-      eq(userFlashcardReviews.userId, userId),
-      eq(flashcards.isActive, true),
-      lte(userFlashcardReviews.nextReviewAt, now),
-    ];
+
+    let flashcardIds: string[] = [];
     if (subExamId) {
       const subFIds = await this.db
         .select({ flashcardId: flashcardExams.flashcardId })
         .from(flashcardExams)
         .where(eq(flashcardExams.examId, subExamId));
-      const subIds = subFIds.map((r: any) => r.flashcardId);
-      conditions.push(inArray(flashcards.id, subIds));
+      flashcardIds = subFIds.map((r: any) => r.flashcardId);
     } else {
       const [user] = await this.db
         .select({ targetExamId: users.targetExamId })
@@ -163,14 +158,17 @@ export class FlashcardsService {
           .select({ flashcardId: flashcardExams.flashcardId })
           .from(flashcardExams)
           .where(eq(flashcardExams.examId, user.targetExamId));
-        const targetIds = targetFIds.map((r: any) => r.flashcardId);
-        conditions.push(inArray(flashcards.id, targetIds));
+        flashcardIds = targetFIds.map((r: any) => r.flashcardId);
       } else {
         return [];
       }
     }
 
-    return this.db
+    if (!flashcardIds.length) return [];
+
+    const now = new Date();
+
+    const reviewedDue = await this.db
       .select({
         id: flashcards.id,
         front: flashcards.front,
@@ -182,14 +180,50 @@ export class FlashcardsService {
         topic: topics.name,
       })
       .from(userFlashcardReviews)
-      .innerJoin(
-        flashcards,
-        eq(flashcards.id, userFlashcardReviews.flashcardId),
-      )
+      .innerJoin(flashcards, eq(flashcards.id, userFlashcardReviews.flashcardId))
       .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
       .leftJoin(topics, eq(flashcards.topicId, topics.id))
-      .where(and(...conditions))
+      .where(
+        and(
+          eq(userFlashcardReviews.userId, userId),
+          eq(flashcards.isActive, true),
+          lte(userFlashcardReviews.nextReviewAt, now),
+          inArray(flashcards.id, flashcardIds),
+        ),
+      )
       .limit(limit);
+
+    if (reviewedDue.length >= limit) return reviewedDue;
+
+    const reviewedIds = reviewedDue.map((r: any) => r.id);
+    const unreviewedCount = limit - reviewedDue.length;
+
+    const unreviewed = await this.db
+      .select({
+        id: flashcards.id,
+        front: flashcards.front,
+        back: flashcards.back,
+        reference: flashcards.reference,
+        specialtyId: flashcards.specialtyId,
+        topicId: flashcards.topicId,
+        specialty: specialties.name,
+        topic: topics.name,
+      })
+      .from(flashcards)
+      .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+      .leftJoin(topics, eq(flashcards.topicId, topics.id))
+      .where(
+        and(
+          eq(flashcards.isActive, true),
+          inArray(flashcards.id, flashcardIds),
+          reviewedIds.length > 0
+            ? notInArray(flashcards.id, reviewedIds)
+            : sql`TRUE`,
+        ),
+      )
+      .limit(unreviewedCount);
+
+    return [...reviewedDue, ...unreviewed];
   }
 
   async create(data: any) {
@@ -409,7 +443,8 @@ export class FlashcardsService {
         id: specialties.id,
         name: specialties.name,
       })
-      .from(specialties);
+      .from(specialties)
+      .where(ne(specialties.type, "question"));
 
     if (subExamId) {
       query = query.where(eq(specialties.examId, subExamId));

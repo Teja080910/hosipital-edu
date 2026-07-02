@@ -11,12 +11,10 @@ import { FlashcardCard } from "@/components/flashcards/flashcard-card";
 import { FlashcardReview } from "@/components/flashcards/flashcard-review";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Library, RefreshCw, Play } from "lucide-react";
+import { Library, RefreshCw } from "lucide-react";
 import { flashcardsApi } from "@/lib/api/flashcards";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/routing";
 
-const SESSION_KEY = "flashcard_session";
 const PAGE_SIZE = 20;
 
 interface FlashcardData {
@@ -33,34 +31,6 @@ interface FlashcardData {
 interface SpecialtyOption {
   id: string;
   name: { en: string; es?: string };
-}
-
-interface SessionState {
-  cards: FlashcardData[];
-  currentIndex: number;
-  selectedSpecialty: string;
-  totalDue: number;
-}
-
-function saveSession(state: SessionState) {
-  try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
-  } catch {}
-}
-
-function loadSession(): SessionState | null {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function clearSession() {
-  try {
-    sessionStorage.removeItem(SESSION_KEY);
-  } catch {}
 }
 
 function shuffle<T>(array: T[]): T[] {
@@ -136,27 +106,11 @@ export default function FlashcardsPage() {
   }, [fetchDueCards]);
 
   useEffect(() => {
-    const saved = loadSession();
-    if (saved && saved.cards.length > 0) {
-      setCards(saved.cards);
-      setCurrentIndex(saved.currentIndex);
-      setSelectedSpecialty(saved.selectedSpecialty);
-      setTotalDue(saved.totalDue);
-      setLoading(false);
-    } else {
-      loadCards();
-    }
+    loadCards();
   }, [loadCards]);
-
-  useEffect(() => {
-    if (cards.length > 0) {
-      saveSession({ cards, currentIndex, selectedSpecialty, totalDue });
-    }
-  }, [cards, currentIndex, selectedSpecialty, totalDue]);
 
   const handleSpecialtyChange = useCallback(async (value: string) => {
     setSelectedSpecialty(value);
-    clearSession();
     await loadCards(value);
   }, [loadCards]);
 
@@ -211,7 +165,6 @@ export default function FlashcardsPage() {
       setCards([]);
       setCurrentIndex(0);
       setIsFlipped(false);
-      clearSession();
     }
   }, [currentCard, currentIndex, cards.length, allLoaded, loadNextPage]);
 
@@ -252,12 +205,6 @@ export default function FlashcardsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <div className="flex items-center gap-2">
-            <Link href="/dashboard/flashcards/exam">
-              <Button variant="default" size="sm" className="gap-2">
-                <Play className="h-3.5 w-3.5" />
-                {t("start_exam")}
-              </Button>
-            </Link>
             <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
               <RefreshCw className="h-3.5 w-3.5" />
               {t("reshuffle")}

@@ -106,7 +106,7 @@ async function getOrCreateSpecialtyTopic(
     "SELECT id FROM specialties WHERE exam_id = $1 AND slug = $2", [examId, slug],
   );
   const specialtyId = specs.length
-    ? specs[0].id
+    ? (await pool.query("UPDATE specialties SET type = $1 WHERE id = $2 AND type != $1", [type, specs[0].id]), specs[0].id)
     : (await pool.query(
         "INSERT INTO specialties (exam_id, name, slug, type, sort_order) VALUES ($1, $2, $3, $4, 0) RETURNING id",
         [examId, JSON.stringify({ en: catTitle, es: catTitle }), slug, type],
