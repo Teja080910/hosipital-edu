@@ -62,12 +62,19 @@ async function main() {
 
   // Build lookup: normalized title -> lesson
   const lessonByNormalizedTitle = new Map<string, typeof lessons[number]>();
+  // Build lookup: Drive file ID -> lesson
+  const lessonByDriveId = new Map<string, typeof lessons[number]>();
   for (const l of lessons) {
     const title = (l.title as any)?.en || "";
-    if (!title) continue;
-    const key = normalize(title);
-    if (!lessonByNormalizedTitle.has(key)) {
-      lessonByNormalizedTitle.set(key, l);
+    if (title) {
+      const key = normalize(title);
+      if (!lessonByNormalizedTitle.has(key)) {
+        lessonByNormalizedTitle.set(key, l);
+      }
+    }
+    const driveMatch = (l.videoUrl || "").match(/\/d\/([^/]+)/);
+    if (driveMatch) {
+      lessonByDriveId.set(driveMatch[1], l);
     }
   }
 
@@ -91,7 +98,15 @@ async function main() {
     }
 
     const key = normalize(name);
-    const lesson = lessonByNormalizedTitle.get(key);
+    let lesson = lessonByNormalizedTitle.get(key);
+
+    // Fallback: try matching by Google Drive file ID embedded in the name
+    if (!lesson) {
+      const driveIdMatch = name.match(/^([^/]+?)\.mp4$/);
+      if (driveIdMatch) {
+        lesson = lessonByDriveId.get(driveIdMatch[1]);
+      }
+    }
 
     if (!lesson) {
       unmatched.push(v);
