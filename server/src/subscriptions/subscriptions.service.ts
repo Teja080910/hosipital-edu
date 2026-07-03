@@ -47,11 +47,23 @@ export class SubscriptionsService {
   }
 
   async createPlan(data: any) {
+    if (parseFloat(data.price || "0") > 0 && data.maxExamAttempts == null) {
+      const interval = data.interval || "month";
+      if (interval === "year") data.maxExamAttempts = 200;
+      else if (interval === "quarter") data.maxExamAttempts = 50;
+      else data.maxExamAttempts = 20;
+    }
     const [plan] = await this.db.insert(subscriptionPlans).values(stripTimestamps(data)).returning();
     return plan;
   }
 
   async updatePlan(id: string, data: any) {
+    if (data.price !== undefined && parseFloat(String(data.price)) > 0 && data.maxExamAttempts == null) {
+      const interval = data.interval || "month";
+      if (interval === "year") data.maxExamAttempts = 200;
+      else if (interval === "quarter") data.maxExamAttempts = 50;
+      else data.maxExamAttempts = 20;
+    }
     const [plan] = await this.db
       .update(subscriptionPlans)
       .set({ ...stripTimestamps(data), updatedAt: new Date() })
@@ -93,6 +105,10 @@ export class SubscriptionsService {
           price: subscriptionPlans.price,
           currency: subscriptionPlans.currency,
           sortOrder: subscriptionPlans.sortOrder,
+          maxExamAttempts: subscriptionPlans.maxExamAttempts,
+          maxFlashcards: subscriptionPlans.maxFlashcards,
+          maxFlashcardAttempts: subscriptionPlans.maxFlashcardAttempts,
+          maxUses: subscriptionPlans.maxUses,
         },
       })
       .from(userSubscriptions)
@@ -159,16 +175,12 @@ export class SubscriptionsService {
         });
       }
 
-      await this.db
-        .update(userSubscriptions)
-        .set({
-          planId: plan.id,
-          remainingExamAttempts: plan.maxExamAttempts,
-          remainingFlashcardAttempts: plan.maxFlashcardAttempts,
-          remainingUses: plan.maxUses,
-          updatedAt: new Date(),
-        })
-        .where(eq(userSubscriptions.id, existingSub.id));
+      await this.activateSubscription({
+        userId,
+        planId: plan.id,
+        stripeSubscriptionId: existingSub.stripeSubscriptionId,
+        stripeCustomerId: existingSub.stripeCustomerId,
+      });
 
       return { url: `${appUrl}/${locale}/dashboard`, prorated: true };
     }

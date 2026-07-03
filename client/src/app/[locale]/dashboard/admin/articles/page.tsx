@@ -162,7 +162,7 @@ export default function AdminArticlesPage() {
     { key: "isPublished", header: t("status"), render: (row: any) => <Badge variant={row.isPublished ? "default" : "secondary"}>{row.isPublished ? c("published") : c("draft")}</Badge> },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" asChild>

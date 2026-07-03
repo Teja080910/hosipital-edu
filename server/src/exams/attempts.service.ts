@@ -34,6 +34,7 @@ export class AttemptsService {
     examId: string;
     mode: string;
     questionCount: number;
+    questionIds?: string[];
     timeLimit?: number;
     customTitle?: string;
   }) {
@@ -91,6 +92,7 @@ export class AttemptsService {
                   examId: data.examId,
                   mode: data.mode,
                   questionCount: data.questionCount,
+                  questionIds: data.questionIds ?? null,
                   timeLimit: data.timeLimit,
                   customTitle: data.customTitle,
                 })
@@ -103,6 +105,10 @@ export class AttemptsService {
 
         const plan = sub.subscription_plans;
         if (plan.isCourseOnly) {
+          throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
+        }
+
+        if (plan.maxExamAttempts == null && parseFloat(plan.price || "0") === 0) {
           throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
         }
 
@@ -134,6 +140,7 @@ export class AttemptsService {
           examId: data.examId,
           mode: data.mode,
           questionCount: data.questionCount,
+          questionIds: data.questionIds ? JSON.stringify(data.questionIds) : null,
           timeLimit: data.timeLimit,
           customTitle: data.customTitle,
         })
@@ -355,6 +362,54 @@ export class AttemptsService {
     }
 
     return { answer, isCorrect };
+  }
+
+  async findActiveByExam(userId: string, examId: string) {
+    const [attempt] = await this.db
+      .select()
+      .from(examAttempts)
+      .where(
+        and(
+          eq(examAttempts.userId, userId),
+          eq(examAttempts.examId, examId),
+          eq(examAttempts.status, "in_progress"),
+        ),
+      )
+      .limit(1);
+    if (!attempt) return null;
+
+    const answers = await this.db
+      .select()
+      .from(examAnswers)
+      .where(eq(examAnswers.attemptId, attempt.id))
+      .orderBy(asc(examAnswers.answeredAt));
+
+    if (!answers.length) return { ...attempt, answers: [] };
+
+    const questionIds = [...new Set(answers.map((a: any) => a.questionId))] as string[];
+    const allQuestions = await this.db
+      .select()
+      .from(questions)
+      .where(inArray(questions.id, questionIds));
+
+    const qOptions = await this.db
+      .select()
+      .from(questionOptions)
+      .where(inArray(questionOptions.questionId, questionIds))
+      .orderBy(asc(questionOptions.sortOrder));
+
+    const qOptMap = new Map<string, any[]>();
+    for (const opt of qOptions) {
+      if (!qOptMap.has(opt.questionId)) qOptMap.set(opt.questionId, []);
+      qOptMap.get(opt.questionId)!.push(opt);
+    }
+
+    const qMap = new Map(allQuestions.map((q: any) => [q.id, { ...q, options: qOptMap.get(q.id) || [] }]));
+
+    return {
+      ...attempt,
+      answers: answers.map((a: any) => ({ ...a, question: qMap.get(a.questionId) || null })),
+    };
   }
 
   async complete(id: string, userId: string) {

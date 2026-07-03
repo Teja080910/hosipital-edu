@@ -228,7 +228,7 @@ export default function AdminFlashcardsPage() {
     },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>

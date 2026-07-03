@@ -68,7 +68,8 @@ export default function SubscribePage() {
   });
 
   const currentPlanOrder = currentSub?.plan?.sortOrder ?? -1;
-  const isCurrentPlan = (sortOrder: number) => currentSub && currentPlanOrder === sortOrder;
+  const currentPlanId = currentSub?.plan?.id ?? null;
+  const isCurrentPlan = (planId: string) => currentSub && currentPlanId === planId;
 
   return (
     <PageTransition>
@@ -147,7 +148,7 @@ export default function SubscribePage() {
         ) : (
           <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
             {plans.map((plan, i) => {
-              const isCurrent = isCurrentPlan(plan.sortOrder);
+              const isCurrent = isCurrentPlan(plan.id);
               const isDowngrade = currentSub && plan.sortOrder < currentPlanOrder;
               const isUpgrade = currentSub && plan.sortOrder > currentPlanOrder;
               return (

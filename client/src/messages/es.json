@@ -470,6 +470,7 @@
     "author": "Autor",
     "published": "Publicado",
     "status": "Estado",
+    "actions": "Acciones",
     "lessons_col": "Lecciones",
     "students": "Estudiantes",
     "question_col": "Pregunta",
@@ -623,6 +624,7 @@
     "subscription_expired": "Expirado",
     "remaining_exam_attempts": "Intentos de Examen Restantes",
     "remaining_flashcard_attempts": "Intentos de Tarjetas Restantes",
+    "remaining_uses": "Usos Restantes",
     "deleted": "eliminado",
     "load_failed_plans": "Error al cargar planes",
     "plan_updated": "Plan actualizado",
@@ -929,7 +931,10 @@
     "load_exam_details_failed": "Error al cargar detalles del examen",
     "continue": "Continuar",
     "no_answers_retry": "El intento no tuvo respuestas. Configura e inicia de nuevo.",
-    "no_uid_returned": "No se devolvió ningún UID"
+    "no_uid_returned": "No se devolvió ningún UID",
+    "subscribe": "Suscribirse",
+    "active_attempt_found": "Tienes un intento activo en progreso",
+    "resume": "Reanudar"
   },
   "subscribe": {
     "title": "Elige Tu Plan",
@@ -958,7 +963,8 @@
     "brand": "MD Exam",
     "brand_initials": "ME",
     "other_plans": "Otros Planes",
-    "active_plan": "Plan Activo"
+    "active_plan": "Plan Activo",
+    "see_more": "más"
   },
   "topbar": {
     "search": "Buscar preguntas, cursos...",

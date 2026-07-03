@@ -147,7 +147,7 @@ export default function AdminSubscriptionsPage() {
     { key: "isVisible", header: t("status"), render: (row: any) => <Badge variant={row.isVisible ? "default" : "secondary"}>{row.isVisible ? c("active") : c("draft")}</Badge> },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" onClick={() => openEdit(row)}><Pencil className="h-3 w-3" /></Button>

@@ -32,6 +32,14 @@ export class VideosService {
         if (!sub) {
           return [];
         }
+        const [plan] = await this.db
+          .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts, price: subscriptionPlans.price })
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, sub.planId))
+          .limit(1);
+        if (plan && plan.maxExamAttempts == null && parseFloat(plan.price || "0") === 0) {
+          return [];
+        }
       }
     }
     let subExamId: string | null = null;
@@ -71,7 +79,7 @@ export class VideosService {
     for (const mod of modules) {
       const examLinks = examLinksByModule.get(mod.id) || [];
       const modExamIds = examLinks.map((l: any) => l.examId);
-      if (subExamId && modExamIds.length > 0 && !modExamIds.includes(subExamId)) continue;
+      if (subExamId && subExamId !== "__all__" && modExamIds.length > 0 && !modExamIds.includes(subExamId)) continue;
       const lessons = lessonsByModule.get(mod.id) || [];
       result.push({ ...mod, lessons, examIds: modExamIds });
     }

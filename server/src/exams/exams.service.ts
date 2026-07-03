@@ -2,7 +2,7 @@ import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nest
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions } from "../database/schema";
+import { exams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions, users } from "../database/schema";
 
 @Injectable()
 export class ExamsService {
@@ -15,7 +15,12 @@ export class ExamsService {
     let sub: any = null;
     let isAdmin = false;
     if (user) {
-      isAdmin = user.role === "admin" || user.role === "super_admin";
+      const [u] = await this.db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      isAdmin = u && (u.role === "admin" || u.role === "super_admin");
       if (!isAdmin) {
         [sub] = await this.db
           .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
@@ -70,7 +75,12 @@ export class ExamsService {
     if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
 
     if (user) {
-      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      const [u] = await this.db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      const isAdmin = u && (u.role === "admin" || u.role === "super_admin");
       if (!isAdmin) {
         const [sub] = await this.db
           .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })

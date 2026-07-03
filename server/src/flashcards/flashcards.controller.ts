@@ -16,7 +16,7 @@ import { RolesGuard } from "../common/guards/roles.guard";
 import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { IsOptional, IsString, IsUUID, IsInt, IsBoolean, Min } from "class-validator";
+import { IsOptional, IsString, IsUUID, IsInt, IsBoolean, IsArray, Min } from "class-validator";
 import { Type } from "class-transformer";
 
 class CreateFlashcardDto {
@@ -27,8 +27,13 @@ class CreateFlashcardDto {
   back!: string;
 
   @IsOptional()
-  @IsUUID()
-  examId?: string;
+  @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
 
   @IsOptional()
   @IsUUID()
@@ -51,6 +56,15 @@ class UpdateFlashcardDto {
   @IsOptional()
   @IsString()
   back?: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
 
   @IsOptional()
   @IsUUID()

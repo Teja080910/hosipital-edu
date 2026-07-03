@@ -79,16 +79,12 @@ class UpdateExamDto {
 }
 
 class CreateSpecialtyDto {
-  @IsString()
-  name!: string;
+  @IsObject()
+  name!: object;
 
   @IsOptional()
   @IsString()
   nameEn?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
 
   @IsOptional()
   @IsNumber()
@@ -97,12 +93,8 @@ class CreateSpecialtyDto {
 
 class UpdateSpecialtyDto {
   @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  name?: object;
 
   @IsOptional()
   @IsNumber()
@@ -110,16 +102,12 @@ class UpdateSpecialtyDto {
 }
 
 class CreateTopicDto {
-  @IsString()
-  name!: string;
+  @IsObject()
+  name!: object;
 
   @IsOptional()
   @IsString()
   nameEn?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
 
   @IsOptional()
   @IsNumber()
@@ -128,12 +116,8 @@ class CreateTopicDto {
 
 class UpdateTopicDto {
   @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  name?: object;
 
   @IsOptional()
   @IsNumber()
@@ -141,16 +125,12 @@ class UpdateTopicDto {
 }
 
 class CreateSubtopicDto {
-  @IsString()
-  name!: string;
+  @IsObject()
+  name!: object;
 
   @IsOptional()
   @IsString()
   nameEn?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
 
   @IsOptional()
   @IsNumber()
@@ -159,12 +139,8 @@ class CreateSubtopicDto {
 
 class UpdateSubtopicDto {
   @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  name?: object;
 
   @IsOptional()
   @IsNumber()

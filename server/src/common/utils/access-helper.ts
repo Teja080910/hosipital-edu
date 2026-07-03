@@ -1,12 +1,15 @@
 import { eq, and, isNull } from "drizzle-orm";
-import { users, userSubscriptions, subscriptionPlans } from "../../database/schema";
+import { users, userSubscriptions, subscriptionPlans, exams } from "../../database/schema";
 
 export async function getAccessibleExamId(
   db: any,
   userId: string,
+  userRole?: string,
 ): Promise<string | null> {
+  if (userRole === "admin" || userRole === "super_admin") return null;
+
   const [sub] = await db
-    .select({ examId: subscriptionPlans.examId })
+    .select({ examId: subscriptionPlans.examId, planName: subscriptionPlans.name })
     .from(userSubscriptions)
     .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
     .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
@@ -14,14 +17,7 @@ export async function getAccessibleExamId(
 
   if (sub) {
     if (sub.examId) return sub.examId;
-    // general plan — show all content only if user has no target exam
-    const [user] = await db
-      .select({ targetExamId: users.targetExamId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    if (user?.targetExamId) return user.targetExamId;
-    return null;
+    return "__all__";
   }
 
   const [user] = await db

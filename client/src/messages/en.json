@@ -473,6 +473,7 @@
     "author": "Author",
     "published": "Published",
     "status": "Status",
+    "actions": "Actions",
     "lessons_col": "Lessons",
     "students": "Students",
     "question_col": "Question",
@@ -626,6 +627,7 @@
     "subscription_expired": "Expired",
     "remaining_exam_attempts": "Remaining Exam Attempts",
     "remaining_flashcard_attempts": "Remaining Flashcard Attempts",
+    "remaining_uses": "Remaining Uses",
     "deleted": "deleted",
     "load_failed_plans": "Failed to load plans",
     "plan_updated": "Plan updated",
@@ -934,7 +936,10 @@
     "load_exam_details_failed": "Failed to load exam details",
     "continue": "Continue",
     "no_answers_retry": "Attempt had no answers. Configure and start again.",
-    "no_uid_returned": "No UID returned"
+    "no_uid_returned": "No UID returned",
+    "subscribe": "Subscribe",
+    "active_attempt_found": "You have an active attempt in progress",
+    "resume": "Resume"
   },
   "subscribe": {
     "title": "Choose Your Plan",
@@ -963,7 +968,8 @@
     "brand": "MD Exam",
     "brand_initials": "ME",
     "other_plans": "Other Plans",
-    "active_plan": "Active Plan"
+    "active_plan": "Active Plan",
+    "see_more": "more"
   },
   "topbar": {
     "search": "Search questions, courses...",

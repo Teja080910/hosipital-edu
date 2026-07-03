@@ -96,6 +96,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const confirmSubmitRef = useRef<() => Promise<void>>();
   const isSubmittingRef = useRef(false);
   const submittedRef = useRef(false);
+  const [activeAttempt, setActiveAttempt] = useState<any>(null);
+  const [checkingActive, setCheckingActive] = useState(true);
   const specialtiesRef = useRef<HTMLDivElement>(null);
   const topicsRef = useRef<HTMLDivElement>(null);
   const subtopicsRef = useRef<HTMLDivElement>(null);
@@ -136,6 +138,18 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       .catch(() => toast.error(t("load_failed")))
       .finally(() => setLoading(false));
   }, [id, t]);
+
+  useEffect(() => {
+    if (!loading && exam && pageState === "config") {
+      attemptsApi.getActive(id).then((res) => {
+        if (res.data) {
+          setActiveAttempt(res.data);
+        }
+      }).catch(() => {}).finally(() => setCheckingActive(false));
+    } else if (!loading) {
+      setCheckingActive(false);
+    }
+  }, [loading, exam, id, pageState]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -229,23 +243,25 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const totalQuestions = Math.min(questionLimit, filteredQuestions.length);
     if (totalQuestions === 0) { toast.error(t("no_questions")); return; }
     try {
-      const examIdsToUse = combinedExamIds.length > 0 ? combinedExamIds : [id];
-      const attempts = await Promise.all(
-        examIdsToUse.map((eid) =>
-          attemptsApi.create({
-            examId: eid, mode,
-            questionCount: Math.ceil(totalQuestions / examIdsToUse.length),
-            timeLimit: mode === "exam" ? timeLimit : undefined,
-            customTitle: customTitle || undefined,
-          }).then((r) => r.data)
-        )
-      );
       const shuffled = [...filteredQuestions];
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
       const selected = shuffled.slice(0, totalQuestions);
+      const questionIds = selected.map(q => q.id);
+      const examIdsToUse = combinedExamIds.length > 0 ? combinedExamIds : [id];
+      const attempts = await Promise.all(
+        examIdsToUse.map((eid) =>
+          attemptsApi.create({
+            examId: eid, mode,
+            questionCount: Math.ceil(totalQuestions / examIdsToUse.length),
+            questionIds,
+            timeLimit: mode === "exam" ? timeLimit : undefined,
+            customTitle: customTitle || undefined,
+          }).then((r) => r.data)
+        )
+      );
       setExamQuestions(selected);
       setAttemptId(attempts[0].id);
       setAllAttemptIds(attempts.map((a: any) => a.id));
@@ -254,7 +270,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       setSelectedOption(null); setShowAnswer(false);
       setQuestionEntryTime(Date.now()); setPerQuestionTime({});
       setPageState("taking");
-      useExamStore.getState().startExam(id, selected.map(q => q.id), mode === "exam" ? timeLimit : 0);
+      useExamStore.getState().startExam(id, questionIds, mode === "exam" ? timeLimit : 0);
       if (mode === "exam") {
         const params = new URLSearchParams(window.location.search);
         params.set("mode", "exam");
@@ -264,6 +280,53 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || t("start_failed");
       toast.error(Array.isArray(msg) ? msg[0] : msg);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!activeAttempt) return;
+    try {
+      const attempt = activeAttempt;
+      const qIds = attempt.questionIds ? (typeof attempt.questionIds === "string" ? JSON.parse(attempt.questionIds) : attempt.questionIds) : [];
+      let questions: Question[];
+      if (qIds.length > 0) {
+        const res = await questionsApi.list({ examId: id, limit: 10000 });
+        const allQ = res.data.data;
+        const qMap = new Map(allQ.map((q: any) => [q.id, q]));
+        questions = qIds.map((qid: string) => qMap.get(qid)).filter(Boolean);
+      } else {
+        const res = await questionsApi.list({ examId: id, limit: 10000 });
+        questions = res.data.data;
+      }
+      setExamQuestions(questions);
+      setAttemptId(attempt.id);
+      setMode(attempt.mode);
+      setTimeRemaining(attempt.timeLimit ? attempt.timeLimit * 60 - (attempt.timeSpent || 0) : 0);
+      setTotalTimeSpent(attempt.timeSpent || 0);
+      setCurrentIndex(0);
+      setShowAnswer(false);
+      setQuestionEntryTime(Date.now());
+      setPerQuestionTime({});
+      const restoredAnswers: Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }> = {};
+      for (const a of attempt.answers || []) {
+        restoredAnswers[a.questionId] = {
+          optionId: a.selectedOptionId,
+          isCorrect: a.isCorrect,
+          flagged: a.isFlagged || false,
+        };
+      }
+      setAnswers(restoredAnswers);
+      setPageState("taking");
+      useExamStore.getState().startExam(id, questions.map(q => q.id), attempt.timeLimit || 0);
+      if (attempt.mode === "exam") {
+        const params = new URLSearchParams(window.location.search);
+        params.set("mode", "exam");
+        window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      setActiveAttempt(null);
+    } catch (err: any) {
+      toast.error(t("start_failed"));
     }
   };
 
@@ -323,6 +386,15 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     submittedRef.current = true;
     setSubmitting(true); setShowSubmitDialog(false); setShowTimeWarning(false);
     try {
+      if (currentQuestion && selectedOption && mode === "exam") {
+        const isCorrect = currentQuestion.options.find((o) => o.id === selectedOption)?.isCorrect ?? false;
+        const elapsed = Math.floor((Date.now() - questionEntryTime) / 1000);
+        setAnswers((prev) => ({
+          ...prev,
+          [currentQuestion.id]: { optionId: selectedOption, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
+        }));
+        await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed });
+      }
       await Promise.all(allAttemptIds.map((aid) => attemptsApi.complete(aid)));
       const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
       const total = displayQuestions.length;
@@ -349,7 +421,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           return Promise.all(
             slice.map(([questionId, answer]) =>
               answer.optionId
-                ? attemptsApi.answer(aid, { questionId, selectedOptionId: answer.optionId, timeSpent: 0 })
+                ? attemptsApi.answer(aid, { questionId, selectedOptionId: answer.optionId, timeSpent: perQuestionTime[questionId] || 0 })
                 : Promise.resolve()
             )
           );
@@ -497,7 +569,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                         optionClass = "border-primary bg-primary/10 shadow-subtle";
                       }
                       return (
-                        <button key={option.id} onClick={() => setSelectedOption(option.id)} disabled={showAnswer || answers[currentQuestion.id]?.optionId !== null} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
+                        <button key={option.id} onClick={() => setSelectedOption(option.id)} disabled={showAnswer || answers[currentQuestion.id]?.optionId != null} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
                         <div className="flex items-start gap-4">
                           <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
                             showAnswer && isCorrectOption ? "border-green-500 bg-green-500 text-white" :
@@ -614,6 +686,21 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             <CardDescription>{localized(exam.description, locale)}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {activeAttempt && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-200">{t("active_attempt_found")}</p>
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      {activeAttempt.answeredCount || 0}/{activeAttempt.questionCount || 0} {t("answered")} &middot; {activeAttempt.mode === "exam" ? t("exam_mode") : t("study_mode")}
+                    </p>
+                  </div>
+                  <Button onClick={handleResume} variant="default" className="shrink-0">
+                    <Play className="h-4 w-4 mr-2" /> {t("resume")}
+                  </Button>
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium mb-2 block">{t("select_mode")}</label>
               <div className="grid grid-cols-2 gap-3">

@@ -35,16 +35,32 @@ export class FlashcardsService {
     const offset = (page - 1) * limit;
     const conditions = [eq(flashcards.isActive, true)];
 
-    const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+    let isAdmin = false;
+    if (user) {
+      const [u] = await this.db
+        .select({ accountType: users.accountType, role: users.role })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      isAdmin = u && (u.role === "admin" || u.role === "super_admin");
+      if (u?.accountType === "course_only") {
+        return { data: [], total: 0, page, limit };
+      }
+    }
 
     if (!isAdmin) {
-      if (user) {
-        const [u] = await this.db
-          .select({ accountType: users.accountType })
-          .from(users)
-          .where(eq(users.id, user.id))
+      const [sub] = await this.db
+        .select({ planId: userSubscriptions.planId })
+        .from(userSubscriptions)
+        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+        .limit(1);
+      if (sub) {
+        const [plan] = await this.db
+          .select({ maxFlashcards: subscriptionPlans.maxFlashcards, maxFlashcardAttempts: subscriptionPlans.maxFlashcardAttempts })
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, sub.planId))
           .limit(1);
-        if (u?.accountType === "course_only") {
+        if (plan && plan.maxFlashcards == null && plan.maxFlashcardAttempts == null) {
           return { data: [], total: 0, page, limit };
         }
       }
@@ -54,14 +70,16 @@ export class FlashcardsService {
       }
 
       if (subExamId) {
-        const subFIds = await this.db
-          .select({ flashcardId: flashcardExams.flashcardId })
-          .from(flashcardExams)
-          .where(eq(flashcardExams.examId, subExamId));
-        const subIds = subFIds.map((r: any) => r.flashcardId);
-        conditions.push(inArray(flashcards.id, subIds));
-        if (examId && examId !== subExamId) {
-          return { data: [], total: 0, page, limit };
+        if (subExamId !== "__all__") {
+          const subFIds = await this.db
+            .select({ flashcardId: flashcardExams.flashcardId })
+            .from(flashcardExams)
+            .where(eq(flashcardExams.examId, subExamId));
+          const subIds = subFIds.map((r: any) => r.flashcardId);
+          conditions.push(inArray(flashcards.id, subIds));
+          if (examId && examId !== subExamId) {
+            return { data: [], total: 0, page, limit };
+          }
         }
       } else if (user?.targetExamId) {
         const targetFIds = await this.db
@@ -142,11 +160,13 @@ export class FlashcardsService {
 
     let flashcardIds: string[] = [];
     if (subExamId) {
-      const subFIds = await this.db
-        .select({ flashcardId: flashcardExams.flashcardId })
-        .from(flashcardExams)
-        .where(eq(flashcardExams.examId, subExamId));
-      flashcardIds = subFIds.map((r: any) => r.flashcardId);
+      if (subExamId !== "__all__") {
+        const subFIds = await this.db
+          .select({ flashcardId: flashcardExams.flashcardId })
+          .from(flashcardExams)
+          .where(eq(flashcardExams.examId, subExamId));
+        flashcardIds = subFIds.map((r: any) => r.flashcardId);
+      }
     } else {
       const [user] = await this.db
         .select({ targetExamId: users.targetExamId })
@@ -446,7 +466,7 @@ export class FlashcardsService {
       .from(specialties)
       .where(ne(specialties.type, "question"));
 
-    if (subExamId) {
+    if (subExamId && subExamId !== "__all__") {
       query = query.where(eq(specialties.examId, subExamId));
     }
 
@@ -457,8 +477,8 @@ export class FlashcardsService {
     return rows;
   }
 
-  private async getSubscriptionExamId(userId: string): Promise<string | null> {
-    const examId = await getAccessibleExamId(this.db, userId);
+  private async getSubscriptionExamId(userId: string, userRole?: string): Promise<string | null> {
+    const examId = await getAccessibleExamId(this.db, userId, userRole);
     if (examId) return examId;
 
     const [user] = await this.db
@@ -520,7 +540,7 @@ export class FlashcardsService {
     }
 
     const conditions: SQL[] = [eq(flashcards.isActive, true)];
-    if (accessibleExamId) {
+    if (accessibleExamId && accessibleExamId !== "__all__") {
       const examFIds = await this.db
         .select({ flashcardId: flashcardExams.flashcardId })
         .from(flashcardExams)
