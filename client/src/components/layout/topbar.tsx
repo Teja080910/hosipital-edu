@@ -19,7 +19,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePathname, useRouter } from "@/routing";
 import {
   Search,
-  Bell,
   LogOut,
   User,
   Settings,
@@ -114,11 +113,6 @@ const currentLocale = useParams().locale as string;
           ) : (
             <Moon className="h-4.5 w-4.5" />
           )}
-        </Button>
-
-        <Button variant="ghost" size="icon-sm" className="text-foreground/60 hover:text-foreground hover:bg-accent/50 relative">
-          <Bell className="h-4.5 w-4.5" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500 ring-2 ring-background" />
         </Button>
 
         <DropdownMenu>

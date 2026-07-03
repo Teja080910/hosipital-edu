@@ -386,6 +386,15 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     submittedRef.current = true;
     setSubmitting(true); setShowSubmitDialog(false); setShowTimeWarning(false);
     try {
+      if (currentQuestion && selectedOption && mode === "exam") {
+        const isCorrect = currentQuestion.options.find((o) => o.id === selectedOption)?.isCorrect ?? false;
+        const elapsed = Math.floor((Date.now() - questionEntryTime) / 1000);
+        setAnswers((prev) => ({
+          ...prev,
+          [currentQuestion.id]: { optionId: selectedOption, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
+        }));
+        await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed });
+      }
       await Promise.all(allAttemptIds.map((aid) => attemptsApi.complete(aid)));
       const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
       const total = displayQuestions.length;
@@ -412,7 +421,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           return Promise.all(
             slice.map(([questionId, answer]) =>
               answer.optionId
-                ? attemptsApi.answer(aid, { questionId, selectedOptionId: answer.optionId, timeSpent: 0 })
+                ? attemptsApi.answer(aid, { questionId, selectedOptionId: answer.optionId, timeSpent: perQuestionTime[questionId] || 0 })
                 : Promise.resolve()
             )
           );

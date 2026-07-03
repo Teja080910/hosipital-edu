@@ -92,7 +92,7 @@ export class AttemptsService {
                   examId: data.examId,
                   mode: data.mode,
                   questionCount: data.questionCount,
-                  questionIds: data.questionIds ? JSON.stringify(data.questionIds) : null,
+                  questionIds: data.questionIds ?? null,
                   timeLimit: data.timeLimit,
                   customTitle: data.customTitle,
                 })
@@ -108,7 +108,7 @@ export class AttemptsService {
           throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
         }
 
-        if (plan.maxExamAttempts == null) {
+        if (plan.maxExamAttempts == null && parseFloat(plan.price || "0") === 0) {
           throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
         }
 

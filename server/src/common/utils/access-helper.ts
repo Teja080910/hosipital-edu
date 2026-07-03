@@ -17,26 +17,7 @@ export async function getAccessibleExamId(
 
   if (sub) {
     if (sub.examId) return sub.examId;
-    if (sub.planName) {
-      const planText = (typeof sub.planName === "object" ? (sub.planName.en || sub.planName.es || "") : String(sub.planName)).toLowerCase();
-      const allExams = await db
-        .select({ id: exams.id, name: exams.name, slug: exams.slug })
-        .from(exams)
-        .where(eq(exams.isActive, true));
-      for (const exam of allExams) {
-        const examText = (exam.name?.en || exam.name?.es || exam.slug || "").toLowerCase();
-        if (planText.includes(examText) || examText.includes(planText)) {
-          return exam.id;
-        }
-      }
-    }
-    const [user] = await db
-      .select({ targetExamId: users.targetExamId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    if (user?.targetExamId) return user.targetExamId;
-    return null;
+    return "__all__";
   }
 
   const [user] = await db

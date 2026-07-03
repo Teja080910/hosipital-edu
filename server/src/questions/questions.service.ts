@@ -56,11 +56,11 @@ export class QuestionsService {
           .limit(1);
         if (sub) {
           const [plan] = await this.db
-            .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts })
+            .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts, price: subscriptionPlans.price })
             .from(subscriptionPlans)
             .where(eq(subscriptionPlans.id, sub.planId))
             .limit(1);
-          if (plan && plan.maxExamAttempts == null) {
+          if (plan && plan.maxExamAttempts == null && parseFloat(plan.price || "0") === 0) {
             return { data: [], total: 0, page, limit };
           }
         }
@@ -69,16 +69,33 @@ export class QuestionsService {
     }
 
     if (subExamId) {
-      const subQIds = await this.db
-        .select({ questionId: questionExams.questionId })
-        .from(questionExams)
-        .where(eq(questionExams.examId, subExamId));
-      const subIds = subQIds.map((r: any) => r.questionId);
-      conditions.push(inArray(questions.id, subIds));
-      if (examId && examId !== subExamId) {
-        return { data: [], total: 0, page, limit };
+      if (subExamId !== "__all__") {
+        const subQIds = await this.db
+          .select({ questionId: questionExams.questionId })
+          .from(questionExams)
+          .where(eq(questionExams.examId, subExamId));
+        const subIds = subQIds.map((r: any) => r.questionId);
+        conditions.push(inArray(questions.id, subIds));
+        if (examId && examId !== subExamId) {
+          return { data: [], total: 0, page, limit };
+        }
       }
-    } else if (examId) {
+    } else if (examId && user && !isAdmin) {
+      const [sub] = await this.db
+        .select()
+        .from(userSubscriptions)
+        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+        .limit(1);
+      if (!sub) {
+        const [u] = await this.db
+          .select({ createdAt: users.createdAt, targetExamId: users.targetExamId })
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
+        if (!u || !u.targetExamId || u.targetExamId !== examId || (Date.now() - new Date(u.createdAt).getTime()) > 86400000) {
+          return { data: [], total: 0, page, limit };
+        }
+      }
       const examQIds = await this.db
         .select({ questionId: questionExams.questionId })
         .from(questionExams)
@@ -177,7 +194,7 @@ export class QuestionsService {
       }
       if (!isAdmin) {
         const subExamId = await this.getSubscriptionExamId(user.id);
-        if (subExamId) {
+        if (subExamId && subExamId !== "__all__") {
           const links = await this.db
             .select()
             .from(questionExams)
