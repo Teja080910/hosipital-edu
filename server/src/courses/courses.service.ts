@@ -284,7 +284,9 @@ export class CoursesService {
       if (plan.examId && course.examId) {
         return { hasAccess: plan.examId === course.examId };
       }
-      return { hasAccess: true };
+      if (parseFloat(plan.price) > 0) {
+        return { hasAccess: true };
+      }
     }
 
     const [user] = await this.db

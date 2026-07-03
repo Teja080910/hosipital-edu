@@ -86,7 +86,7 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
 
   const activePlan = subData?.sub?.plan;
-  const hasExams = activePlan?.maxExamAttempts != null;
+  const hasExams = activePlan ? (activePlan.maxExamAttempts != null || parseFloat(activePlan.price || "0") > 0) : false;
   const hasFlashcards = activePlan?.maxFlashcards != null || activePlan?.maxFlashcardAttempts != null;
   const hasVideos = hasExams;
   const hasProgress = hasExams || hasFlashcards;

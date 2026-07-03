@@ -47,11 +47,23 @@ export class SubscriptionsService {
   }
 
   async createPlan(data: any) {
+    if (parseFloat(data.price || "0") > 0 && data.maxExamAttempts == null) {
+      const interval = data.interval || "month";
+      if (interval === "year") data.maxExamAttempts = 200;
+      else if (interval === "quarter") data.maxExamAttempts = 50;
+      else data.maxExamAttempts = 20;
+    }
     const [plan] = await this.db.insert(subscriptionPlans).values(stripTimestamps(data)).returning();
     return plan;
   }
 
   async updatePlan(id: string, data: any) {
+    if (data.price !== undefined && parseFloat(String(data.price)) > 0 && data.maxExamAttempts == null) {
+      const interval = data.interval || "month";
+      if (interval === "year") data.maxExamAttempts = 200;
+      else if (interval === "quarter") data.maxExamAttempts = 50;
+      else data.maxExamAttempts = 20;
+    }
     const [plan] = await this.db
       .update(subscriptionPlans)
       .set({ ...stripTimestamps(data), updatedAt: new Date() })
