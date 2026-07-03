@@ -48,6 +48,21 @@ export class FlashcardsService {
           return { data: [], total: 0, page, limit };
         }
       }
+      const [sub] = await this.db
+        .select({ planId: userSubscriptions.planId })
+        .from(userSubscriptions)
+        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+        .limit(1);
+      if (sub) {
+        const [plan] = await this.db
+          .select({ maxFlashcards: subscriptionPlans.maxFlashcards, maxFlashcardAttempts: subscriptionPlans.maxFlashcardAttempts })
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, sub.planId))
+          .limit(1);
+        if (plan && plan.maxFlashcards == null && plan.maxFlashcardAttempts == null) {
+          return { data: [], total: 0, page, limit };
+        }
+      }
       let subExamId: string | null = null;
       if (user) {
         subExamId = await this.getSubscriptionExamId(user.id);
@@ -446,7 +461,7 @@ export class FlashcardsService {
       .from(specialties)
       .where(ne(specialties.type, "question"));
 
-    if (subExamId) {
+    if (subExamId && subExamId !== "__all__") {
       query = query.where(eq(specialties.examId, subExamId));
     }
 
@@ -457,8 +472,8 @@ export class FlashcardsService {
     return rows;
   }
 
-  private async getSubscriptionExamId(userId: string): Promise<string | null> {
-    const examId = await getAccessibleExamId(this.db, userId);
+  private async getSubscriptionExamId(userId: string, userRole?: string): Promise<string | null> {
+    const examId = await getAccessibleExamId(this.db, userId, userRole);
     if (examId) return examId;
 
     const [user] = await this.db
@@ -520,7 +535,7 @@ export class FlashcardsService {
     }
 
     const conditions: SQL[] = [eq(flashcards.isActive, true)];
-    if (accessibleExamId) {
+    if (accessibleExamId && accessibleExamId !== "__all__") {
       const examFIds = await this.db
         .select({ flashcardId: flashcardExams.flashcardId })
         .from(flashcardExams)

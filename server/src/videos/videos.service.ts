@@ -32,6 +32,14 @@ export class VideosService {
         if (!sub) {
           return [];
         }
+        const [plan] = await this.db
+          .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts })
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, sub.planId))
+          .limit(1);
+        if (plan && plan.maxExamAttempts == null) {
+          return [];
+        }
       }
     }
     let subExamId: string | null = null;

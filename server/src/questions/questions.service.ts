@@ -49,6 +49,21 @@ export class QuestionsService {
       if (isCourseOnly) {
         subExamId = "none";
       } else {
+        const [sub] = await this.db
+          .select({ planId: userSubscriptions.planId })
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .limit(1);
+        if (sub) {
+          const [plan] = await this.db
+            .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts })
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, sub.planId))
+            .limit(1);
+          if (plan && plan.maxExamAttempts == null) {
+            return { data: [], total: 0, page, limit };
+          }
+        }
         subExamId = await this.getSubscriptionExamId(user.id);
       }
     }

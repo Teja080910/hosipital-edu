@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, CheckCircle, Clock, Loader2, Lock } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/routing";
 import { useRouter } from "@/routing";
 
 interface CourseCardProps {

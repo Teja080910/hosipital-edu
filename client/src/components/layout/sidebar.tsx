@@ -83,12 +83,26 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const locale = (params?.locale as string) || "en";
   const [adminOpen, setAdminOpen] = useState(true);
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
+
+  const activePlan = subData?.sub?.plan;
+  const hasExams = activePlan?.maxExamAttempts != null;
+  const hasFlashcards = activePlan?.maxFlashcards != null || activePlan?.maxFlashcardAttempts != null;
+  const hasVideos = hasExams;
+  const hasProgress = hasExams || hasFlashcards;
+  const hasCalendar = hasExams;
+
   const navItems = allNavItems.filter(item => {
     if (user?.role === "admin" || user?.role === "super_admin") return true;
     if (!item.accountTypes) return true;
-    return item.accountTypes.includes(user?.accountType || "full");
+    if (!item.accountTypes.includes(user?.accountType || "full")) return false;
+    if (item.label === "exams" && !hasExams && activePlan) return false;
+    if (item.label === "flashcards" && !hasFlashcards && activePlan) return false;
+    if (item.label === "videos" && !hasVideos && activePlan) return false;
+    if (item.label === "progress" && !hasProgress && activePlan) return false;
+    if (item.label === "calendar" && !hasCalendar && activePlan) return false;
+    return true;
   });
-  const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
 
   useEffect(() => {
     if (user && !isAdmin) {
@@ -245,9 +259,9 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
               </Link>
             )}
             {subData?.allPlans && subData.allPlans.filter(p => !subData.sub || p.sortOrder !== subData.sub?.plan?.sortOrder).length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-1 mt-3">
                 <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{sb("other_plans")}</p>
-                {subData.allPlans.filter(p => !subData.sub || p.sortOrder !== subData.sub?.plan?.sortOrder).map((plan: any) => {
+                {subData.allPlans.filter(p => !subData.sub || p.sortOrder !== subData.sub?.plan?.sortOrder).slice(0, 3).map((plan: any) => {
                   const isDowngrade = subData.sub && plan.sortOrder < subData.sub?.plan?.sortOrder;
                   return (
                     <Link key={plan.id} href="/dashboard/subscribe">
@@ -258,6 +272,16 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
                     </Link>
                   );
                 })}
+                {(() => {
+                  const remaining = subData.allPlans.filter(p => !subData.sub || p.sortOrder !== subData.sub?.plan?.sortOrder).length - 3;
+                  if (remaining > 0) return (
+                    <Link href="/dashboard/subscribe">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
+                        +{remaining} {sb("see_more")}
+                      </span>
+                    </Link>
+                  );
+                })()}
               </div>
             )}
           </div>

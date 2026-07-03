@@ -16,22 +16,22 @@ import { OptionalJwtAuthGuard } from "../common/guards/optional-jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { IsOptional, IsString, IsBoolean, IsUUID } from "class-validator";
+import { IsOptional, IsString, IsBoolean, IsUUID, IsObject } from "class-validator";
 
 class CreateArticleDto {
-  @IsString()
-  title!: string;
+  @IsObject()
+  title!: Record<string, string>;
 
-  @IsString()
-  content!: string;
+  @IsObject()
+  content!: Record<string, string>;
 
   @IsOptional()
   @IsString()
   slug?: string;
 
   @IsOptional()
-  @IsString()
-  excerpt?: string;
+  @IsObject()
+  excerpt?: Record<string, string>;
 
   @IsOptional()
   @IsString()
@@ -48,20 +48,20 @@ class CreateArticleDto {
 
 class UpdateArticleDto {
   @IsOptional()
-  @IsString()
-  title?: string;
+  @IsObject()
+  title?: Record<string, string>;
 
   @IsOptional()
-  @IsString()
-  content?: string;
+  @IsObject()
+  content?: Record<string, string>;
 
   @IsOptional()
   @IsString()
   slug?: string;
 
   @IsOptional()
-  @IsString()
-  excerpt?: string;
+  @IsObject()
+  excerpt?: Record<string, string>;
 
   @IsOptional()
   @IsString()

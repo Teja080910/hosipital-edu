@@ -135,6 +135,13 @@ export class CoursesService {
   }
 
   async enroll(userId: string, courseId: string, stripePaymentId?: string, locale?: string) {
+    const [userRecord] = await this.db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const isAdmin = userRecord && (userRecord.role === "admin" || userRecord.role === "super_admin");
+
     const [course] = await this.db
       .select()
       .from(courses)
@@ -155,6 +162,19 @@ export class CoursesService {
       .limit(1);
 
     if (existing) throw new BadRequestException(this.i18n.t("courses.alreadyEnrolled"));
+
+    if (isAdmin) {
+      const [enrollment] = await this.db
+        .insert(userCourseEnrollments)
+        .values({
+          userId,
+          courseId,
+          stripePaymentId,
+          accessExpiresAt: new Date(Date.now() + (course.durationDays || 365) * 86400000),
+        })
+        .returning();
+      return enrollment;
+    }
 
     const [sub] = await this.db
       .select()
@@ -222,6 +242,15 @@ export class CoursesService {
   }
 
   async checkAccess(userId: string, courseId: string) {
+    const [userRecord] = await this.db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (userRecord && (userRecord.role === "admin" || userRecord.role === "super_admin")) {
+      return { hasAccess: true };
+    }
+
     const [course] = await this.db
       .select({ examId: courses.examId, sortOrder: courses.sortOrder })
       .from(courses)

@@ -26,7 +26,7 @@ export class AttemptsController {
   @Post()
   @ApiOperation({ summary: "Start new exam attempt" })
   async create(
-    @Body() data: { examId: string; mode: string; questionCount: number; timeLimit?: number; customTitle?: string },
+    @Body() data: { examId: string; mode: string; questionCount: number; questionIds?: string[]; timeLimit?: number; customTitle?: string },
     @CurrentUser() user: any,
   ) {
     return this.attemptsService.create({ ...data, userId: user.id });
@@ -40,6 +40,12 @@ export class AttemptsController {
     @Query("limit") limit?: number,
   ) {
     return this.attemptsService.findByUser(user.id, page, limit);
+  }
+
+  @Get("active/:examId")
+  @ApiOperation({ summary: "Get active attempt for an exam" })
+  async findActive(@Param("examId") examId: string, @CurrentUser() user: any) {
+    return this.attemptsService.findActiveByExam(user.id, examId);
   }
 
   @Get(":id")

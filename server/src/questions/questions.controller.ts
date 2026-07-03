@@ -16,7 +16,7 @@ import { RolesGuard } from "../common/guards/roles.guard";
 import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { IsOptional, IsString, IsArray, IsUUID, IsObject } from "class-validator";
+import { IsOptional, IsString, IsArray, IsUUID, IsObject, IsNumber } from "class-validator";
 
 class CreateQuestionDto {
   @IsString()
@@ -28,11 +28,20 @@ class CreateQuestionDto {
 
   @IsOptional()
   @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsString()
   difficulty?: string;
 
   @IsOptional()
   @IsUUID()
   examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
 
   @IsOptional()
   @IsUUID()
@@ -50,6 +59,11 @@ class CreateQuestionDto {
   @IsArray()
   @IsObject({ each: true })
   options?: { text: string; isCorrect: boolean; explanation?: string }[];
+
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  images?: { url: string; section?: string; caption?: string; sortOrder?: number }[];
 
   @IsOptional()
   @IsString()
@@ -67,11 +81,20 @@ class UpdateQuestionDto {
 
   @IsOptional()
   @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsString()
   difficulty?: string;
 
   @IsOptional()
   @IsUUID()
   examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
 
   @IsOptional()
   @IsUUID()
@@ -89,6 +112,11 @@ class UpdateQuestionDto {
   @IsArray()
   @IsObject({ each: true })
   options?: { text: string; isCorrect: boolean; explanation?: string }[];
+
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  images?: { url: string; section?: string; caption?: string; sortOrder?: number }[];
 
   @IsOptional()
   @IsString()

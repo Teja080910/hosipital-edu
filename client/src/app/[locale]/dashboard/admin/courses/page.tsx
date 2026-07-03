@@ -150,7 +150,7 @@ export default function AdminCoursesPage() {
     { key: "isActive", header: t("status"), render: (row: any) => <Badge variant={row.isActive ? "default" : "secondary"}>{row.isActive ? c("active") : c("draft")}</Badge> },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" onClick={() => router.push(`/dashboard/admin/courses/${row.id}/content`)}><BookOpen className="h-3 w-3" /></Button>

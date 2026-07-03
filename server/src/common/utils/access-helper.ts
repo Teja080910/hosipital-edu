@@ -1,12 +1,15 @@
 import { eq, and, isNull } from "drizzle-orm";
-import { users, userSubscriptions, subscriptionPlans } from "../../database/schema";
+import { users, userSubscriptions, subscriptionPlans, exams } from "../../database/schema";
 
 export async function getAccessibleExamId(
   db: any,
   userId: string,
+  userRole?: string,
 ): Promise<string | null> {
+  if (userRole === "admin" || userRole === "super_admin") return null;
+
   const [sub] = await db
-    .select({ examId: subscriptionPlans.examId })
+    .select({ examId: subscriptionPlans.examId, planName: subscriptionPlans.name })
     .from(userSubscriptions)
     .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
     .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
@@ -14,7 +17,19 @@ export async function getAccessibleExamId(
 
   if (sub) {
     if (sub.examId) return sub.examId;
-    // general plan — show all content only if user has no target exam
+    if (sub.planName) {
+      const planText = (typeof sub.planName === "object" ? (sub.planName.en || sub.planName.es || "") : String(sub.planName)).toLowerCase();
+      const allExams = await db
+        .select({ id: exams.id, name: exams.name, slug: exams.slug })
+        .from(exams)
+        .where(eq(exams.isActive, true));
+      for (const exam of allExams) {
+        const examText = (exam.name?.en || exam.name?.es || exam.slug || "").toLowerCase();
+        if (planText.includes(examText) || examText.includes(planText)) {
+          return exam.id;
+        }
+      }
+    }
     const [user] = await db
       .select({ targetExamId: users.targetExamId })
       .from(users)

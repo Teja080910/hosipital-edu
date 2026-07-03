@@ -22,15 +22,15 @@ import { SubscriptionsService } from "./subscriptions.service";
 import Stripe from "stripe";
 import { Inject } from "@nestjs/common";
 import { STRIPE } from "./stripe.provider";
-import { IsOptional, IsString, IsNumber, IsBoolean } from "class-validator";
+import { IsOptional, IsString, IsNumber, IsBoolean, IsObject } from "class-validator";
 
 class CreatePlanDto {
-  @IsString()
-  name!: string;
+  @IsObject()
+  name!: object;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  description?: object;
 
   @IsNumber()
   price!: number;
@@ -65,12 +65,12 @@ class CreatePlanDto {
 
 class UpdatePlanDto {
   @IsOptional()
-  @IsString()
-  name?: string;
+  @IsObject()
+  name?: object;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  description?: object;
 
   @IsOptional()
   @IsNumber()

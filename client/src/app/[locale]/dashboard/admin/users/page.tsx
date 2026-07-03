@@ -160,7 +160,7 @@ const deleteUser = async () => {
     { key: "createdAt", header: t("joined"), sortable: true },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" onClick={() => openSubscription(row)}>
@@ -211,7 +211,7 @@ const deleteUser = async () => {
       </div>
 
       <Dialog open={subDialogOpen} onOpenChange={setSubDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent key={subDialogOpen ? "open" : "closed"} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("subscription_for")} {subUser?.name || subUser?.email}</DialogTitle>
           </DialogHeader>

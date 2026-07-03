@@ -69,7 +69,7 @@ export default function AdminQuestionsPage() {
   const fetchQuestions = useCallback(async () => {
     try {
       const { data } = await questionsApi.list();
-      setQuestions(data);
+      setQuestions(Array.isArray(data) ? data : data?.data ?? []);
     } catch {
       toast.error(t("load_failed_questions"));
     } finally {
@@ -250,7 +250,7 @@ export default function AdminQuestionsPage() {
     },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); openView(row); }}>

@@ -16,15 +16,19 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { IsOptional, IsString, IsBoolean, IsNumber, IsUUID } from "class-validator";
+import { IsOptional, IsString, IsBoolean, IsNumber, IsUUID, IsObject } from "class-validator";
 
 class CreateCourseDto {
-  @IsString()
-  title!: string;
+  @IsObject()
+  title!: object;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  description?: object;
+
+  @IsOptional()
+  @IsObject()
+  shortDescription?: object;
 
   @IsOptional()
   @IsString()
@@ -33,6 +37,10 @@ class CreateCourseDto {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  coverImage?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -56,45 +64,61 @@ class CreateCourseDto {
 
   @IsOptional()
   @IsNumber()
+  durationDays?: number;
+
+  @IsOptional()
+  @IsNumber()
   price?: number;
 
   @IsOptional()
-  @IsString()
-  objectives?: string;
+  @IsBoolean()
+  hasCertificate?: boolean;
 
   @IsOptional()
-  @IsString()
-  targetAudience?: string;
+  @IsObject()
+  objectives?: object;
 
   @IsOptional()
-  @IsString()
-  prerequisites?: string;
+  @IsObject()
+  targetAudience?: object;
 
   @IsOptional()
-  @IsString()
-  whatYouWillLearn?: string;
+  @IsObject()
+  prerequisites?: object;
 
   @IsOptional()
-  @IsString()
-  introduction?: string;
+  @IsObject()
+  whatYouWillLearn?: object;
 
   @IsOptional()
-  @IsString()
-  preExamInstructions?: string;
+  @IsObject()
+  introduction?: object;
 
   @IsOptional()
-  @IsString()
-  postExamInstructions?: string;
+  @IsObject()
+  preExamInstructions?: object;
+
+  @IsOptional()
+  @IsObject()
+  postExamInstructions?: object;
+
+  @IsOptional()
+  @IsObject()
+  certificateInstructions?: object;
 }
 
 class UpdateCourseDto {
   @IsOptional()
-  @IsString()
-  title?: string;
+  @IsObject()
+  title?: object;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  description?: object;
+
+  @IsOptional()
+  @IsObject()
+  shortDescription?: object;
 
   @IsOptional()
   @IsString()
@@ -103,6 +127,10 @@ class UpdateCourseDto {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  coverImage?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -126,35 +154,47 @@ class UpdateCourseDto {
 
   @IsOptional()
   @IsNumber()
+  durationDays?: number;
+
+  @IsOptional()
+  @IsNumber()
   price?: number;
 
   @IsOptional()
-  @IsString()
-  objectives?: string;
+  @IsBoolean()
+  hasCertificate?: boolean;
 
   @IsOptional()
-  @IsString()
-  targetAudience?: string;
+  @IsObject()
+  objectives?: object;
 
   @IsOptional()
-  @IsString()
-  prerequisites?: string;
+  @IsObject()
+  targetAudience?: object;
 
   @IsOptional()
-  @IsString()
-  whatYouWillLearn?: string;
+  @IsObject()
+  prerequisites?: object;
 
   @IsOptional()
-  @IsString()
-  introduction?: string;
+  @IsObject()
+  whatYouWillLearn?: object;
 
   @IsOptional()
-  @IsString()
-  preExamInstructions?: string;
+  @IsObject()
+  introduction?: object;
 
   @IsOptional()
-  @IsString()
-  postExamInstructions?: string;
+  @IsObject()
+  preExamInstructions?: object;
+
+  @IsOptional()
+  @IsObject()
+  postExamInstructions?: object;
+
+  @IsOptional()
+  @IsObject()
+  certificateInstructions?: object;
 }
 
 @ApiTags("courses")
