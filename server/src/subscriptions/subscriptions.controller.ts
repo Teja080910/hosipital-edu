@@ -22,7 +22,7 @@ import { SubscriptionsService } from "./subscriptions.service";
 import Stripe from "stripe";
 import { Inject } from "@nestjs/common";
 import { STRIPE } from "./stripe.provider";
-import { IsOptional, IsString, IsNumber, IsBoolean, IsObject } from "class-validator";
+import { IsOptional, IsString, IsNumber, IsBoolean, IsObject, IsUUID } from "class-validator";
 
 class CreatePlanDto {
   @IsObject()
@@ -43,12 +43,36 @@ class CreatePlanDto {
   stripePriceId?: string;
 
   @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
   @IsNumber()
   sortOrder?: number;
 
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isVisible?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isCourseOnly?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  courseId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  maxDays?: number;
 
   @IsOptional()
   @IsNumber()
@@ -85,12 +109,36 @@ class UpdatePlanDto {
   stripePriceId?: string;
 
   @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
   @IsNumber()
   sortOrder?: number;
 
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isVisible?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isCourseOnly?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  courseId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  maxDays?: number;
 
   @IsOptional()
   @IsNumber()

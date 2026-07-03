@@ -44,7 +44,25 @@ export class FlashcardsService {
         .limit(1);
       isAdmin = u && (u.role === "admin" || u.role === "super_admin");
       if (u?.accountType === "course_only") {
-        return { data: [], total: 0, page, limit };
+        const [activeSub] = await this.db
+          .select({ planId: userSubscriptions.planId })
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .limit(1);
+        if (activeSub) {
+          const [plan] = await this.db
+            .select({ price: subscriptionPlans.price })
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, activeSub.planId))
+            .limit(1);
+          if (plan && parseFloat(plan.price || "0") > 0) {
+            // has paid plan, allow access
+          } else {
+            return { data: [], total: 0, page, limit };
+          }
+        } else {
+          return { data: [], total: 0, page, limit };
+        }
       }
     }
 

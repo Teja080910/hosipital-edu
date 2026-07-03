@@ -96,19 +96,19 @@ export default function AdminCoursesPage() {
         title: { en: form.title },
         description: { en: form.description },
         shortDescription: { en: form.shortDescription },
-        introduction: form.introduction ? { en: form.introduction } : null,
-        objectives: form.objectives ? { en: form.objectives } : null,
-        targetAudience: form.targetAudience ? { en: form.targetAudience } : null,
-        prerequisites: form.prerequisites ? { en: form.prerequisites } : null,
-        whatYouWillLearn: form.whatYouWillLearn ? { en: form.whatYouWillLearn } : null,
-        preExamInstructions: form.preExamInstructions ? { en: form.preExamInstructions } : null,
-        postExamInstructions: form.postExamInstructions ? { en: form.postExamInstructions } : null,
-        certificateInstructions: form.certificateInstructions ? { en: form.certificateInstructions } : null,
-        price: form.price,
+        price: Number(form.price),
         durationDays: form.durationDays,
         hasCertificate: form.hasCertificate,
-        coverImage: form.coverImage || null,
       };
+      if (form.coverImage) payload.coverImage = form.coverImage;
+      if (form.introduction) payload.introduction = { en: form.introduction };
+      if (form.objectives) payload.objectives = { en: form.objectives };
+      if (form.targetAudience) payload.targetAudience = { en: form.targetAudience };
+      if (form.prerequisites) payload.prerequisites = { en: form.prerequisites };
+      if (form.whatYouWillLearn) payload.whatYouWillLearn = { en: form.whatYouWillLearn };
+      if (form.preExamInstructions) payload.preExamInstructions = { en: form.preExamInstructions };
+      if (form.postExamInstructions) payload.postExamInstructions = { en: form.postExamInstructions };
+      if (form.certificateInstructions) payload.certificateInstructions = { en: form.certificateInstructions };
       if (editing) {
         await coursesApi.update(editing.id, payload);
         toast.success(t("course_updated"));

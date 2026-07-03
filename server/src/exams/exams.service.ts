@@ -51,9 +51,7 @@ export class ExamsService {
       if (isAdmin) {
         hasAccess = true;
       } else if (sub) {
-        if (sub.isCourseOnly) {
-          hasAccess = false;
-        } else if (!sub.examId || sub.examId === r.id) {
+        if (!sub.examId || sub.examId === r.id) {
           hasAccess = true;
         }
       } else if (user && user.targetExamId === r.id) {
@@ -98,8 +96,6 @@ export class ExamsService {
           } else {
             throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
           }
-        } else if (sub.isCourseOnly) {
-          throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
         } else if (sub.examId && sub.examId !== id) {
           throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
         }

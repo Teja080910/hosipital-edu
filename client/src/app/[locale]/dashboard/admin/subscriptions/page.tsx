@@ -99,7 +99,7 @@ export default function AdminSubscriptionsPage() {
       const payload: Record<string, unknown> = {
         name: { en: form.name },
         description: { en: form.description },
-        price: form.price,
+        price: Number(form.price),
         interval: form.interval,
         currency: form.currency,
         isVisible: form.isVisible,

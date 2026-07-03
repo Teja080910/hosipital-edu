@@ -331,7 +331,7 @@ export class SubscriptionsService {
           interval: plan.interval,
         });
 
-        if (!plan.isCourseOnly && user.accountType === "course_only") {
+        if (user.accountType === "course_only" && parseFloat(plan.price || "0") > 0) {
           await tx
             .update(users)
             .set({ accountType: "full", updatedAt: new Date() })
