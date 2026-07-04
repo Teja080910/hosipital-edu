@@ -481,8 +481,7 @@ export class FlashcardsService {
         id: specialties.id,
         name: specialties.name,
       })
-      .from(specialties)
-      .where(ne(specialties.type, "question"));
+      .from(specialties);
 
     if (subExamId && subExamId !== "__all__") {
       query = query.where(eq(specialties.examId, subExamId));
