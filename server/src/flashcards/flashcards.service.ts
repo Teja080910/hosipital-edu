@@ -468,24 +468,14 @@ export class FlashcardsService {
 
     const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
 
-    let subExamId: string | null = null;
-    if (!isAdmin) {
-      subExamId = await this.getSubscriptionExamId(userId);
-      if (!subExamId) {
-        subExamId = user?.targetExamId || null;
-      }
-    }
-
     let query = this.db
-      .select({
+      .selectDistinct({
         id: specialties.id,
         name: specialties.name,
       })
-      .from(specialties);
-
-    if (subExamId && subExamId !== "__all__") {
-      query = query.where(eq(specialties.examId, subExamId));
-    }
+      .from(specialties)
+      .innerJoin(flashcards, eq(flashcards.specialtyId, specialties.id))
+      .where(eq(flashcards.isActive, true));
 
     const rows = await query;
 

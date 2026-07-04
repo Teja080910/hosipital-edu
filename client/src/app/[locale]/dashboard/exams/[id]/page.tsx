@@ -202,13 +202,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     if (pageState !== "taking" && pageState !== "results") return;
     const handleFullscreenChange = () => {
       if (isSubmittingRef.current) return;
-      if (!document.fullscreenElement) {
-        if (pageState === "taking" && mode === "exam" && !showSubmitDialog) {
-          setShowSubmitDialog(true);
-        } else if (pageState === "results") {
-          router.push("/dashboard/exams");
-        }
+    if (!document.fullscreenElement) {
+      if (pageState === "taking" && mode === "exam" && !showSubmitDialog) {
+        setShowSubmitDialog(true);
       }
+    }
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -400,6 +398,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       const total = displayQuestions.length;
       setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
       setPageState("results");
+      setActiveAttempt(null);
       useExamStore.getState().endExam();
       window.history.replaceState({}, "", `/${locale}/dashboard/exams/${id}`);
       if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
@@ -428,7 +427,10 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         })
       );
       await Promise.all(allAttemptIds.map((aid) => attemptsApi.complete(aid)));
-    } catch { /* silent */ }
+    } catch {
+      toast.error(t("submit_failed"));
+      return;
+    }
     const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
     const total = displayQuestions.length;
     setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
@@ -446,8 +448,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
             onReview={() => { setReviewMode(true); setPageState("taking"); setShowAnswer(true); setCurrentIndex(0); }}
-            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.getState().endExam(); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); setTimeLimit(20); setCustomTitle(""); setCombinedExamIds([]); setCombinedExams([]); setMode("exam"); setShowSpecialties(false); setShowTopics(false); setShowSubtopics(false); setPerQuestionTime({}); setTotalTimeSpent(0); setTimeRemaining(0); setQuestionEntryTime(Date.now()); setSubmitting(false); setReviewMode(false); setAllAttemptIds([]); setShowSubmitDialog(false); setShowTimeWarning(false); setLightboxImage(null); tabWarningsRef.current = 0; setTabWarnings(0); submittedRef.current = false; isSubmittingRef.current = false; }}
-            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); router.push("/dashboard/exams"); }} />
+            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.getState().endExam(); setPageState("config"); setResults(null); setAttemptId(null); setActiveAttempt(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); setTimeLimit(20); setCustomTitle(""); setCombinedExamIds([]); setCombinedExams([]); setMode("exam"); setShowSpecialties(false); setShowTopics(false); setShowSubtopics(false); setPerQuestionTime({}); setTotalTimeSpent(0); setTimeRemaining(0); setQuestionEntryTime(Date.now()); setSubmitting(false); setReviewMode(false); setAllAttemptIds([]); setShowSubmitDialog(false); setShowTimeWarning(false); setLightboxImage(null); tabWarningsRef.current = 0; setTabWarnings(0); submittedRef.current = false; isSubmittingRef.current = false; }}
+            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); setActiveAttempt(null); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
             <Card>
               <CardHeader><CardTitle className="text-lg">{t("topic_breakdown")}</CardTitle></CardHeader>
