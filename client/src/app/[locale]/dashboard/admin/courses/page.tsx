@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -47,7 +48,7 @@ export default function AdminCoursesPage() {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [exams, setExams] = useState<any[]>([]);
-  const [examId, setExamId] = useState("");
+  const [examId, setExamId] = useState("__all__");
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -68,14 +69,14 @@ export default function AdminCoursesPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setExamId("");
+    setExamId("__all__");
     setForm({ title: "", description: "", shortDescription: "", introduction: "", objectives: "", targetAudience: "", prerequisites: "", whatYouWillLearn: "", preExamInstructions: "", postExamInstructions: "", certificateInstructions: "", price: "0", durationDays: 30, hasCertificate: true, coverImage: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (course: any) => {
     setEditing(course);
-    setExamId(course.examId || "");
+    setExamId(course.examId || "__all__");
     setForm({
       title: course.title?.en || "",
       description: course.description?.en || "",
@@ -108,7 +109,7 @@ export default function AdminCoursesPage() {
         durationDays: form.durationDays,
         hasCertificate: form.hasCertificate,
       };
-      if (examId) payload.examId = examId;
+      if (examId && examId !== "__all__") payload.examId = examId;
       if (form.coverImage) payload.coverImage = form.coverImage;
       if (form.introduction) payload.introduction = { en: form.introduction };
       if (form.objectives) payload.objectives = { en: form.objectives };
@@ -206,6 +207,9 @@ export default function AdminCoursesPage() {
                 <DialogTitle className="text-xl font-bold tracking-tight">
                   {editing ? t("edit_course_details") : t("create_new_course")}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {editing ? t("edit_course_details") : t("create_new_course")}
+                </DialogDescription>
                 <p className="text-xs text-muted-foreground mt-0.5">{t("configure_course")}</p>
               </div>
             </div>
@@ -261,7 +265,7 @@ export default function AdminCoursesPage() {
                   <SelectValue placeholder={t("all_exams")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t("all_exams")}</SelectItem>
+                  <SelectItem value="__all__">{t("all_exams")}</SelectItem>
                   {exams.map((ex: any) => (
                     <SelectItem key={ex.id} value={ex.id}>{ex.name?.en || ex.slug}</SelectItem>
                   ))}
