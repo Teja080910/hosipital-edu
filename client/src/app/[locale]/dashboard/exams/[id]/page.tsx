@@ -543,9 +543,9 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6 p-5 sm:p-6">
-                <QuestionPenOverlay questionId={currentQuestion.id}>
+                {showAnswer ? (
+                  <QuestionPenOverlay questionId={`${currentQuestion.id}-review`}>
                   <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words">{currentQuestion.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
-                </QuestionPenOverlay>
                 {currentQuestion.images && currentQuestion.images.filter((img: any) => img.section === "title").length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.filter((img: any) => img.section === "title").map((img: any) => (
@@ -561,11 +561,9 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                       const isOptionSelected = selectedOption === option.id;
                       const isCorrectOption = option.isCorrect;
                       let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
-                      if (showAnswer) {
-                        if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
-                        else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
-                        else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
-                      } else if (mode === "exam") {
+                      if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
+                      else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
+                      else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle"; else if (mode === "exam") {
                         if (isSelected || isOptionSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
                       } else if (isOptionSelected) {
                         optionClass = "border-primary bg-primary/10 shadow-subtle";
@@ -582,14 +580,49 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                               showAnswer && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
                               String.fromCharCode(65 + optionIndex)}
                           </div>
-                           <span className="pt-1.5 leading-6 break-words">{option.text}</span>
+                            <span className="pt-1.5 leading-6 break-words">{option.text}</span>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><div className="text-sm leading-6 text-muted-foreground space-y-2 break-words">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>{currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}</div>)}
+                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden">
+                  <p className="text-sm font-semibold mb-1">{t("explanation")}</p>
+                  {(() => {
+                    const correctOpt = currentQuestion.options.find((o: any) => o.isCorrect);
+                    return correctOpt ? <p className="text-sm font-medium mb-2">{correctOpt.text}</p> : null;
+                  })()}
+                  <div className="text-sm leading-6 text-muted-foreground space-y-2 break-words">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
+                  {currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}
+                </div>)}
                 {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{currentQuestion.reference}</p></div>)}
+                  </QuestionPenOverlay>
+                ) : (
+                  <div className="space-y-3">
+                    {currentQuestion.options.map((option, optionIndex) => {
+                      const isSelected = answered === option.id;
+                      const isOptionSelected = selectedOption === option.id;
+                      let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
+                      if (mode === "exam") {
+                        if (isSelected || isOptionSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
+                      } else if (isOptionSelected) {
+                        optionClass = "border-primary bg-primary/10 shadow-subtle";
+                      }
+                      return (
+                        <button key={option.id} onClick={() => setSelectedOption(option.id)} disabled={answers[currentQuestion.id]?.optionId != null} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
+                        <div className="flex items-start gap-4">
+                          <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
+                            isSelected || isOptionSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
+                          }`}>
+                            {String.fromCharCode(65 + optionIndex)}
+                          </div>
+                          <span className="pt-1.5 leading-6 break-words">{option.text}</span>
+                        </div>
+                      </button>
+                    );
+                    })}
+                  </div>
+                )}
                 {!showAnswer && selectedOption && !answers[currentQuestion.id]?.optionId && (
                   <Button onClick={handleSubmitAnswer} className="w-full" size="lg">{t("submit")}</Button>
                 )}

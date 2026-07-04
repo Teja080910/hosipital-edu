@@ -16,7 +16,7 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { IsOptional, IsString, IsBoolean, IsNumber, IsUUID, IsObject } from "class-validator";
+import { IsOptional, IsString, IsBoolean, IsNumber, IsUUID, IsObject, IsArray } from "class-validator";
 
 class CreateCourseDto {
   @IsObject()
@@ -53,6 +53,11 @@ class CreateCourseDto {
   @IsOptional()
   @IsUUID()
   examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
 
   @IsOptional()
   @IsString()
@@ -143,6 +148,11 @@ class UpdateCourseDto {
   @IsOptional()
   @IsUUID()
   examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
 
   @IsOptional()
   @IsString()

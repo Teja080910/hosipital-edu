@@ -48,7 +48,7 @@ export default function AdminCoursesPage() {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [exams, setExams] = useState<any[]>([]);
-  const [examId, setExamId] = useState("__all__");
+  const [examIds, setExamIds] = useState<string[]>([]);
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -69,14 +69,14 @@ export default function AdminCoursesPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setExamId("__all__");
+    setExamIds([]);
     setForm({ title: "", description: "", shortDescription: "", introduction: "", objectives: "", targetAudience: "", prerequisites: "", whatYouWillLearn: "", preExamInstructions: "", postExamInstructions: "", certificateInstructions: "", price: "0", durationDays: 30, hasCertificate: true, coverImage: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (course: any) => {
     setEditing(course);
-    setExamId(course.examId || "__all__");
+    setExamIds(course.examIds || (course.examId ? [course.examId] : []));
     setForm({
       title: course.title?.en || "",
       description: course.description?.en || "",
@@ -109,7 +109,7 @@ export default function AdminCoursesPage() {
         durationDays: form.durationDays,
         hasCertificate: form.hasCertificate,
       };
-      if (examId && examId !== "__all__") payload.examId = examId;
+      if (examIds.length > 0) payload.examIds = examIds;
       if (form.coverImage) payload.coverImage = form.coverImage;
       if (form.introduction) payload.introduction = { en: form.introduction };
       if (form.objectives) payload.objectives = { en: form.objectives };
@@ -257,17 +257,27 @@ export default function AdminCoursesPage() {
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
-              <Select value={examId} onValueChange={setExamId}>
-                <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none">
-                  <SelectValue placeholder={t("all_exams")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">{t("all_exams")}</SelectItem>
-                  {exams.map((ex: any) => (
-                    <SelectItem key={ex.id} value={ex.id}>{ex.name?.en || ex.slug}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 max-h-40 overflow-y-auto p-3 bg-muted/20 rounded-xl border border-border/80">
+                {exams.map((ex: any) => (
+                  <label key={ex.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={examIds.includes(ex.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setExamIds([...examIds, ex.id]);
+                        } else {
+                          setExamIds(examIds.filter((id) => id !== ex.id));
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    {ex.name?.en || ex.slug}
+                  </label>
+                ))}
+                {exams.length === 0 && <p className="text-xs text-muted-foreground">{t("no_exams")}</p>}
+              </div>
+              <p className="text-xs text-muted-foreground">{t("exam_select_desc")}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-6">

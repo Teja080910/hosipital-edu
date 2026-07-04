@@ -49,10 +49,8 @@ export class SubscriptionsService {
 
   async createPlan(data: any) {
     if (parseFloat(data.price || "0") > 0 && data.maxExamAttempts == null) {
-      const interval = data.interval || "month";
-      if (interval === "year") data.maxExamAttempts = 200;
-      else if (interval === "quarter") data.maxExamAttempts = 50;
-      else data.maxExamAttempts = 20;
+      if (data.interval === "month") data.maxExamAttempts = 20;
+      else data.maxExamAttempts = 100;
     }
     const { examIds, ...planData } = data;
     const [plan] = await this.db.insert(subscriptionPlans).values(stripTimestamps(planData)).returning();
@@ -66,10 +64,8 @@ export class SubscriptionsService {
 
   async updatePlan(id: string, data: any) {
     if (data.price !== undefined && parseFloat(String(data.price)) > 0 && data.maxExamAttempts == null) {
-      const interval = data.interval || "month";
-      if (interval === "year") data.maxExamAttempts = 200;
-      else if (interval === "quarter") data.maxExamAttempts = 50;
-      else data.maxExamAttempts = 20;
+      if (data.interval === "month") data.maxExamAttempts = 20;
+      else data.maxExamAttempts = 100;
     }
     const { examIds, ...planData } = data;
     const [plan] = await this.db
@@ -170,10 +166,11 @@ export class SubscriptionsService {
       await this.updatePlan(plan.id, { stripePriceId });
     }
 
+    const isRecurring = plan.interval === "month";
     const existingSub = await this.getUserSubscription(userId);
     const appUrl = this.config.get<string>("APP_URL");
 
-    if (existingSub) {
+    if (existingSub && isRecurring) {
       if (existingSub.stripeSubscriptionId) {
         const stripeSub = await this.stripe.subscriptions.retrieve(existingSub.stripeSubscriptionId);
         const currentItemId = stripeSub.items?.data?.[0]?.id;
@@ -204,9 +201,10 @@ export class SubscriptionsService {
     }
 
     let session;
+    const sessionMode = isRecurring ? "subscription" : "payment";
     try {
       session = await this.stripe.checkout.sessions.create({
-        mode: "subscription",
+        mode: sessionMode,
         payment_method_types: ["card"],
         line_items: [{ price: stripePriceId, quantity: 1 }],
         client_reference_id: userId,
@@ -219,7 +217,7 @@ export class SubscriptionsService {
         const result = await this.createStripeProductAndPrice(plan);
         await this.updatePlan(plan.id, { stripePriceId: result.priceId });
         session = await this.stripe.checkout.sessions.create({
-          mode: "subscription",
+          mode: sessionMode,
           payment_method_types: ["card"],
           line_items: [{ price: result.priceId, quantity: 1 }],
           client_reference_id: userId,
@@ -253,31 +251,35 @@ export class SubscriptionsService {
       return { status: "pending" };
     }
     const planId = session.metadata?.planId;
-    const stripeSubscriptionId = session.subscription as string;
-    const stripeCustomerId = session.customer as string;
-    if (!planId || !stripeSubscriptionId || !stripeCustomerId) {
-      return { status: "incomplete" };
+    if (!planId) return { status: "incomplete" };
+
+    if (session.mode === "subscription") {
+      const stripeSubscriptionId = session.subscription as string;
+      const stripeCustomerId = session.customer as string;
+      if (!stripeSubscriptionId || !stripeCustomerId) return { status: "incomplete" };
+      await this.activateSubscription({ userId, planId, stripeSubscriptionId, stripeCustomerId });
+    } else {
+      const stripeCustomerId = session.customer as string;
+      await this.activateSubscription({ userId, planId, stripeSubscriptionId: null, stripeCustomerId: stripeCustomerId || null });
     }
-    await this.activateSubscription({ userId, planId, stripeSubscriptionId, stripeCustomerId });
     return { status: "active" };
   }
 
   async activateSubscription(data: {
     userId: string;
     planId: string;
-    stripeSubscriptionId: string;
-    stripeCustomerId: string;
+    stripeSubscriptionId: string | null;
+    stripeCustomerId: string | null;
   }) {
     const plan = await this.findPlanById(data.planId);
     if (!plan) throw new Error(this.i18n.t("subscriptions.planNotFound"));
 
     const now = new Date();
     const periodEnd = new Date(now);
+    const isRecurring = plan.interval === "month";
     if (plan.maxDays) {
       periodEnd.setDate(periodEnd.getDate() + plan.maxDays);
-    } else if (plan.interval === "year") {
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-    } else if (plan.interval === "quarter") {
+    } else if (!isRecurring) {
       periodEnd.setMonth(periodEnd.getMonth() + 3);
     } else {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
@@ -294,11 +296,13 @@ export class SubscriptionsService {
           ),
         );
 
-      const [existing] = await tx
-        .select({ id: userSubscriptions.id })
-        .from(userSubscriptions)
-        .where(eq(userSubscriptions.stripeSubscriptionId, data.stripeSubscriptionId))
-        .limit(1);
+      const [existing] = data.stripeSubscriptionId
+        ? await tx
+            .select({ id: userSubscriptions.id })
+            .from(userSubscriptions)
+            .where(eq(userSubscriptions.stripeSubscriptionId, data.stripeSubscriptionId))
+            .limit(1)
+        : [null];
 
       let sub;
       if (existing) {
@@ -347,7 +351,7 @@ export class SubscriptionsService {
           name: planName,
           amount: plan.price,
           interval: plan.interval,
-        });
+        }, user.preferredLocale || "en");
 
         if (user.accountType === "course_only" && parseFloat(plan.price || "0") > 0) {
           await tx
@@ -366,15 +370,19 @@ export class SubscriptionsService {
       name: plan.name?.en || "Subscription",
       metadata: { planId: plan.id },
     });
-    const price = await this.stripe.prices.create({
+    const isRecurring = plan.interval === "month";
+    const priceData: any = {
       product: product.id,
       unit_amount: Math.round(parseFloat(plan.price) * 100),
       currency: plan.currency?.toLowerCase() || "usd",
-      recurring: {
-        interval: plan.interval === "year" ? "year" : "month",
-        interval_count: plan.interval === "quarter" ? 3 : 1,
-      },
-    });
+    };
+    if (isRecurring) {
+      priceData.recurring = {
+        interval: "month",
+        interval_count: 1,
+      };
+    }
+    const price = await this.stripe.prices.create(priceData);
     return { productId: product.id, priceId: price.id };
   }
 
@@ -405,7 +413,7 @@ export class SubscriptionsService {
       .limit(1);
 
     if (user) {
-      await this.mailService.sendSubscriptionCancelled(user.email, user.name);
+      await this.mailService.sendSubscriptionCancelled(user.email, user.name, user.preferredLocale || "en");
     }
 
     const [updated] = await this.db
@@ -478,27 +486,26 @@ export class SubscriptionsService {
               }
             }
             return;
-          } else if (planId && userId && stripeSubscriptionId) {
+          }
+
+          if (!planId || !userId) return;
+
+          if (session.mode === "subscription") {
+            if (stripeSubscriptionId) {
+              await this.activateSubscription({
+                userId,
+                planId,
+                stripeSubscriptionId,
+                stripeCustomerId: stripeCustomerId || null,
+              });
+            }
+          } else {
             await this.activateSubscription({
               userId,
               planId,
-              stripeSubscriptionId,
-              stripeCustomerId,
+              stripeSubscriptionId: null,
+              stripeCustomerId: stripeCustomerId || null,
             });
-          } else if (session.line_items?.data?.[0]?.price?.id && userId && stripeSubscriptionId) {
-            const [plan] = await this.db
-              .select()
-              .from(subscriptionPlans)
-              .where(eq(subscriptionPlans.stripePriceId, session.line_items.data[0].price.id))
-              .limit(1);
-            if (plan) {
-              await this.activateSubscription({
-                userId,
-                planId: plan.id,
-                stripeSubscriptionId,
-                stripeCustomerId,
-              });
-            }
           }
           break;
         }
@@ -559,7 +566,7 @@ export class SubscriptionsService {
                 .where(and(eq(users.id, sub.userId), isNull(users.deletedAt)))
                 .limit(1);
               if (usr) {
-                await this.mailService.sendPaymentFailed(usr.email, usr.name);
+                await this.mailService.sendPaymentFailed(usr.email, usr.name, usr.preferredLocale || "en");
               }
             }
           }

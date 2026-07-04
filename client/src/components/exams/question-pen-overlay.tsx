@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { Pen, Highlighter, Eraser } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function QuestionPenOverlay({ questionId, children }: { questionId: string; children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);

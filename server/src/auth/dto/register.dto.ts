@@ -100,4 +100,9 @@ export class RegisterDto {
   @IsOptional()
   @IsUUID()
   targetExamId?: string;
+
+  @ApiPropertyOptional({ default: "en" })
+  @IsOptional()
+  @IsString()
+  preferredLocale?: string;
 }
