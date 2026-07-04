@@ -443,7 +443,6 @@ async function main() {
         slug: exam.slug,
         name: exam.name,
         description: exam.description,
-        group: exam.group,
         sortOrder: exam.sortOrder,
         isActive: true,
       }).returning();
