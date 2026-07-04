@@ -25,7 +25,7 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
-import { coursesApi } from "@/lib/api";
+import { coursesApi, examsApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -46,6 +46,8 @@ export default function AdminCoursesPage() {
   });
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [exams, setExams] = useState<any[]>([]);
+  const [examId, setExamId] = useState("");
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -60,14 +62,20 @@ export default function AdminCoursesPage() {
 
   useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
+  useEffect(() => {
+    examsApi.list().then(({ data }) => setExams(data || [])).catch(() => {});
+  }, []);
+
   const openCreate = () => {
     setEditing(null);
+    setExamId("");
     setForm({ title: "", description: "", shortDescription: "", introduction: "", objectives: "", targetAudience: "", prerequisites: "", whatYouWillLearn: "", preExamInstructions: "", postExamInstructions: "", certificateInstructions: "", price: "0", durationDays: 30, hasCertificate: true, coverImage: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (course: any) => {
     setEditing(course);
+    setExamId(course.examId || "");
     setForm({
       title: course.title?.en || "",
       description: course.description?.en || "",
@@ -100,6 +108,7 @@ export default function AdminCoursesPage() {
         durationDays: form.durationDays,
         hasCertificate: form.hasCertificate,
       };
+      if (examId) payload.examId = examId;
       if (form.coverImage) payload.coverImage = form.coverImage;
       if (form.introduction) payload.introduction = { en: form.introduction };
       if (form.objectives) payload.objectives = { en: form.objectives };
@@ -243,6 +252,21 @@ export default function AdminCoursesPage() {
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none"
                 placeholder={t("cover_image_placeholder")}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
+              <Select value={examId} onValueChange={setExamId}>
+                <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none">
+                  <SelectValue placeholder={t("all_exams")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">{t("all_exams")}</SelectItem>
+                  {exams.map((ex: any) => (
+                    <SelectItem key={ex.id} value={ex.id}>{ex.name?.en || ex.slug}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-6">

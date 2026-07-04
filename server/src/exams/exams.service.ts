@@ -2,7 +2,7 @@ import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nest
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions, users } from "../database/schema";
+import { exams, specialties, subscriptionPlans, planExams, subtopics, topics, userSubscriptions, users } from "../database/schema";
 
 @Injectable()
 export class ExamsService {
@@ -23,7 +23,7 @@ export class ExamsService {
       isAdmin = u && (u.role === "admin" || u.role === "super_admin");
       if (!isAdmin) {
         [sub] = await this.db
-          .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
+          .select({ planId: subscriptionPlans.id, examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
           .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
@@ -46,12 +46,23 @@ export class ExamsService {
       .where(eq(exams.isActive, true))
       .orderBy(asc(exams.sortOrder));
 
+    let planExamIds: string[] = [];
+    if (sub?.planId) {
+      const peRows = await this.db
+        .select({ examId: planExams.examId })
+        .from(planExams)
+        .where(eq(planExams.planId, sub.planId));
+      planExamIds = peRows.map((r: any) => r.examId);
+    }
+
     return rows.map((r: typeof rows[number]) => {
       let hasAccess = false;
       if (isAdmin) {
         hasAccess = true;
       } else if (sub) {
-        if (!sub.examId || sub.examId === r.id) {
+        if (planExamIds.length > 0) {
+          hasAccess = planExamIds.includes(r.id);
+        } else if (!sub.examId || sub.examId === r.id) {
           hasAccess = true;
         }
       } else if (user && user.targetExamId === r.id) {

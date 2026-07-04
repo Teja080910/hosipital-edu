@@ -619,6 +619,17 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const planExams = pgTable("plan_exams", {
+  planId: uuid("plan_id")
+    .notNull()
+    .references(() => subscriptionPlans.id, { onDelete: "cascade" }),
+  examId: uuid("exam_id")
+    .notNull()
+    .references(() => exams.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.planId, table.examId] }),
+}));
+
 export const userSubscriptions = pgTable("user_subscriptions", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")

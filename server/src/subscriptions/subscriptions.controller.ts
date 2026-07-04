@@ -22,7 +22,7 @@ import { SubscriptionsService } from "./subscriptions.service";
 import Stripe from "stripe";
 import { Inject } from "@nestjs/common";
 import { STRIPE } from "./stripe.provider";
-import { IsOptional, IsString, IsNumber, IsBoolean, IsObject, IsUUID } from "class-validator";
+import { IsOptional, IsString, IsNumber, IsBoolean, IsObject, IsUUID, IsArray } from "class-validator";
 
 class CreatePlanDto {
   @IsObject()
@@ -65,6 +65,11 @@ class CreatePlanDto {
   @IsOptional()
   @IsUUID()
   examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
 
   @IsOptional()
   @IsUUID()
@@ -131,6 +136,11 @@ class UpdatePlanDto {
   @IsOptional()
   @IsUUID()
   examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
 
   @IsOptional()
   @IsUUID()

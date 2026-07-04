@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { DRIZZLE } from "../database/database.provider";
 import {
   subscriptionPlans,
+  planExams,
   userSubscriptions,
   payments,
   users,
@@ -53,7 +54,13 @@ export class SubscriptionsService {
       else if (interval === "quarter") data.maxExamAttempts = 50;
       else data.maxExamAttempts = 20;
     }
-    const [plan] = await this.db.insert(subscriptionPlans).values(stripTimestamps(data)).returning();
+    const { examIds, ...planData } = data;
+    const [plan] = await this.db.insert(subscriptionPlans).values(stripTimestamps(planData)).returning();
+    if (examIds?.length) {
+      await this.db.insert(planExams).values(
+        examIds.map((eId: string) => ({ planId: plan.id, examId: eId }))
+      );
+    }
     return plan;
   }
 
@@ -64,11 +71,20 @@ export class SubscriptionsService {
       else if (interval === "quarter") data.maxExamAttempts = 50;
       else data.maxExamAttempts = 20;
     }
+    const { examIds, ...planData } = data;
     const [plan] = await this.db
       .update(subscriptionPlans)
-      .set({ ...stripTimestamps(data), updatedAt: new Date() })
+      .set({ ...stripTimestamps(planData), updatedAt: new Date() })
       .where(eq(subscriptionPlans.id, id))
       .returning();
+    if (examIds) {
+      await this.db.delete(planExams).where(eq(planExams.planId, id));
+      if (examIds.length > 0) {
+        await this.db.insert(planExams).values(
+          examIds.map((eId: string) => ({ planId: id, examId: eId }))
+        );
+      }
+    }
     return plan;
   }
 
@@ -157,32 +173,34 @@ export class SubscriptionsService {
     const existingSub = await this.getUserSubscription(userId);
     const appUrl = this.config.get<string>("APP_URL");
 
-    if (existingSub?.stripeSubscriptionId) {
-      const stripeSub = await this.stripe.subscriptions.retrieve(existingSub.stripeSubscriptionId);
-      const currentItemId = stripeSub.items?.data?.[0]?.id;
+    if (existingSub) {
+      if (existingSub.stripeSubscriptionId) {
+        const stripeSub = await this.stripe.subscriptions.retrieve(existingSub.stripeSubscriptionId);
+        const currentItemId = stripeSub.items?.data?.[0]?.id;
 
-      if (currentItemId) {
-        await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
-          items: [{ id: currentItemId, price: stripePriceId }],
-          proration_behavior: "create_prorations",
-          metadata: { planId: plan.id },
-        });
-      } else {
-        await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
-          items: [{ price: stripePriceId }],
-          proration_behavior: "create_prorations",
-          metadata: { planId: plan.id },
-        });
+        if (currentItemId) {
+          await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
+            items: [{ id: currentItemId, price: stripePriceId }],
+            proration_behavior: "create_prorations",
+            metadata: { planId: plan.id },
+          });
+        } else {
+          await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
+            items: [{ price: stripePriceId }],
+            proration_behavior: "create_prorations",
+            metadata: { planId: plan.id },
+          });
+        }
       }
 
       await this.activateSubscription({
         userId,
         planId: plan.id,
-        stripeSubscriptionId: existingSub.stripeSubscriptionId,
-        stripeCustomerId: existingSub.stripeCustomerId,
+        stripeSubscriptionId: existingSub.stripeSubscriptionId || null,
+        stripeCustomerId: existingSub.stripeCustomerId || null,
       });
 
-      return { url: `${appUrl}/${locale}/dashboard`, prorated: true };
+      return { url: `${appUrl}/${locale}/dashboard`, prorated: !!existingSub.stripeSubscriptionId };
     }
 
     let session;

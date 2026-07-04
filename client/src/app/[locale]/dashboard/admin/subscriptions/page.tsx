@@ -45,7 +45,7 @@ export default function AdminSubscriptionsPage() {
     interval: "monthly",
     currency: "USD",
     isVisible: true,
-    examId: "",
+    examIds: [] as string[],
     isCourseOnly: false,
     maxDays: 0,
     courseId: "",
@@ -71,7 +71,7 @@ export default function AdminSubscriptionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "0", interval: "monthly", currency: "USD", isVisible: true, examId: "", isCourseOnly: false, maxDays: 0, courseId: "" });
+    setForm({ name: "", description: "", price: "0", interval: "monthly", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, courseId: "" });
     setDialogOpen(true);
   };
 
@@ -84,7 +84,7 @@ export default function AdminSubscriptionsPage() {
       interval: p.interval || "monthly",
       currency: p.currency || "USD",
       isVisible: p.isVisible ?? true,
-      examId: p.examId || "",
+      examIds: p.examIds || (p.examId ? [p.examId] : []),
       isCourseOnly: p.isCourseOnly ?? false,
       maxDays: p.maxDays || 0,
       courseId: p.courseId || "",
@@ -103,7 +103,7 @@ export default function AdminSubscriptionsPage() {
         interval: form.interval,
         currency: form.currency,
         isVisible: form.isVisible,
-        examId: form.examId || null,
+        examIds: form.examIds.length > 0 ? form.examIds : null,
         isCourseOnly: form.isCourseOnly,
         maxDays: form.maxDays || null,
         courseId: form.courseId || null,
@@ -141,8 +141,12 @@ export default function AdminSubscriptionsPage() {
     { key: "price", header: t("price"), render: (row: any) => `$${row.price}` },
     { key: "interval", header: t("plan"), render: (row: any) => <Badge variant="outline" className="capitalize">{row.interval}</Badge> },
     { key: "exam", header: t("exam"), render: (row: any) => {
-      const exam = exams.find((e: any) => e.id === row.examId);
-      return exam ? (exam.name?.en || exam.slug) : <span className="text-muted-foreground italic">Any</span>;
+      const examIds = row.examIds || (row.examId ? [row.examId] : []);
+      if (examIds.length === 0) return <span className="text-muted-foreground italic">{t("all_exams")}</span>;
+      return <div className="flex flex-wrap gap-1">{examIds.map((eId: string) => {
+        const exam = exams.find((e: any) => e.id === eId);
+        return exam ? <Badge key={eId} variant="secondary" className="text-xs">{exam.name?.en || exam.slug}</Badge> : null;
+      })}</div>;
     }},
     { key: "isVisible", header: t("status"), render: (row: any) => <Badge variant={row.isVisible ? "default" : "secondary"}>{row.isVisible ? c("active") : c("draft")}</Badge> },
     {
@@ -260,19 +264,27 @@ export default function AdminSubscriptionsPage() {
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
-              <Select value={form.examId || "all"} onValueChange={(v) => setForm({ ...form, examId: v === "all" ? "" : v })}>
-                <SelectTrigger className="bg-muted/20 border-border/80 rounded-xl h-11 px-4">
-                  <SelectValue placeholder={t("select_exam_placeholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("all_exams")}</SelectItem>
-                  {exams.map((exam: any) => (
-                    <SelectItem key={exam.id} value={exam.id}>
-                      {exam.name?.en || exam.slug}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 max-h-40 overflow-y-auto p-3 bg-muted/20 rounded-xl border border-border/80">
+                {exams.map((exam: any) => (
+                  <label key={exam.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.examIds.includes(exam.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setForm({ ...form, examIds: [...form.examIds, exam.id] });
+                        } else {
+                          setForm({ ...form, examIds: form.examIds.filter((id) => id !== exam.id) });
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    {exam.name?.en || exam.slug}
+                  </label>
+                ))}
+                {exams.length === 0 && <p className="text-xs text-muted-foreground">{t("no_exams")}</p>}
+              </div>
+              <p className="text-xs text-muted-foreground">{t("exam_select_desc")}</p>
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border/60">
