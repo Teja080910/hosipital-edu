@@ -12,10 +12,18 @@ import { coursesApi, certificatesApi } from "@/lib/api";
 import { CourseQuiz } from "@/components/courses/course-quiz";
 import { ChevronRight, Clock, DollarSign, FileQuestion, FileText, Loader2, Play, Award, ClipboardCheck, BarChart3 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { toast } from "sonner";
 
 export default function CourseDetailPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+      <CourseDetail />
+    </Suspense>
+  );
+}
+
+function CourseDetail() {
   const t = useTranslations("courses");
   const c = useTranslations("common");
   const { slug } = useParams<{ slug: string }>();
