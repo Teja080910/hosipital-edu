@@ -342,7 +342,7 @@ function CourseDetail() {
             </div>
             {certificateId ? (
               <Button variant="outline" asChild>
-                <a href={`/dashboard/certificates/${certificateId}`} target="_blank">{t("view_certificate")}</a>
+                <a href={`/${locale}/dashboard/certificates/${certificateId}`} target="_blank">{t("view_certificate")}</a>
               </Button>
             ) : (
               <Button onClick={handleGenerateCertificate} disabled={generatingCert}>

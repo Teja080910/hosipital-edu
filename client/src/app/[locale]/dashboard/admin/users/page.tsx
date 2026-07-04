@@ -39,7 +39,7 @@ export default function AdminUsersPage() {
   const [subUser, setSubUser] = useState<any | null>(null);
   const [userSub, setUserSub] = useState<any | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
-  const [subForm, setSubForm] = useState({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "", remainingUses: "" });
+  const [subForm, setSubForm] = useState({ planId: "none", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "", remainingUses: "" });
   const [savingSub, setSavingSub] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -78,7 +78,7 @@ const deleteUser = async () => {
       const { data } = await usersApi.getSubscription(user.id);
       setUserSub(data);
       setSubForm({
-        planId: data?.planId || "",
+        planId: data?.planId || "none",
         status: data?.status || "active",
         remainingExamAttempts: data?.remainingExamAttempts?.toString() || "",
         remainingFlashcardAttempts: data?.remainingFlashcardAttempts?.toString() || "",
@@ -86,7 +86,7 @@ const deleteUser = async () => {
       });
     } catch {
       setUserSub(null);
-      setSubForm({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "", remainingUses: "" });
+      setSubForm({ planId: "none", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "", remainingUses: "" });
     }
     setSubDialogOpen(true);
   };
@@ -228,6 +228,7 @@ const deleteUser = async () => {
               <Select value={subForm.planId} onValueChange={(v) => setSubForm({ ...subForm, planId: v })}>
                 <SelectTrigger><SelectValue placeholder={t("select_plan")} /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">{t("select_plan")}</SelectItem>
                   {plans.map((p: any) => (
                     <SelectItem key={p.id} value={p.id}>{p.name?.en || p.id}</SelectItem>
                   ))}

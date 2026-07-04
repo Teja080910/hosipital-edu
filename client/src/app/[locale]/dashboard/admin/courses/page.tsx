@@ -207,9 +207,6 @@ export default function AdminCoursesPage() {
                 <DialogTitle className="text-xl font-bold tracking-tight">
                   {editing ? t("edit_course_details") : t("create_new_course")}
                 </DialogTitle>
-                <DialogDescription className="sr-only">
-                  {editing ? t("edit_course_details") : t("create_new_course")}
-                </DialogDescription>
                 <p className="text-xs text-muted-foreground mt-0.5">{t("configure_course")}</p>
               </div>
             </div>

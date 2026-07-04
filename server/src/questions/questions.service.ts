@@ -100,20 +100,22 @@ export class QuestionsService {
           return { data: [], total: 0, page, limit };
         }
       }
-    } else if (examId && user && !isAdmin) {
-      const [sub] = await this.db
-        .select()
-        .from(userSubscriptions)
-        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
-        .limit(1);
-      if (!sub) {
-        const [u] = await this.db
-          .select({ createdAt: users.createdAt, targetExamId: users.targetExamId })
-          .from(users)
-          .where(eq(users.id, user.id))
+    } else if (examId) {
+      if (user && !isAdmin) {
+        const [sub] = await this.db
+          .select()
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
           .limit(1);
-        if (!u || !u.targetExamId || u.targetExamId !== examId || (Date.now() - new Date(u.createdAt).getTime()) > 86400000) {
-          return { data: [], total: 0, page, limit };
+        if (!sub) {
+          const [u] = await this.db
+            .select({ createdAt: users.createdAt, targetExamId: users.targetExamId })
+            .from(users)
+            .where(eq(users.id, user.id))
+            .limit(1);
+          if (!u || !u.targetExamId || u.targetExamId !== examId || (Date.now() - new Date(u.createdAt).getTime()) > 86400000) {
+            return { data: [], total: 0, page, limit };
+          }
         }
       }
       const examQIds = await this.db
