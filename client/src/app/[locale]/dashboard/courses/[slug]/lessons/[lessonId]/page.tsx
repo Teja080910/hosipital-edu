@@ -11,6 +11,7 @@ import { ArrowLeft, CheckCircle, Clock, FileText, Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { localizedText } from "@/lib/utils";
 
 export default function LessonPage() {
   const t = useTranslations("lessons");
@@ -93,7 +94,7 @@ export default function LessonPage() {
     );
   }
 
-  const lessonTitle = lesson.title?.en || lesson.title;
+  const lessonTitle = localizedText(lesson.title) || "";
 
   return (
     <PageTransition>

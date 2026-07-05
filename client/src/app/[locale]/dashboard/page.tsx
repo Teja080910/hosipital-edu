@@ -137,11 +137,6 @@ export default function DashboardPage() {
                   <BookOpen className="mr-2 h-4 w-4" /> {td("review_flashcards")}
                 </Button>
               </Link>
-              <Link href="/dashboard/flashcards/history">
-                <Button className="w-full justify-start" variant="outline">
-                  <Clock className="mr-2 h-4 w-4" /> {td("flashcard_history")}
-                </Button>
-              </Link>
             </CardContent>
           </Card>
         </div>

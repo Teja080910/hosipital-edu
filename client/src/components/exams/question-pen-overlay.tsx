@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { Pen, Highlighter, Eraser } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function QuestionPenOverlay({ questionId, children }: { questionId: string; children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -112,7 +113,6 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
     return () => {
       window.removeEventListener("resize", updateSize);
       observer.disconnect();
-      drawingsRef.current.delete(questionId);
     };
   }, [redraw, questionId]);
 

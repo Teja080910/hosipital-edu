@@ -89,7 +89,7 @@ export default function AdminFlashcardsPage() {
 
   const fetchFlashcards = useCallback(async () => {
     try {
-      const { data } = await flashcardsApi.list({ limit: "1000" });
+      const { data } = await flashcardsApi.list({ limit: "10000" });
       setFlashcards(Array.isArray(data) ? data : data?.data || []);
     } catch {
       toast.error(t("failed_to_load_flashcards"));

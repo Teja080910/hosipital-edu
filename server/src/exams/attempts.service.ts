@@ -61,11 +61,6 @@ export class AttemptsService {
         .limit(1);
 
       const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
-
-      if (!isAdmin && user.targetExamId && user.targetExamId !== data.examId) {
-        throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
-      }
-
       let sub: any = null;
 
       if (!isAdmin) {
@@ -185,9 +180,12 @@ export class AttemptsService {
       .where(eq(examAnswers.attemptId, id))
       .orderBy(asc(examAnswers.answeredAt));
 
-    if (!answers.length) return { ...attempt, answers };
+    const questionIds = answers.length
+      ? [...new Set(answers.map((a: any) => a.questionId))] as string[]
+      : (attempt.questionIds || []) as string[];
 
-    const questionIds = [...new Set(answers.map((a: any) => a.questionId))] as string[];
+    if (!questionIds.length) return { ...attempt, answers };
+
     const allQuestions = await this.db
       .select()
       .from(questions)
@@ -207,9 +205,15 @@ export class AttemptsService {
 
     const qMap = new Map(allQuestions.map((q: any) => [q.id, { ...q, options: qOptMap.get(q.id) || [] }]));
 
+    const mergedAnswers = questionIds.map((qId: string) => {
+      const existing = answers.find((a: any) => a.questionId === qId);
+      if (existing) return { ...existing, question: qMap.get(qId) || null };
+      return { attemptId: id, questionId: qId, selectedOptionId: null, isCorrect: false, timeSpent: 0, isFlagged: false, answeredAt: null, question: qMap.get(qId) || null };
+    });
+
     return {
       ...attempt,
-      answers: answers.map((a: any) => ({ ...a, question: qMap.get(a.questionId) || null })),
+      answers: mergedAnswers,
     };
   }
 

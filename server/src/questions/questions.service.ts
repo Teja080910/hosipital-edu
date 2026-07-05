@@ -41,7 +41,27 @@ export class QuestionsService {
         .where(eq(users.id, user.id))
         .limit(1);
       isAdmin = u && (u.role === "admin" || u.role === "super_admin");
-      isCourseOnly = u?.accountType === "course_only";
+      if (u?.accountType === "course_only") {
+        const [activeSub] = await this.db
+          .select({ planId: userSubscriptions.planId })
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .limit(1);
+        if (activeSub) {
+          const [plan] = await this.db
+            .select({ price: subscriptionPlans.price })
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, activeSub.planId))
+            .limit(1);
+          if (plan && parseFloat(plan.price || "0") > 0) {
+            isCourseOnly = false;
+          } else {
+            isCourseOnly = true;
+          }
+        } else {
+          isCourseOnly = true;
+        }
+      }
     }
 
     let subExamId: string | null = null;
@@ -80,20 +100,22 @@ export class QuestionsService {
           return { data: [], total: 0, page, limit };
         }
       }
-    } else if (examId && user && !isAdmin) {
-      const [sub] = await this.db
-        .select()
-        .from(userSubscriptions)
-        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
-        .limit(1);
-      if (!sub) {
-        const [u] = await this.db
-          .select({ createdAt: users.createdAt, targetExamId: users.targetExamId })
-          .from(users)
-          .where(eq(users.id, user.id))
+    } else if (examId) {
+      if (user && !isAdmin) {
+        const [sub] = await this.db
+          .select()
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
           .limit(1);
-        if (!u || !u.targetExamId || u.targetExamId !== examId || (Date.now() - new Date(u.createdAt).getTime()) > 86400000) {
-          return { data: [], total: 0, page, limit };
+        if (!sub) {
+          const [u] = await this.db
+            .select({ createdAt: users.createdAt, targetExamId: users.targetExamId })
+            .from(users)
+            .where(eq(users.id, user.id))
+            .limit(1);
+          if (!u || !u.targetExamId || u.targetExamId !== examId || (Date.now() - new Date(u.createdAt).getTime()) > 86400000) {
+            return { data: [], total: 0, page, limit };
+          }
         }
       }
       const examQIds = await this.db

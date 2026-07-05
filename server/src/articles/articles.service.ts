@@ -71,6 +71,14 @@ export class ArticlesService {
   }
 
   async update(id: string, data: any) {
+    if (data.slug) {
+      const existing = await this.db
+        .select()
+        .from(articles)
+        .where(and(eq(articles.slug, data.slug), isNull(articles.deletedAt)))
+        .limit(1);
+      if (existing.length && existing[0].id !== id) throw new ConflictException(this.i18n.t("articles.slugExists"));
+    }
     const [article] = await this.db
       .update(articles)
       .set({ ...stripTimestamps(data), updatedAt: new Date() })

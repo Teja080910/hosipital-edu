@@ -16,7 +16,25 @@ export class VideosService {
         .where(eq(users.id, user.id))
         .limit(1);
       if (u?.accountType === "course_only") {
-        return [];
+        const [activeSub] = await this.db
+          .select({ planId: userSubscriptions.planId })
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .limit(1);
+        if (activeSub) {
+          const [plan] = await this.db
+            .select({ price: subscriptionPlans.price })
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, activeSub.planId))
+            .limit(1);
+          if (plan && parseFloat(plan.price || "0") > 0) {
+            // has paid plan, allow access
+          } else {
+            return [];
+          }
+        } else {
+          return [];
+        }
       }
       if (u?.role !== "admin" && u?.role !== "super_admin") {
         const [sub] = await this.db

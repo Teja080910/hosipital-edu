@@ -55,7 +55,7 @@ export class MailService {
   }
 
   async sendVerificationEmail(to: string, name: string, token: string, locale: string = "en") {
-    const url = `${this.appUrl}/verify-email?token=${token}`;
+    const url = `${this.appUrl}/${locale}/verify-email?token=${token}`;
     return this.sendEmail(
       to,
       t(locale, "verifyEmail.subject"),
@@ -64,7 +64,7 @@ export class MailService {
   }
 
   async sendWelcome(to: string, name: string, locale: string = "en") {
-    const url = `${this.appUrl}/dashboard`;
+    const url = `${this.appUrl}/${locale}/dashboard`;
     return this.sendEmail(
       to,
       t(locale, "welcome.subject"),
@@ -73,7 +73,7 @@ export class MailService {
   }
 
   async sendPasswordReset(to: string, name: string, token: string, locale: string = "en") {
-    const url = `${this.appUrl}/reset-password?token=${token}`;
+    const url = `${this.appUrl}/${locale}/reset-password?token=${token}`;
     return this.sendEmail(
       to,
       t(locale, "passwordReset.subject"),

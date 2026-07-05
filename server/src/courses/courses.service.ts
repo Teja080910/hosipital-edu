@@ -14,6 +14,7 @@ import {
   subscriptionPlans,
   exams,
   users,
+  courseExams,
 } from "../database/schema";
 import { eq, and, asc, inArray, sql, desc, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
@@ -94,7 +95,14 @@ export class CoursesService {
       lessons: lessonsByModule[mod.id] || [],
     }));
 
-    return { ...course, modules: modulesWithLessons };
+    const ceRows = await this.db
+      .select({ examId: courseExams.examId })
+      .from(courseExams)
+      .where(eq(courseExams.courseId, course.id));
+    const examIds = ceRows.map((r: any) => r.examId);
+    if (course.examId && !examIds.includes(course.examId)) examIds.push(course.examId);
+
+    return { ...course, modules: modulesWithLessons, examIds };
   }
 
   async findIdBySlug(slug: string) {
@@ -108,19 +116,32 @@ export class CoursesService {
   }
 
   async create(data: any) {
-    const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
+    const { createdAt, updatedAt, deletedAt, examIds, ...cleanData } = data;
     const [course] = await this.db.insert(courses).values(cleanData).returning();
+    if (examIds?.length) {
+      await this.db.insert(courseExams).values(
+        examIds.map((eId: string) => ({ courseId: course.id, examId: eId }))
+      );
+    }
     return course;
   }
 
   async update(id: string, data: any) {
-    const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
+    const { createdAt, updatedAt, deletedAt, examIds, ...cleanData } = data;
     const [course] = await this.db
       .update(courses)
       .set({ ...cleanData, updatedAt: new Date() })
       .where(eq(courses.id, id))
       .returning();
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
+    if (examIds) {
+      await this.db.delete(courseExams).where(eq(courseExams.courseId, id));
+      if (examIds.length > 0) {
+        await this.db.insert(courseExams).values(
+          examIds.map((eId: string) => ({ courseId: id, examId: eId }))
+        );
+      }
+    }
     return course;
   }
 
@@ -252,11 +273,19 @@ export class CoursesService {
     }
 
     const [course] = await this.db
-      .select({ examId: courses.examId, sortOrder: courses.sortOrder })
+      .select({ examId: courses.examId, sortOrder: courses.sortOrder, id: courses.id })
       .from(courses)
       .where(eq(courses.id, courseId))
       .limit(1);
     if (!course) return { hasAccess: false };
+
+    const ceRows = await this.db
+      .select({ examId: courseExams.examId })
+      .from(courseExams)
+      .where(eq(courseExams.courseId, courseId));
+    const courseExamIds: string[] = [];
+    if (course.examId) courseExamIds.push(course.examId);
+    ceRows.forEach((r: any) => { if (!courseExamIds.includes(r.examId)) courseExamIds.push(r.examId); });
 
     const [sub] = await this.db
       .select()
@@ -281,8 +310,15 @@ export class CoursesService {
         }
         return { hasAccess: true };
       }
-      if (plan.examId && course.examId) {
-        return { hasAccess: plan.examId === course.examId };
+      if (courseExamIds.length > 0) {
+        if (plan.examId && courseExamIds.includes(plan.examId)) return { hasAccess: true };
+        const [planUser] = await this.db
+          .select({ targetExamId: users.targetExamId })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (planUser?.targetExamId && courseExamIds.includes(planUser.targetExamId)) return { hasAccess: true };
+        return { hasAccess: false };
       }
       if (parseFloat(plan.price) > 0) {
         return { hasAccess: true };

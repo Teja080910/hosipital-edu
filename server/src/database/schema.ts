@@ -444,6 +444,17 @@ export const courses = pgTable("courses", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const courseExams = pgTable("course_exams", {
+  courseId: uuid("course_id")
+    .notNull()
+    .references(() => courses.id, { onDelete: "cascade" }),
+  examId: uuid("exam_id")
+    .notNull()
+    .references(() => exams.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.courseId, table.examId] }),
+}));
+
 export const courseModules = pgTable("course_modules", {
   id: uuid("id").defaultRandom().primaryKey(),
   courseId: uuid("course_id")
@@ -618,6 +629,17 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const planExams = pgTable("plan_exams", {
+  planId: uuid("plan_id")
+    .notNull()
+    .references(() => subscriptionPlans.id, { onDelete: "cascade" }),
+  examId: uuid("exam_id")
+    .notNull()
+    .references(() => exams.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.planId, table.examId] }),
+}));
 
 export const userSubscriptions = pgTable("user_subscriptions", {
   id: uuid("id").defaultRandom().primaryKey(),

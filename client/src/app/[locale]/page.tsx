@@ -25,7 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { leadsApi } from "@/lib/api/leads";
-import { subscriptionsApi } from "@/lib/api";
+import { subscriptionsApi, examsApi, parametersApi } from "@/lib/api";
 import { testimonialsApi } from "@/lib/api/testimonials";
 import { cn } from "@/lib/utils";
 import { Link } from "@/routing";
@@ -127,12 +127,31 @@ const sb = useTranslations("subscribe");
   }));
 
   const [testimonialsData, setTestimonialsData] = useState<any[]>([]);
+  const [promoVideoUrl, setPromoVideoUrl] = useState("https://www.youtube.com/embed/dQw4w9WgXcQ");
 
   useEffect(() => {
     testimonialsApi.getAll().then(({ data }) => {
       if (Array.isArray(data)) setTestimonialsData(data);
     }).catch(() => {});
+    parametersApi.get("promo_video_url").then(({ data }) => {
+      if (data?.value) {
+        const val = typeof data.value === "object" ? data.value : { en: String(data.value) };
+        setPromoVideoUrl(val[currentLocale] || val.en || "https://www.youtube.com/embed/dQw4w9WgXcQ");
+      }
+    }).catch(() => {});
   }, []);
+
+  const [examSlugs, setExamSlugs] = useState<string[]>([]);
+
+  useEffect(() => {
+    examsApi.list().then(({ data }) => {
+      const items = data || [];
+      const names = items.map((e: any) => e.name?.[currentLocale] || e.name?.en || e.slug || "");
+      const unique = [...new Set(names.filter(Boolean))] as string[];
+      if (unique.length > 0) setExamSlugs([...unique, "COURSES"]);
+      else setExamSlugs(["ENURM", "ENARM", "MIR", "COURSES"]);
+    }).catch(() => setExamSlugs(["ENURM", "ENARM", "MIR", "COURSES"]));
+  }, [currentLocale]);
 
   const testimonials = testimonialsData.length > 0
     ? testimonialsData.map((item) => ({
@@ -404,7 +423,7 @@ const sb = useTranslations("subscribe");
               transition={{ duration: 0.8, delay: 0.5 }}
               className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
             >
-              {["ENURM", "ENARM", "MIR", "CURSOS"].map((exam) => (
+              {(examSlugs.length > 0 ? examSlugs : ["ENURM", "ENARM", "MIR", "CURSOS"]).map((exam) => (
                 <div key={exam} className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-primary" />
                   <span>{exam}</span>
@@ -637,7 +656,7 @@ const sb = useTranslations("subscribe");
             className="relative mx-auto max-w-4xl aspect-video rounded-2xl overflow-hidden border border-border/50 shadow-xl group"
           >
             <iframe
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+              src={promoVideoUrl}
               title="MD Exam Promotional Video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

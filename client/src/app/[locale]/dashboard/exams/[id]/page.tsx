@@ -152,6 +152,33 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [loading, exam, id, pageState]);
 
   useEffect(() => {
+    if (!loading && exam) {
+      const reviewId = searchParams.get("review");
+      if (reviewId) {
+        attemptsApi.get(reviewId).then(({ data }) => {
+          const questions = data?.answers
+            ?.filter((a: any) => a.question)
+            ?.map((a: any) => a.question) || [];
+          const restored: Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }> = {};
+          data?.answers?.forEach((a: any) => {
+            restored[a.questionId] = { optionId: a.selectedOptionId, isCorrect: a.isCorrect, flagged: a.isFlagged || false };
+          });
+          if (questions.length > 0) {
+            setExamQuestions(questions);
+            setAnswers(restored);
+            setReviewMode(true);
+            setPageState("taking");
+            setShowAnswer(true);
+            setCurrentIndex(0);
+            setAttemptId(reviewId);
+            setTotalTimeSpent(data.timeSpent || 0);
+          }
+        }).catch(() => {});
+      }
+    }
+  }, [loading, exam, searchParams, t]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (pageState !== "config") return;
@@ -202,13 +229,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     if (pageState !== "taking" && pageState !== "results") return;
     const handleFullscreenChange = () => {
       if (isSubmittingRef.current) return;
-      if (!document.fullscreenElement) {
-        if (pageState === "taking" && mode === "exam" && !showSubmitDialog) {
-          setShowSubmitDialog(true);
-        } else if (pageState === "results") {
-          router.push("/dashboard/exams");
-        }
+    if (!document.fullscreenElement) {
+      if (pageState === "taking" && mode === "exam" && !showSubmitDialog) {
+        setShowSubmitDialog(true);
       }
+    }
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -395,11 +420,13 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         }));
         await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed });
       }
-      await Promise.all(allAttemptIds.map((aid) => attemptsApi.complete(aid)));
+      const completeIds = [...new Set([...allAttemptIds, attemptId].filter(Boolean))] as string[];
+      await Promise.all(completeIds.map((aid) => attemptsApi.complete(aid).catch(() => {})));
       const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
       const total = displayQuestions.length;
       setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
       setPageState("results");
+      setActiveAttempt(null);
       useExamStore.getState().endExam();
       window.history.replaceState({}, "", `/${locale}/dashboard/exams/${id}`);
       if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
@@ -427,8 +454,12 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           );
         })
       );
-      await Promise.all(allAttemptIds.map((aid) => attemptsApi.complete(aid)));
-    } catch { /* silent */ }
+      const completeIds = [...new Set([...allAttemptIds, attemptId].filter(Boolean))] as string[];
+      await Promise.all(completeIds.map((aid) => attemptsApi.complete(aid).catch(() => {})));
+    } catch {
+      toast.error(t("submit_failed"));
+      return;
+    }
     const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
     const total = displayQuestions.length;
     setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
@@ -446,8 +477,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
             onReview={() => { setReviewMode(true); setPageState("taking"); setShowAnswer(true); setCurrentIndex(0); }}
-            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.getState().endExam(); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); setTimeLimit(20); setCustomTitle(""); setCombinedExamIds([]); setCombinedExams([]); setMode("exam"); setShowSpecialties(false); setShowTopics(false); setShowSubtopics(false); setPerQuestionTime({}); setTotalTimeSpent(0); setTimeRemaining(0); setQuestionEntryTime(Date.now()); setSubmitting(false); setReviewMode(false); setAllAttemptIds([]); setShowSubmitDialog(false); setShowTimeWarning(false); setLightboxImage(null); tabWarningsRef.current = 0; setTabWarnings(0); submittedRef.current = false; isSubmittingRef.current = false; }}
-            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); router.push("/dashboard/exams"); }} />
+            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.getState().endExam(); setPageState("config"); setResults(null); setAttemptId(null); setActiveAttempt(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); setTimeLimit(20); setCustomTitle(""); setCombinedExamIds([]); setCombinedExams([]); setMode("exam"); setShowSpecialties(false); setShowTopics(false); setShowSubtopics(false); setPerQuestionTime({}); setTotalTimeSpent(0); setTimeRemaining(0); setQuestionEntryTime(Date.now()); setSubmitting(false); setReviewMode(false); setAllAttemptIds([]); setShowSubmitDialog(false); setShowTimeWarning(false); setLightboxImage(null); tabWarningsRef.current = 0; setTabWarnings(0); submittedRef.current = false; isSubmittingRef.current = false; }}
+            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); setActiveAttempt(null); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
             <Card>
               <CardHeader><CardTitle className="text-lg">{t("topic_breakdown")}</CardTitle></CardHeader>
@@ -543,7 +574,6 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
               <CardContent className="space-y-6 p-5 sm:p-6">
                 <QuestionPenOverlay questionId={currentQuestion.id}>
                   <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words">{currentQuestion.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
-                </QuestionPenOverlay>
                 {currentQuestion.images && currentQuestion.images.filter((img: any) => img.section === "title").length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.filter((img: any) => img.section === "title").map((img: any) => (
@@ -580,14 +610,23 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                               showAnswer && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
                               String.fromCharCode(65 + optionIndex)}
                           </div>
-                           <span className="pt-1.5 leading-6 break-words">{option.text}</span>
+                            <span className="pt-1.5 leading-6 break-words">{option.text}</span>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><div className="text-sm leading-6 text-muted-foreground space-y-2 break-words">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>{currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}</div>)}
+                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden">
+                  <p className="text-sm font-semibold mb-1">{t("explanation")}</p>
+                  {(() => {
+                    const correctOpt = currentQuestion.options.find((o: any) => o.isCorrect);
+                    return correctOpt ? <p className="text-sm font-medium mb-2">{correctOpt.text}</p> : null;
+                  })()}
+                  <div className="text-sm leading-6 text-muted-foreground space-y-2 break-words">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
+                  {currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}
+                </div>)}
                 {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{currentQuestion.reference}</p></div>)}
+                </QuestionPenOverlay>
                 {!showAnswer && selectedOption && !answers[currentQuestion.id]?.optionId && (
                   <Button onClick={handleSubmitAnswer} className="w-full" size="lg">{t("submit")}</Button>
                 )}

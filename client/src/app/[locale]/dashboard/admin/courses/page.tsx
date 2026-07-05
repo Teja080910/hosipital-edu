@@ -20,12 +20,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
-import { coursesApi } from "@/lib/api";
+import { coursesApi, examsApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -46,6 +47,8 @@ export default function AdminCoursesPage() {
   });
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [exams, setExams] = useState<any[]>([]);
+  const [examIds, setExamIds] = useState<string[]>([]);
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -60,14 +63,20 @@ export default function AdminCoursesPage() {
 
   useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
+  useEffect(() => {
+    examsApi.list().then(({ data }) => setExams(data || [])).catch(() => {});
+  }, []);
+
   const openCreate = () => {
     setEditing(null);
+    setExamIds([]);
     setForm({ title: "", description: "", shortDescription: "", introduction: "", objectives: "", targetAudience: "", prerequisites: "", whatYouWillLearn: "", preExamInstructions: "", postExamInstructions: "", certificateInstructions: "", price: "0", durationDays: 30, hasCertificate: true, coverImage: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (course: any) => {
     setEditing(course);
+    setExamIds(course.examIds || (course.examId ? [course.examId] : []));
     setForm({
       title: course.title?.en || "",
       description: course.description?.en || "",
@@ -96,19 +105,20 @@ export default function AdminCoursesPage() {
         title: { en: form.title },
         description: { en: form.description },
         shortDescription: { en: form.shortDescription },
-        introduction: form.introduction ? { en: form.introduction } : null,
-        objectives: form.objectives ? { en: form.objectives } : null,
-        targetAudience: form.targetAudience ? { en: form.targetAudience } : null,
-        prerequisites: form.prerequisites ? { en: form.prerequisites } : null,
-        whatYouWillLearn: form.whatYouWillLearn ? { en: form.whatYouWillLearn } : null,
-        preExamInstructions: form.preExamInstructions ? { en: form.preExamInstructions } : null,
-        postExamInstructions: form.postExamInstructions ? { en: form.postExamInstructions } : null,
-        certificateInstructions: form.certificateInstructions ? { en: form.certificateInstructions } : null,
-        price: form.price,
+        price: Number(form.price),
         durationDays: form.durationDays,
         hasCertificate: form.hasCertificate,
-        coverImage: form.coverImage || null,
       };
+      if (examIds.length > 0) payload.examIds = examIds;
+      if (form.coverImage) payload.coverImage = form.coverImage;
+      if (form.introduction) payload.introduction = { en: form.introduction };
+      if (form.objectives) payload.objectives = { en: form.objectives };
+      if (form.targetAudience) payload.targetAudience = { en: form.targetAudience };
+      if (form.prerequisites) payload.prerequisites = { en: form.prerequisites };
+      if (form.whatYouWillLearn) payload.whatYouWillLearn = { en: form.whatYouWillLearn };
+      if (form.preExamInstructions) payload.preExamInstructions = { en: form.preExamInstructions };
+      if (form.postExamInstructions) payload.postExamInstructions = { en: form.postExamInstructions };
+      if (form.certificateInstructions) payload.certificateInstructions = { en: form.certificateInstructions };
       if (editing) {
         await coursesApi.update(editing.id, payload);
         toast.success(t("course_updated"));
@@ -243,6 +253,31 @@ export default function AdminCoursesPage() {
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none"
                 placeholder={t("cover_image_placeholder")}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
+              <div className="space-y-2 max-h-40 overflow-y-auto p-3 bg-muted/20 rounded-xl border border-border/80">
+                {exams.map((ex: any) => (
+                  <label key={ex.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={examIds.includes(ex.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setExamIds([...examIds, ex.id]);
+                        } else {
+                          setExamIds(examIds.filter((id) => id !== ex.id));
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    {ex.name?.en || ex.slug}
+                  </label>
+                ))}
+                {exams.length === 0 && <p className="text-xs text-muted-foreground">{t("no_exams")}</p>}
+              </div>
+              <p className="text-xs text-muted-foreground">{t("exam_select_desc")}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
