@@ -42,7 +42,7 @@ export default function AdminSubscriptionsPage() {
     name: "",
     description: "",
     price: "0",
-    interval: "monthly",
+    interval: "month",
     currency: "USD",
     isVisible: true,
     examIds: [] as string[],
@@ -71,7 +71,7 @@ export default function AdminSubscriptionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "0", interval: "monthly", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, courseId: "" });
+    setForm({ name: "", description: "", price: "0", interval: "month", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, courseId: "" });
     setDialogOpen(true);
   };
 
@@ -81,7 +81,7 @@ export default function AdminSubscriptionsPage() {
       name: p.name?.en || p.name || "",
       description: p.description?.en || p.description || "",
       price: p.price || "0",
-      interval: p.interval || "monthly",
+      interval: p.interval || "month",
       currency: p.currency || "USD",
       isVisible: p.isVisible ?? true,
       examIds: p.examIds || (p.examId ? [p.examId] : []),
@@ -139,7 +139,10 @@ export default function AdminSubscriptionsPage() {
   const columns = [
     { key: "name", header: t("title_col"), sortable: true, render: (row: any) => row.name?.en || row.name },
     { key: "price", header: t("price"), render: (row: any) => `$${row.price}` },
-    { key: "interval", header: t("plan"), render: (row: any) => <Badge variant="outline" className="capitalize">{row.interval}</Badge> },
+    { key: "interval", header: t("plan"), render: (row: any) => {
+      const label: Record<string, string> = { month: t("monthly"), quarter: t("quarterly"), year: t("annual") };
+      return <Badge variant="outline" className="capitalize">{label[row.interval] || row.interval}</Badge>;
+    }},
     { key: "exam", header: t("exam"), render: (row: any) => {
       const examIds = row.examIds || (row.examId ? [row.examId] : []);
       if (examIds.length === 0) return <span className="text-muted-foreground italic">{t("all_exams")}</span>;
@@ -241,9 +244,9 @@ export default function AdminSubscriptionsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">{t("monthly")}</SelectItem>
-                    <SelectItem value="quarterly">{t("quarterly")}</SelectItem>
-                    <SelectItem value="annual">{t("annual")}</SelectItem>
+                    <SelectItem value="month">{t("monthly")}</SelectItem>
+                    <SelectItem value="quarter">{t("quarterly")}</SelectItem>
+                    <SelectItem value="year">{t("annual")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

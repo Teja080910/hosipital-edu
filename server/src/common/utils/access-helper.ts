@@ -1,4 +1,4 @@
-import { eq, and, isNull, inArray } from "drizzle-orm";
+import { eq, and, isNull, inArray, gt } from "drizzle-orm";
 import { users, userSubscriptions, subscriptionPlans, planExams, exams } from "../../database/schema";
 
 export async function getAccessibleExamId(
@@ -7,12 +7,13 @@ export async function getAccessibleExamId(
   userRole?: string,
 ): Promise<string | null> {
   if (userRole === "admin" || userRole === "super_admin") return null;
+  const now = new Date();
 
   const [sub] = await db
     .select({ planId: subscriptionPlans.id, examId: subscriptionPlans.examId })
     .from(userSubscriptions)
     .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-    .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+    .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt), gt(userSubscriptions.currentPeriodEnd, now)))
     .limit(1);
 
   if (sub) {

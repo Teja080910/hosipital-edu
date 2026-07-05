@@ -61,7 +61,7 @@ export function ExamHistory() {
                     <Badge variant={percentage >= 70 ? "default" : "destructive"}>
                       {percentage >= 70 ? t("passed") : t("failed")}
                     </Badge>
-                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/exams/${attempt.examId}/review/${attempt.id}`)}>
+                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/exams/${attempt.examId}?review=${attempt.id}`)}>
                       {t("review")}
                     </Button>
                   </>

@@ -236,7 +236,6 @@ export class SubscriptionsService {
       amount: parseFloat(plan.price),
       currency: plan.currency || "USD",
       status: "pending",
-      description: this.i18n.t("subscriptions.descriptionTemplate", { name: plan.name?.en || "Subscription", interval: plan.interval }),
     });
 
     return { url: session.url };
@@ -468,12 +467,13 @@ export class SubscriptionsService {
                 const [existingEnrollment] = await this.db
                   .select({ id: userCourseEnrollments.id })
                   .from(userCourseEnrollments)
-                  .where(
-                    and(
-                      eq(userCourseEnrollments.userId, userId),
-                      eq(userCourseEnrollments.courseId, courseId),
-                    ),
-                  )
+      .where(
+        and(
+          eq(userSubscriptions.userId, userId),
+          eq(userSubscriptions.status, "active"),
+          gt(userSubscriptions.currentPeriodEnd, new Date()),
+        ),
+      )
                   .limit(1);
                 if (!existingEnrollment) {
                   await this.db.insert(userCourseEnrollments).values({

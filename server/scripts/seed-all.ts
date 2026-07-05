@@ -27,7 +27,7 @@ const examsData: ExamDef[] = [
   {
     slug: "enurm",
     name: { en: "ENURM", es: "ENURM" },
-    description: { en: "National Unified Medical Residency Exam - Dominican Republic", es: "Examen Nacional Unificado de Residencias Médicas - República Dominicana" },
+    description: { en: "National Unified Medical Residency Exam - Dominican Republic", es: "EXAMEN NACIONAL ÚNICO DE RESIDENCIAS MÉDICAS - República Dominicana" },
     group: "residency",
     sortOrder: 0,
     specialties: [

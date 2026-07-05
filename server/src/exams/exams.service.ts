@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 import { DRIZZLE } from "../database/database.provider";
 import { exams, specialties, subscriptionPlans, planExams, subtopics, topics, userSubscriptions, users } from "../database/schema";
@@ -26,7 +26,7 @@ export class ExamsService {
           .select({ planId: subscriptionPlans.id, examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt), gt(userSubscriptions.currentPeriodEnd, new Date())))
           .limit(1);
       }
     }
@@ -40,7 +40,7 @@ export class ExamsService {
         isActive: exams.isActive,
         sortOrder: exams.sortOrder,
         createdAt: exams.createdAt,
-        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE (SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = exams.id AND question_exams.question_id = questions.id) > 0 AND questions.is_active = true)`,
+        _questionCount: sql`(SELECT COUNT(*) FROM questions WHERE (SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = exams.id AND question_exams.question_id = questions.id) > 0 AND questions.is_active = true)`,
       })
       .from(exams)
       .where(eq(exams.isActive, true))
@@ -95,7 +95,7 @@ export class ExamsService {
           .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt), gt(userSubscriptions.currentPeriodEnd, new Date())))
           .limit(1);
 
         if (!sub) {
