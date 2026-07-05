@@ -13,6 +13,7 @@ interface RegisterData {
   referralCode?: string;
   accountType?: string;
   targetExamId?: string;
+  preferredLocale?: string;
 }
 
 export const authApi = {
