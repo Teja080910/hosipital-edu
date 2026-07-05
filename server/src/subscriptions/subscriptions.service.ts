@@ -10,7 +10,7 @@ import {
   userCourseEnrollments,
   courses,
 } from "../database/schema";
-import { eq, and, gt, sql, isNull } from "drizzle-orm";
+import { eq, and, gt, sql, isNull, inArray } from "drizzle-orm";
 import { STRIPE } from "./stripe.provider";
 import Stripe from "stripe";
 import { MailService } from "../mail/mail.service";
@@ -30,10 +30,23 @@ export class SubscriptionsService {
   async findPlans(visibleOnly = true) {
     const conditions = [eq(subscriptionPlans.isActive, true)];
     if (visibleOnly) conditions.push(eq(subscriptionPlans.isVisible, true));
-    return this.db
+    const rows = await this.db
       .select()
       .from(subscriptionPlans)
       .where(and(...conditions));
+
+    const planIds = rows.map((r: any) => r.id);
+    const examLinks = planIds.length > 0
+      ? await this.db.select().from(planExams).where(inArray(planExams.planId, planIds))
+      : [];
+
+    const examMap = new Map<string, string[]>();
+    for (const link of examLinks) {
+      if (!examMap.has(link.planId)) examMap.set(link.planId, []);
+      examMap.get(link.planId)!.push(link.examId);
+    }
+
+    return rows.map((r: any) => ({ ...r, examIds: examMap.get(r.id) || [] }));
   }
 
   async findPlanById(id: string) {
@@ -44,7 +57,12 @@ export class SubscriptionsService {
       .from(subscriptionPlans)
       .where(and(eq(subscriptionPlans.id, id), eq(subscriptionPlans.isActive, true)))
       .limit(1);
-    return plan;
+    if (!plan) return null;
+    const links = await this.db
+      .select()
+      .from(planExams)
+      .where(eq(planExams.planId, id));
+    return { ...plan, examIds: links.map((l: any) => l.examId) };
   }
 
   async createPlan(data: any) {

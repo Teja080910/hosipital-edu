@@ -156,24 +156,22 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       const reviewId = searchParams.get("review");
       if (reviewId) {
         attemptsApi.get(reviewId).then(({ data }) => {
-          if (data?.answers?.length > 0) {
-            const questions = data.answers
-              .filter((a: any) => a.question)
-              .map((a: any) => a.question);
-            if (questions.length > 0) {
-              setExamQuestions(questions);
-              const restored: Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }> = {};
-              data.answers.forEach((a: any) => {
-                restored[a.questionId] = { optionId: a.selectedOptionId, isCorrect: a.isCorrect, flagged: a.isFlagged || false };
-              });
-              setAnswers(restored);
-              setReviewMode(true);
-              setPageState("taking");
-              setShowAnswer(true);
-              setCurrentIndex(0);
-              setAttemptId(reviewId);
-              setTotalTimeSpent(data.timeSpent || 0);
-            }
+          const questions = data?.answers
+            ?.filter((a: any) => a.question)
+            ?.map((a: any) => a.question) || [];
+          const restored: Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }> = {};
+          data?.answers?.forEach((a: any) => {
+            restored[a.questionId] = { optionId: a.selectedOptionId, isCorrect: a.isCorrect, flagged: a.isFlagged || false };
+          });
+          if (questions.length > 0) {
+            setExamQuestions(questions);
+            setAnswers(restored);
+            setReviewMode(true);
+            setPageState("taking");
+            setShowAnswer(true);
+            setCurrentIndex(0);
+            setAttemptId(reviewId);
+            setTotalTimeSpent(data.timeSpent || 0);
           }
         }).catch(() => {});
       }
@@ -576,7 +574,6 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
               <CardContent className="space-y-6 p-5 sm:p-6">
                 <QuestionPenOverlay questionId={currentQuestion.id}>
                   <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words">{currentQuestion.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
-                </QuestionPenOverlay>
                 {currentQuestion.images && currentQuestion.images.filter((img: any) => img.section === "title").length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.filter((img: any) => img.section === "title").map((img: any) => (
@@ -629,6 +626,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                   {currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}
                 </div>)}
                 {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{currentQuestion.reference}</p></div>)}
+                </QuestionPenOverlay>
                 {!showAnswer && selectedOption && !answers[currentQuestion.id]?.optionId && (
                   <Button onClick={handleSubmitAnswer} className="w-full" size="lg">{t("submit")}</Button>
                 )}

@@ -113,7 +113,6 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
     return () => {
       window.removeEventListener("resize", updateSize);
       observer.disconnect();
-      drawingsRef.current.delete(questionId);
     };
   }, [redraw, questionId]);
 
