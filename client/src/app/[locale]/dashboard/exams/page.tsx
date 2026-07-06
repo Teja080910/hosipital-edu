@@ -19,18 +19,18 @@ export default function ExamsPage() {
   const n = useTranslations("nav");
   const router = useRouter();
   const locale = useParams().locale as string;
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading || !user) return;
     setLoading(true);
     examsApi.list()
       .then((res) => setExams(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user, authLoading]);
 
   return (
     <AccountTypeGate>
