@@ -50,14 +50,16 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
       const confirmed = await confirmStripeCheckout();
       if (confirmed) return;
 
-      subscriptionsApi.mySubscription()
-        .then(({ data }) => {
-          if (data?.status === "active") {
-            if (pollRef.current) clearInterval(pollRef.current);
-          }
-          setChecking(false);
-        })
-        .catch(() => setChecking(false));
+      try {
+        const { data } = await subscriptionsApi.mySubscription();
+        if (data?.status === "active") {
+          if (pollRef.current) clearInterval(pollRef.current);
+        }
+      } catch {
+        // no subscription
+      } finally {
+        setChecking(false);
+      }
     };
 
     checkRef.current = checkSubscription;

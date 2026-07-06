@@ -159,6 +159,18 @@ export class ExamsController {
     return this.examsService.findAll(user);
   }
 
+  @Post(":sourceId/copy-questions/:targetId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Copy question-exam associations from source exam to target exam (admin)" })
+  async copyQuestions(
+    @Param("sourceId", ParseUUIDPipe) sourceId: string,
+    @Param("targetId", ParseUUIDPipe) targetId: string,
+  ) {
+    return this.examsService.copyQuestions(sourceId, targetId);
+  }
+
   @Get(":id")
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
   @AllowedAccountTypes("full", "course_only")

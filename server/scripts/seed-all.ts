@@ -525,6 +525,31 @@ async function main() {
   }
   console.log(`\nQuestions: ${qCreated} created\n`);
 
+  // Copy MIR questions to ENURM so all MIR questions are also available in ENURM
+  const [mirExam] = await db.select({ id: schema.exams.id }).from(schema.exams).where(eq(schema.exams.slug, "mir")).limit(1);
+  const [enurmExam] = await db.select({ id: schema.exams.id }).from(schema.exams).where(eq(schema.exams.slug, "enurm")).limit(1);
+  if (mirExam && enurmExam) {
+    const mirLinks = await db
+      .select({ questionId: schema.questionExams.questionId })
+      .from(schema.questionExams)
+      .where(eq(schema.questionExams.examId, mirExam.id));
+    const mirQIds = mirLinks.map((l: any) => l.questionId);
+    if (mirQIds.length > 0) {
+      const existingEnurmLinks = await db
+        .select({ questionId: schema.questionExams.questionId })
+        .from(schema.questionExams)
+        .where(eq(schema.questionExams.examId, enurmExam.id));
+      const existingEnurmIds = new Set(existingEnurmLinks.map((l: any) => l.questionId));
+      const toInsert = mirQIds.filter((id: string) => !existingEnurmIds.has(id));
+      if (toInsert.length > 0) {
+        await db.insert(schema.questionExams).values(
+          toInsert.map((questionId: string) => ({ questionId, examId: enurmExam.id })),
+        );
+        console.log(`Linked ${toInsert.length} MIR questions to ENURM`);
+      }
+    }
+  }
+
   // ========================================================================
   // 3. FLASHCARDS (for ENURM, ENARM, MIR — all specialties)
   // ========================================================================

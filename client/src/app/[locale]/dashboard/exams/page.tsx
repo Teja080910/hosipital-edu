@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useRouter } from "@/routing";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/page-transition";
@@ -18,15 +19,18 @@ export default function ExamsPage() {
   const n = useTranslations("nav");
   const router = useRouter();
   const locale = useParams().locale as string;
+  const { user } = useAuth();
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+    setLoading(true);
     examsApi.list()
       .then((res) => setExams(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   return (
     <AccountTypeGate>

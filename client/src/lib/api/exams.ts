@@ -17,6 +17,7 @@ export const examsApi = {
   createSubtopic: (topicId: string, data: Record<string, unknown>) => api.post(`/exams/topics/${topicId}/subtopics`, data),
   updateSubtopic: (id: string, data: Record<string, unknown>) => api.patch(`/exams/subtopics/${id}`, data),
   deleteSubtopic: (id: string) => api.delete(`/exams/subtopics/${id}`),
+  copyQuestions: (sourceId: string, targetId: string) => api.post(`/exams/${sourceId}/copy-questions/${targetId}`),
 };
 
 export const attemptsApi = {

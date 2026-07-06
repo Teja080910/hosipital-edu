@@ -2,7 +2,7 @@ import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nest
 import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, specialties, subscriptionPlans, planExams, subtopics, topics, userSubscriptions, users } from "../database/schema";
+import { exams, questionExams, specialties, subscriptionPlans, planExams, subtopics, topics, userSubscriptions, users } from "../database/schema";
 
 @Injectable()
 export class ExamsService {
@@ -260,5 +260,35 @@ export class ExamsService {
   async deleteSubtopic(id: string) {
     await this.db.delete(subtopics).where(eq(subtopics.id, id));
     return { deleted: true };
+  }
+
+  async copyQuestions(sourceExamId: string, targetExamId: string) {
+    const [source] = await this.db.select({ id: exams.id }).from(exams).where(eq(exams.id, sourceExamId)).limit(1);
+    const [target] = await this.db.select({ id: exams.id }).from(exams).where(eq(exams.id, targetExamId)).limit(1);
+    if (!source) throw new NotFoundException("Source exam not found");
+    if (!target) throw new NotFoundException("Target exam not found");
+
+    const sourceLinks = await this.db
+      .select({ questionId: questionExams.questionId })
+      .from(questionExams)
+      .where(eq(questionExams.examId, sourceExamId));
+
+    if (!sourceLinks.length) return { copied: 0, message: "No questions found in source exam" };
+
+    const sourceQIds = sourceLinks.map((l: any) => l.questionId);
+    const existingTargetLinks = await this.db
+      .select({ questionId: questionExams.questionId })
+      .from(questionExams)
+      .where(eq(questionExams.examId, targetExamId));
+    const existingIds = new Set(existingTargetLinks.map((l: any) => l.questionId));
+    const toInsert = sourceQIds.filter((id: string) => !existingIds.has(id));
+
+    if (!toInsert.length) return { copied: 0, message: "All source questions already exist in target exam" };
+
+    await this.db.insert(questionExams).values(
+      toInsert.map((questionId: string) => ({ questionId, examId: targetExamId })),
+    );
+
+    return { copied: toInsert.length, message: `Copied ${toInsert.length} questions from source to target` };
   }
 }
