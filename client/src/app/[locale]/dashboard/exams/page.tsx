@@ -55,7 +55,7 @@ export default function ExamsPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <CardTitle className="break-words">{localized(exam.name, locale)}</CardTitle>
-                        <CardDescription className="break-words">{localized(exam.description, locale)}</CardDescription>
+                        <CardDescription className="break-words">{t.has(`desc_${exam.slug}`) ? t(`desc_${exam.slug}`) : localized(exam.description, locale)}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
