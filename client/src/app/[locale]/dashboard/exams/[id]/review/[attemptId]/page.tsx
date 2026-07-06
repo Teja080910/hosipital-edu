@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "@/routing";
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/page-transition";
@@ -36,20 +36,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
   const question = currentAnswer?.question;
   const percentage = attempt.questionCount > 0 ? Math.round((attempt.correctCount / attempt.questionCount) * 100) : 0;
 
-  if (answers.length === 0) {
-    return (
-      <AccountTypeGate>
-      <PageTransition>
-        <div className="max-w-3xl mx-auto space-y-4">
-          <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
-          <Card><CardContent className="text-center py-8 text-muted-foreground">{t("no_questions")}</CardContent></Card>
-        </div>
-      </PageTransition>
-      </AccountTypeGate>
-    );
-  }
-
-  if (!question) {
+  if (answers.length === 0 || !question) {
     return (
       <AccountTypeGate>
       <PageTransition>
@@ -65,7 +52,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
   return (
     <AccountTypeGate>
     <PageTransition>
-      <div className="max-w-3xl mx-auto space-y-4 pb-12">
+      <div className="mx-auto max-w-6xl space-y-5 px-4 p-20">
         <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
 
         <Card><CardContent className="flex items-center justify-between py-4">
@@ -73,8 +60,8 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
           <Badge variant={percentage >= 70 ? "default" : "destructive"}>{percentage >= 70 ? t("passed") : t("failed")}</Badge>
         </CardContent></Card>
 
-        <div className="grid gap-5">
-          <Card className="overflow-hidden border-border/70 shadow-card">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <Card className="overflow-hidden border-border/70 shadow-card hover:translate-y-0">
             <CardHeader className="border-b bg-muted/30">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-base font-semibold text-primary-foreground shadow-subtle">
@@ -103,17 +90,17 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 {question.options.map((option: any, optionIndex: number) => {
                   const isSelected = currentAnswer.selectedOptionId === option.id;
                   const isCorrectOption = option.isCorrect;
-                  let optionClass = "border-border bg-background";
+                  let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
                   if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
                   else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
                   else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
                   return (
-                    <div key={option.id} className={`w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
+                    <div key={option.id} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
                       <div className="flex items-start gap-4">
-                        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold ${
+                        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
                           isCorrectOption ? "border-green-500 bg-green-500 text-white" :
                           isSelected && !isCorrectOption ? "border-destructive bg-destructive text-white" :
-                          isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground"
+                          isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
                         }`}>
                           {isCorrectOption ? <CheckCircle2 className="h-4 w-4" /> :
                             isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
@@ -137,20 +124,30 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 {question.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}
               </div>)}
               {question.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{question.reference}</p></div>)}
+              <div className="flex items-center justify-between">
+                <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.max(i - 1, 0))} disabled={currentIndex === 0} className="rounded-xl"><ArrowLeft className="h-4 w-4 mr-2" /> {t("previous")}</Button>
+                <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.min(i + 1, answers.length - 1))} disabled={currentIndex >= answers.length - 1} className="rounded-xl">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              </div>
               </QuestionPenOverlay>
             </CardContent>
           </Card>
 
-          <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.max(i - 1, 0))} disabled={currentIndex === 0} className="rounded-xl"><ArrowLeft className="h-4 w-4 mr-2" /> {t("previous")}</Button>
-            <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.min(i + 1, answers.length - 1))} disabled={currentIndex >= answers.length - 1} className="rounded-xl">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 justify-center">
-            {answers.map((_: any, i: number) => (
-              <button key={i} onClick={() => setCurrentIndex(i)} className={`h-10 w-10 rounded-xl border text-sm font-semibold transition-all ${i === currentIndex ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""} ${answers[i]?.isCorrect ? "bg-green-500 text-white border-green-500" : "bg-destructive text-destructive-foreground border-destructive"}`}>{i + 1}</button>
-            ))}
-          </div>
+          <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+            <Card className="border-border/70 shadow-card hover:translate-y-0">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">{t("questions")}</CardTitle>
+                <CardDescription>{answers.filter((a: any) => a.isCorrect).length}/{answers.length} {t("correct")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {answers.map((_: any, i: number) => (
+                    <button key={i} onClick={() => setCurrentIndex(i)}
+                      className={`h-10 w-10 rounded-xl border text-sm font-semibold transition-all ${i === currentIndex ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""} ${answers[i]?.isCorrect ? "bg-green-500 text-white border-green-500" : "bg-destructive text-destructive-foreground border-destructive"}`}>{i + 1}</button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </aside>
         </div>
       </div>
     </PageTransition>
