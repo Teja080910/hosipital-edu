@@ -13,7 +13,7 @@ export function subscriptionCancelledTemplate(name: string, appUrl?: string, loc
       </div>
       ${emailText(t(locale, "subscriptionCancelled.body1", { name }))}
       ${emailText(t(locale, "subscriptionCancelled.body2"))}
-      ${emailButton(t(locale, "subscriptionCancelled.button"), `${appUrl || "https://md-exams.com"}/${locale}/dashboard/subscribe`)}
+      ${emailButton(t(locale, "subscriptionCancelled.button"), `${appUrl || "https://md-exam.com"}/${locale}/dashboard/subscribe`)}
       ${emailSmall(t(locale, "subscriptionCancelled.footer"))}
     `,
     appUrl,
