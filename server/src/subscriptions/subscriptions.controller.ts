@@ -90,6 +90,18 @@ class CreatePlanDto {
   @IsOptional()
   @IsNumber()
   maxCourses?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxExamAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxFlashcardAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxUses?: number;
 }
 
 class UpdatePlanDto {
@@ -161,6 +173,18 @@ class UpdatePlanDto {
   @IsOptional()
   @IsNumber()
   maxCourses?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxExamAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxFlashcardAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxUses?: number;
 }
 
 @ApiTags("subscriptions")

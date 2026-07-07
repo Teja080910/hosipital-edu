@@ -28,7 +28,7 @@ export class MailService {
   }
 
   private get appUrl(): string {
-    return this.config.get<string>("APP_URL", "https://md-exams.com");
+    return this.config.get<string>("APP_URL", "https://md-exam.com");
   }
 
   private get from(): string {

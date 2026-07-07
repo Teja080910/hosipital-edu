@@ -5,7 +5,7 @@ interface LayoutProps {
 
 const LOGO_URL = "https://lh3.googleusercontent.com/d/1Vrc1VnGSP8pufWCpeJBpEctiH_Bh3cXX";
 
-export function emailLayout({ content, appUrl = "https://md-exams.com" }: LayoutProps): string {
+export function emailLayout({ content, appUrl = "https://md-exam.com" }: LayoutProps): string {
   return `
 <!DOCTYPE html>
 <html>
