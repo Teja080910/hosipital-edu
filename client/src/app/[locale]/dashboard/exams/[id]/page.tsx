@@ -722,7 +722,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4"><div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center"><Settings2 className="h-8 w-8 text-primary" /></div></div>
             <CardTitle className="text-2xl">{localized(exam.name, locale)}</CardTitle>
-            <CardDescription>{localized(exam.description, locale)}</CardDescription>
+            <CardDescription>{t.has(`desc_${exam.slug}`) ? t(`desc_${exam.slug}`) : localized(exam.description, locale)}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {activeAttempt && (

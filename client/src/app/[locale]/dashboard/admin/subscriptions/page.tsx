@@ -48,6 +48,9 @@ export default function AdminSubscriptionsPage() {
     examIds: [] as string[],
     isCourseOnly: false,
     maxDays: 0,
+    maxExamAttempts: "",
+    maxFlashcardAttempts: "",
+    maxUses: "",
     courseId: "",
   });
 
@@ -71,7 +74,7 @@ export default function AdminSubscriptionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "0", interval: "month", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, courseId: "" });
+    setForm({ name: "", description: "", price: "0", interval: "month", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, maxExamAttempts: "", maxFlashcardAttempts: "", maxUses: "", courseId: "" });
     setDialogOpen(true);
   };
 
@@ -87,6 +90,9 @@ export default function AdminSubscriptionsPage() {
       examIds: p.examIds || (p.examId ? [p.examId] : []),
       isCourseOnly: p.isCourseOnly ?? false,
       maxDays: p.maxDays || 0,
+      maxExamAttempts: p.maxExamAttempts?.toString() || "",
+      maxFlashcardAttempts: p.maxFlashcardAttempts?.toString() || "",
+      maxUses: p.maxUses?.toString() || "",
       courseId: p.courseId || "",
     });
     setDialogOpen(true);
@@ -106,6 +112,9 @@ export default function AdminSubscriptionsPage() {
         examIds: form.examIds.length > 0 ? form.examIds : null,
         isCourseOnly: form.isCourseOnly,
         maxDays: form.maxDays || null,
+        maxExamAttempts: form.maxExamAttempts ? Number(form.maxExamAttempts) : null,
+        maxFlashcardAttempts: form.maxFlashcardAttempts ? Number(form.maxFlashcardAttempts) : null,
+        maxUses: form.maxUses ? Number(form.maxUses) : null,
         courseId: form.courseId || null,
       };
       if (editing) {
@@ -344,6 +353,36 @@ export default function AdminSubscriptionsPage() {
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
               />
               <p className="text-xs text-muted-foreground">{t("max_days_desc")}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("remaining_exam_attempts")}</label>
+                <Input
+                  type="number"
+                  value={form.maxExamAttempts}
+                  onChange={(e) => setForm({ ...form, maxExamAttempts: e.target.value })}
+                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("remaining_flashcard_attempts")}</label>
+                <Input
+                  type="number"
+                  value={form.maxFlashcardAttempts}
+                  onChange={(e) => setForm({ ...form, maxFlashcardAttempts: e.target.value })}
+                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("remaining_uses")}</label>
+                <Input
+                  type="number"
+                  value={form.maxUses}
+                  onChange={(e) => setForm({ ...form, maxUses: e.target.value })}
+                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
+                />
+              </div>
             </div>
           </div>
 

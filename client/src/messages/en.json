@@ -940,7 +940,12 @@
     "no_uid_returned": "No UID returned",
     "subscribe": "Subscribe",
     "active_attempt_found": "You have an active attempt in progress",
-    "resume": "Resume"
+    "resume": "Resume",
+    "desc_enurm": "National Unified Medical Residency Exam - Dominican Republic",
+    "desc_enarm": "Examen Nacional de Aspirantes a Residencias Médicas - Mexico",
+    "desc_mir": "Médico Interno Residente - Spain",
+    "desc_usmle-step-1": "United States Medical Licensing Examination - Step 1",
+    "desc_usmle-step-2": "United States Medical Licensing Examination Step 2 Clinical Knowledge"
   },
   "subscribe": {
     "title": "Choose Your Plan",

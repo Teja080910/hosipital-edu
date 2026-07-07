@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, HttpException, HttpStatus, Inject } from "@nestjs/common";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
-import { getAccessibleExamId } from "../common/utils/access-helper";
 import { DRIZZLE } from "../database/database.provider";
 import {
   flashcards,
@@ -66,50 +65,7 @@ export class FlashcardsService {
       }
     }
 
-    if (!isAdmin) {
-      const [sub] = await this.db
-        .select({ planId: userSubscriptions.planId })
-        .from(userSubscriptions)
-        .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
-        .limit(1);
-      if (sub) {
-        const [plan] = await this.db
-          .select({ maxFlashcards: subscriptionPlans.maxFlashcards, maxFlashcardAttempts: subscriptionPlans.maxFlashcardAttempts })
-          .from(subscriptionPlans)
-          .where(eq(subscriptionPlans.id, sub.planId))
-          .limit(1);
-        if (plan && plan.maxFlashcards == null && plan.maxFlashcardAttempts == null) {
-          return { data: [], total: 0, page, limit };
-        }
-      }
-      let subExamId: string | null = null;
-      if (user) {
-        subExamId = await this.getSubscriptionExamId(user.id);
-      }
-
-      if (subExamId) {
-        if (subExamId !== "__all__") {
-          const subFIds = await this.db
-            .select({ flashcardId: flashcardExams.flashcardId })
-            .from(flashcardExams)
-            .where(eq(flashcardExams.examId, subExamId));
-          const subIds = subFIds.map((r: any) => r.flashcardId);
-          conditions.push(inArray(flashcards.id, subIds));
-          if (examId && examId !== subExamId) {
-            return { data: [], total: 0, page, limit };
-          }
-        }
-      } else if (user?.targetExamId) {
-        const targetFIds = await this.db
-          .select({ flashcardId: flashcardExams.flashcardId })
-          .from(flashcardExams)
-          .where(eq(flashcardExams.examId, user.targetExamId));
-        const targetIds = targetFIds.map((r: any) => r.flashcardId);
-        conditions.push(inArray(flashcards.id, targetIds));
-      } else {
-        return { data: [], total: 0, page, limit };
-      }
-    } else if (examId) {
+    if (examId) {
       const examFIds = await this.db
         .select({ flashcardId: flashcardExams.flashcardId })
         .from(flashcardExams)
@@ -173,38 +129,15 @@ export class FlashcardsService {
     };
   }
 
-  async findDue(userId: string, limit = 20) {
-    const subExamId = await this.getSubscriptionExamId(userId);
-
-    let flashcardIds: string[] = [];
-    if (subExamId) {
-      if (subExamId !== "__all__") {
-        const subFIds = await this.db
-          .select({ flashcardId: flashcardExams.flashcardId })
-          .from(flashcardExams)
-          .where(eq(flashcardExams.examId, subExamId));
-        flashcardIds = subFIds.map((r: any) => r.flashcardId);
-      }
-    } else {
-      const [user] = await this.db
-        .select({ targetExamId: users.targetExamId })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      if (user?.targetExamId) {
-        const targetFIds = await this.db
-          .select({ flashcardId: flashcardExams.flashcardId })
-          .from(flashcardExams)
-          .where(eq(flashcardExams.examId, user.targetExamId));
-        flashcardIds = targetFIds.map((r: any) => r.flashcardId);
-      } else {
-        return [];
-      }
-    }
-
-    if (!flashcardIds.length) return [];
-
+  async findDue(userId: string, limit = 20, specialtyId?: string) {
     const now = new Date();
+
+    const conditions = [
+      eq(userFlashcardReviews.userId, userId),
+      eq(flashcards.isActive, true),
+      lte(userFlashcardReviews.nextReviewAt, now),
+    ];
+    if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
 
     const reviewedDue = await this.db
       .select({
@@ -221,20 +154,17 @@ export class FlashcardsService {
       .innerJoin(flashcards, eq(flashcards.id, userFlashcardReviews.flashcardId))
       .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
       .leftJoin(topics, eq(flashcards.topicId, topics.id))
-      .where(
-        and(
-          eq(userFlashcardReviews.userId, userId),
-          eq(flashcards.isActive, true),
-          lte(userFlashcardReviews.nextReviewAt, now),
-          inArray(flashcards.id, flashcardIds),
-        ),
-      )
+      .where(and(...conditions))
       .limit(limit);
 
     if (reviewedDue.length >= limit) return reviewedDue;
 
     const reviewedIds = reviewedDue.map((r: any) => r.id);
     const unreviewedCount = limit - reviewedDue.length;
+
+    const unreviewedConditions = [eq(flashcards.isActive, true)];
+    if (specialtyId) unreviewedConditions.push(eq(flashcards.specialtyId, specialtyId));
+    if (reviewedIds.length > 0) unreviewedConditions.push(notInArray(flashcards.id, reviewedIds));
 
     const unreviewed = await this.db
       .select({
@@ -250,15 +180,7 @@ export class FlashcardsService {
       .from(flashcards)
       .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
       .leftJoin(topics, eq(flashcards.topicId, topics.id))
-      .where(
-        and(
-          eq(flashcards.isActive, true),
-          inArray(flashcards.id, flashcardIds),
-          reviewedIds.length > 0
-            ? notInArray(flashcards.id, reviewedIds)
-            : sql`TRUE`,
-        ),
-      )
+      .where(and(...unreviewedConditions))
       .limit(unreviewedCount);
 
     return [...reviewedDue, ...unreviewed];
@@ -349,17 +271,6 @@ export class FlashcardsService {
 
       if (plan?.isCourseOnly) {
         throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
-      }
-
-      if (plan?.examId) {
-        const [link] = await this.db
-          .select()
-          .from(flashcardExams)
-          .where(and(eq(flashcardExams.flashcardId, flashcardId), eq(flashcardExams.examId, plan.examId)))
-          .limit(1);
-        if (!link) {
-          throw new HttpException("Flashcard not found for your subscription.", HttpStatus.FORBIDDEN);
-        }
       }
 
       if (sub.remainingFlashcardAttempts != null && sub.remainingFlashcardAttempts < 1) {
@@ -484,18 +395,6 @@ export class FlashcardsService {
     return rows;
   }
 
-  private async getSubscriptionExamId(userId: string, userRole?: string): Promise<string | null> {
-    const examId = await getAccessibleExamId(this.db, userId, userRole);
-    if (examId) return examId;
-
-    const [user] = await this.db
-      .select({ targetExamId: users.targetExamId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    return user?.targetExamId || null;
-  }
-
   async startExam(data: {
     userId: string;
     mode: string;
@@ -517,19 +416,8 @@ export class FlashcardsService {
     const isAdmin = user.role === "admin" || user.role === "super_admin";
 
     let sub: any = null;
-    let accessibleExamId: string | null = null;
 
     if (!isAdmin) {
-      accessibleExamId = await this.getSubscriptionExamId(userId);
-      if (!accessibleExamId) {
-        const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
-        if (user.targetExamId && hoursSinceRegistration <= 24) {
-          accessibleExamId = user.targetExamId;
-        } else {
-          throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
-        }
-      }
-
       [sub] = await this.db
         .select()
         .from(userSubscriptions)
@@ -547,15 +435,6 @@ export class FlashcardsService {
     }
 
     const conditions: SQL[] = [eq(flashcards.isActive, true)];
-    if (accessibleExamId && accessibleExamId !== "__all__") {
-      const examFIds = await this.db
-        .select({ flashcardId: flashcardExams.flashcardId })
-        .from(flashcardExams)
-        .where(eq(flashcardExams.examId, accessibleExamId));
-      const ids = examFIds.map((r: any) => r.flashcardId);
-      if (!ids.length) throw new HttpException("No flashcards available for this exam", HttpStatus.BAD_REQUEST);
-      conditions.push(inArray(flashcards.id, ids));
-    }
     if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
     if (topicId) conditions.push(eq(flashcards.topicId, topicId));
 

@@ -935,7 +935,12 @@
     "no_uid_returned": "No se devolvió ningún UID",
     "subscribe": "Suscribirse",
     "active_attempt_found": "Tienes un intento activo en progreso",
-    "resume": "Reanudar"
+    "resume": "Reanudar",
+    "desc_enurm": "EXAMEN NACIONAL ÚNICO DE RESIDENCIAS MÉDICAS - República Dominicana",
+    "desc_enarm": "Examen Nacional de Aspirantes a Residencias Médicas - México",
+    "desc_mir": "Médico Interno Residente - España",
+    "desc_usmle-step-1": "United States Medical Licensing Examination - Step 1",
+    "desc_usmle-step-2": "United States Medical Licensing Examination Step 2 Clinical Knowledge"
   },
   "subscribe": {
     "title": "Elige Tu Plan",

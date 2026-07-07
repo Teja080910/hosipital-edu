@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useRouter } from "@/routing";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/page-transition";
@@ -18,15 +19,18 @@ export default function ExamsPage() {
   const n = useTranslations("nav");
   const router = useRouter();
   const locale = useParams().locale as string;
+  const { user, isLoading: authLoading } = useAuth();
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user) return;
+    setLoading(true);
     examsApi.list()
       .then((res) => setExams(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user, authLoading]);
 
   return (
     <AccountTypeGate>
@@ -51,7 +55,7 @@ export default function ExamsPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <CardTitle className="break-words">{localized(exam.name, locale)}</CardTitle>
-                        <CardDescription className="break-words">{localized(exam.description, locale)}</CardDescription>
+                        <CardDescription className="break-words">{t.has(`desc_${exam.slug}`) ? t(`desc_${exam.slug}`) : localized(exam.description, locale)}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
