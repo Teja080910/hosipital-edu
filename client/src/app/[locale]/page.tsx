@@ -426,7 +426,7 @@ const sb = useTranslations("subscribe");
               {(examSlugs.length > 0 ? examSlugs : ["ENURM", "ENARM", "MIR", "CURSOS"]).map((exam) => (
                 <div key={exam} className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-primary" />
-                  <span>{exam}</span>
+                  <span>{exam === "COURSES" ? n("courses") : exam}</span>
                 </div>
               ))}
             </motion.div>

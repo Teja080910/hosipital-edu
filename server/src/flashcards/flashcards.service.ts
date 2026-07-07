@@ -129,8 +129,15 @@ export class FlashcardsService {
     };
   }
 
-  async findDue(userId: string, limit = 20) {
+  async findDue(userId: string, limit = 20, specialtyId?: string) {
     const now = new Date();
+
+    const conditions = [
+      eq(userFlashcardReviews.userId, userId),
+      eq(flashcards.isActive, true),
+      lte(userFlashcardReviews.nextReviewAt, now),
+    ];
+    if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
 
     const reviewedDue = await this.db
       .select({
@@ -147,19 +154,17 @@ export class FlashcardsService {
       .innerJoin(flashcards, eq(flashcards.id, userFlashcardReviews.flashcardId))
       .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
       .leftJoin(topics, eq(flashcards.topicId, topics.id))
-      .where(
-        and(
-          eq(userFlashcardReviews.userId, userId),
-          eq(flashcards.isActive, true),
-          lte(userFlashcardReviews.nextReviewAt, now),
-        ),
-      )
+      .where(and(...conditions))
       .limit(limit);
 
     if (reviewedDue.length >= limit) return reviewedDue;
 
     const reviewedIds = reviewedDue.map((r: any) => r.id);
     const unreviewedCount = limit - reviewedDue.length;
+
+    const unreviewedConditions = [eq(flashcards.isActive, true)];
+    if (specialtyId) unreviewedConditions.push(eq(flashcards.specialtyId, specialtyId));
+    if (reviewedIds.length > 0) unreviewedConditions.push(notInArray(flashcards.id, reviewedIds));
 
     const unreviewed = await this.db
       .select({
@@ -175,14 +180,7 @@ export class FlashcardsService {
       .from(flashcards)
       .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
       .leftJoin(topics, eq(flashcards.topicId, topics.id))
-      .where(
-        and(
-          eq(flashcards.isActive, true),
-          reviewedIds.length > 0
-            ? notInArray(flashcards.id, reviewedIds)
-            : sql`TRUE`,
-        ),
-      )
+      .where(and(...unreviewedConditions))
       .limit(unreviewedCount);
 
     return [...reviewedDue, ...unreviewed];
