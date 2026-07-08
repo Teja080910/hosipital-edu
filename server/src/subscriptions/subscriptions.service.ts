@@ -186,7 +186,6 @@ export class SubscriptionsService {
       await this.updatePlan(plan.id, { stripePriceId });
     }
 
-    const isRecurring = plan.interval === "month";
     const existingSub = await this.getUserSubscription(userId);
     const appUrl = this.config.get<string>("APP_URL");
 
