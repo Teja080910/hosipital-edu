@@ -134,7 +134,19 @@ export class UsersService {
 
     if (existing) {
       const updateData: any = { updatedAt: new Date() };
-      if (data.planId !== undefined) updateData.planId = data.planId;
+      if (data.planId !== undefined) {
+        updateData.planId = data.planId;
+        const [plan] = await this.db
+          .select()
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, data.planId))
+          .limit(1);
+        if (plan) {
+          updateData.remainingExamAttempts = plan.maxExamAttempts ?? null;
+          updateData.remainingFlashcardAttempts = plan.maxFlashcardAttempts ?? null;
+          updateData.remainingUses = plan.maxUses ?? null;
+        }
+      }
       if (data.status !== undefined) updateData.status = data.status;
       if (data.remainingExamAttempts !== undefined) updateData.remainingExamAttempts = data.remainingExamAttempts;
       if (data.remainingFlashcardAttempts !== undefined) updateData.remainingFlashcardAttempts = data.remainingFlashcardAttempts;
@@ -149,6 +161,11 @@ export class UsersService {
     }
 
     if (data.planId) {
+      const [plan] = await this.db
+        .select()
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, data.planId))
+        .limit(1);
       const now = new Date();
       const periodEnd = data.currentPeriodEnd ? new Date(data.currentPeriodEnd) : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       const [created] = await this.db
@@ -159,8 +176,9 @@ export class UsersService {
           status: data.status || "active",
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
-          remainingExamAttempts: data.remainingExamAttempts,
-          remainingFlashcardAttempts: data.remainingFlashcardAttempts,
+          remainingExamAttempts: data.remainingExamAttempts ?? plan?.maxExamAttempts ?? null,
+          remainingFlashcardAttempts: data.remainingFlashcardAttempts ?? plan?.maxFlashcardAttempts ?? null,
+          remainingUses: data.remainingUses ?? plan?.maxUses ?? null,
         })
         .returning();
       return created;

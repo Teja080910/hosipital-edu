@@ -177,8 +177,10 @@ export class SubscriptionsService {
     const plan = await this.findPlanById(planId);
     if (!plan) throw new HttpException(this.i18n.t("subscriptions.planNotFound"), HttpStatus.NOT_FOUND);
 
+    const isRecurring = plan.interval === "month";
+
     let stripePriceId = plan.stripePriceId;
-    if (!stripePriceId) {
+    if (!stripePriceId || !isRecurring) {
       const result = await this.createStripeProductAndPrice(plan);
       stripePriceId = result.priceId;
       await this.updatePlan(plan.id, { stripePriceId });
