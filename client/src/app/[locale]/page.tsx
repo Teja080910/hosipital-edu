@@ -127,17 +127,46 @@ const sb = useTranslations("subscribe");
   }));
 
   const [testimonialsData, setTestimonialsData] = useState<any[]>([]);
-  const [promoVideoUrl, setPromoVideoUrl] = useState("https://www.youtube.com/embed/dQw4w9WgXcQ");
+  const [promoVideoUrl, setPromoVideoUrl] = useState("");
+  const [footer, setFooter] = useState({
+    facebookUrl: "https://www.facebook.com/mdexamedu",
+    instagramUrl: "https://www.instagram.com/md_exam/",
+    youtubeUrl: "https://www.youtube.com/@MD-exam",
+    email: "info@md-exam.com",
+    brandName: "MD Exam",
+    rightsText: "© 2024 MD Exam. All rights reserved.",
+  });
+
+  const getParamValue = (data: any, locale: string, fallback: string) => {
+    if (!data?.value) return fallback;
+    const val = typeof data.value === "object" ? data.value : { en: String(data.value) };
+    return val[locale] || val.en || fallback;
+  };
 
   useEffect(() => {
     testimonialsApi.getAll().then(({ data }) => {
       if (Array.isArray(data)) setTestimonialsData(data);
     }).catch(() => {});
     parametersApi.get("promo_video_url").then(({ data }) => {
-      if (data?.value) {
-        const val = typeof data.value === "object" ? data.value : { en: String(data.value) };
-        setPromoVideoUrl(val[currentLocale] || val.en || "https://www.youtube.com/embed/dQw4w9WgXcQ");
-      }
+      setPromoVideoUrl(getParamValue(data, currentLocale, ""));
+    }).catch(() => {});
+    parametersApi.get("footer_facebook_url").then(({ data }) => {
+      setFooter((f) => ({ ...f, facebookUrl: getParamValue(data, currentLocale, f.facebookUrl) }));
+    }).catch(() => {});
+    parametersApi.get("footer_instagram_url").then(({ data }) => {
+      setFooter((f) => ({ ...f, instagramUrl: getParamValue(data, currentLocale, f.instagramUrl) }));
+    }).catch(() => {});
+    parametersApi.get("footer_youtube_url").then(({ data }) => {
+      setFooter((f) => ({ ...f, youtubeUrl: getParamValue(data, currentLocale, f.youtubeUrl) }));
+    }).catch(() => {});
+    parametersApi.get("footer_email").then(({ data }) => {
+      setFooter((f) => ({ ...f, email: getParamValue(data, currentLocale, f.email) }));
+    }).catch(() => {});
+    parametersApi.get("footer_brand_name").then(({ data }) => {
+      setFooter((f) => ({ ...f, brandName: getParamValue(data, currentLocale, f.brandName) }));
+    }).catch(() => {});
+    parametersApi.get("footer_rights_text").then(({ data }) => {
+      setFooter((f) => ({ ...f, rightsText: getParamValue(data, currentLocale, f.rightsText) }));
     }).catch(() => {});
   }, []);
 
@@ -776,8 +805,8 @@ const sb = useTranslations("subscribe");
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt={t("brand")} width={36} height={36} className="rounded-lg bg-white p-1" />
-              <span className="font-semibold">{t("brand")}</span>
+              <Image src="/logo.png" alt={footer.brandName} width={36} height={36} className="rounded-lg bg-white p-1" />
+              <span className="font-semibold">{footer.brandName}</span>
             </Link>
             <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground sm:flex-row sm:gap-6">
               <Link href="/blog" className="hover:text-foreground transition-colors">{t("blog")}</Link>
@@ -786,22 +815,22 @@ const sb = useTranslations("subscribe");
               <Link href="/content/faq" className="hover:text-foreground transition-colors">{t("faq_title")}</Link>
             </div>
             <div className="flex items-center gap-4">
-              <a href="https://www.facebook.com/mdexamedu" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href={footer.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="https://www.instagram.com/md_exam/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href={footer.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="https://www.youtube.com/@MD-exam" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href={footer.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Youtube className="h-5 w-5" />
               </a>
-              <a href="mailto:info@md-exam.com" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
-                info@md-exam.com
+              <a href={`mailto:${footer.email}`} className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
+                {footer.email}
               </a>
             </div>
           </div>
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            {t("all_rights_reserved")}
+            {footer.rightsText}
           </div>
         </div>
       </footer>

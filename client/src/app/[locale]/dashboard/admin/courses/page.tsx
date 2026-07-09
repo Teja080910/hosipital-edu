@@ -134,8 +134,10 @@ export default function AdminCoursesPage() {
       }
       setDialogOpen(false);
       fetchCourses();
-    } catch {
-      toast.error(t("course_save_failed"));
+    } catch (err: any) {
+      console.error("Course save full error:", JSON.stringify(err?.response?.data || err, null, 2));
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || t("course_save_failed");
+      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setSaving(false);
     }

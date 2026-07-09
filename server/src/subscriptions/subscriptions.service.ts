@@ -369,7 +369,7 @@ export class SubscriptionsService {
           name: planName,
           amount: plan.price,
           interval: plan.interval,
-        }, user.preferredLocale || "en");
+        }, user.preferredLocale || "es");
 
         if (user.accountType === "course_only" && parseFloat(plan.price || "0") > 0) {
           await tx
@@ -431,7 +431,7 @@ export class SubscriptionsService {
       .limit(1);
 
     if (user) {
-      await this.mailService.sendSubscriptionCancelled(user.email, user.name, user.preferredLocale || "en");
+      await this.mailService.sendSubscriptionCancelled(user.email, user.name, user.preferredLocale || "es");
     }
 
     const [updated] = await this.db
@@ -585,7 +585,7 @@ export class SubscriptionsService {
                 .where(and(eq(users.id, sub.userId), isNull(users.deletedAt)))
                 .limit(1);
               if (usr) {
-                await this.mailService.sendPaymentFailed(usr.email, usr.name, usr.preferredLocale || "en");
+                await this.mailService.sendPaymentFailed(usr.email, usr.name, usr.preferredLocale || "es");
               }
             }
           }

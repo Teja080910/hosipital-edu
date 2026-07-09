@@ -137,7 +137,29 @@ export default function AdminParametersPage() {
             <h1 className="text-3xl font-bold tracking-tight">{t("parameters_title")}</h1>
             <p className="text-muted-foreground">{t("parameters_subtitle")}</p>
           </div>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> {t("add_parameter")}</Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={async () => {
+              const defaults: { key: string; value: any; description: string }[] = [
+                { key: "promo_video_url", value: { en: "", es: "" }, description: "YouTube embed URL for hero section video" },
+                { key: "footer_facebook_url", value: "", description: "Facebook page URL in footer" },
+                { key: "footer_instagram_url", value: "", description: "Instagram page URL in footer" },
+                { key: "footer_youtube_url", value: "", description: "YouTube channel URL in footer" },
+                { key: "footer_email", value: "", description: "Contact email in footer" },
+                { key: "footer_brand_name", value: { en: "", es: "" }, description: "Brand name in footer" },
+                { key: "footer_rights_text", value: { en: "", es: "" }, description: "Copyright text in footer" },
+              ];
+              const existingKeys = new Set(params.map((p: any) => p.key));
+              let added = 0;
+              for (const d of defaults) {
+                if (existingKeys.has(d.key)) continue;
+                try { await parametersApi.create(d); added++; } catch {}
+              }
+              if (added > 0) { toast.success(`${added} default parameters added`); fetchParams(); }
+              else toast.info("All defaults already exist");
+            }}>
+              <Plus className="h-4 w-4 mr-2" /> {t("add_defaults")}
+            </Button>
+          </div>
         </div>
         <Card>
           <CardContent className="pt-6">

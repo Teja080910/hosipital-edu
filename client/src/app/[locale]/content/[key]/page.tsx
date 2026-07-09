@@ -41,8 +41,8 @@ export default function ContentPage({ params }: { params: { key: string; locale:
   if (!content) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold mb-4">{t("not_found")}</h1>
-        <p className="text-muted-foreground mb-6">{t("not_found_desc")}</p>
+        <h1 className="text-2xl font-bold mb-4">{t("not_available")}</h1>
+        <p className="text-muted-foreground mb-6">{t("not_available_desc")}</p>
         <Button onClick={() => router.push("/")}>{t("go_home")}</Button>
       </div>
     );
@@ -50,6 +50,16 @@ export default function ContentPage({ params }: { params: { key: string; locale:
 
   const val = typeof content.value === "object" ? content.value : { en: String(content.value) };
   const body = val?.[locale] || val?.en || "";
+
+  if (!body) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold mb-4">{t("not_available")}</h1>
+        <p className="text-muted-foreground mb-6">{t("not_available_desc")}</p>
+        <Button onClick={() => router.push("/")}>{t("go_home")}</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
