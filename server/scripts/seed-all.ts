@@ -392,6 +392,41 @@ const paramsData = [
     },
     description: "FAQ page content",
   },
+  {
+    key: "promo_video_url",
+    value: { en: "", es: "" },
+    description: "YouTube embed URL for the hero section video (e.g. https://www.youtube.com/embed/VIDEO_ID)",
+  },
+  {
+    key: "footer_facebook_url",
+    value: "",
+    description: "Facebook page URL in footer",
+  },
+  {
+    key: "footer_instagram_url",
+    value: "",
+    description: "Instagram page URL in footer",
+  },
+  {
+    key: "footer_youtube_url",
+    value: "",
+    description: "YouTube channel URL in footer",
+  },
+  {
+    key: "footer_email",
+    value: "",
+    description: "Contact email displayed in footer",
+  },
+  {
+    key: "footer_brand_name",
+    value: { en: "", es: "" },
+    description: "Brand name displayed in footer",
+  },
+  {
+    key: "footer_rights_text",
+    value: { en: "", es: "" },
+    description: "Copyright / all rights reserved text in footer",
+  },
 ];
 
 // --- Helper: create a slug from exam slug + specialty name ---

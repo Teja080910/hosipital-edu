@@ -34,7 +34,7 @@ export class CoursesService {
     const conditions: SQL[] = [];
     if (onlyActive) conditions.push(eq(courses.isActive, true));
 
-    return this.db
+    const rows = await this.db
       .select({
         id: courses.id,
         slug: courses.slug,
@@ -57,6 +57,21 @@ export class CoursesService {
       .where(and(...conditions))
       .groupBy(courses.id)
       .orderBy(asc(courses.sortOrder));
+
+    const courseIds = rows.map((r: any) => r.id);
+    const allLinks = courseIds.length
+      ? await this.db
+          .select()
+          .from(courseExams)
+          .where(inArray(courseExams.courseId, courseIds))
+      : [];
+    const examIdsByCourse = new Map<string, string[]>();
+    for (const link of allLinks) {
+      if (!examIdsByCourse.has(link.courseId)) examIdsByCourse.set(link.courseId, []);
+      examIdsByCourse.get(link.courseId)!.push(link.examId);
+    }
+
+    return rows.map((r: any) => ({ ...r, examIds: examIdsByCourse.get(r.id) || [] }));
   }
 
   async findBySlug(slug: string) {

@@ -57,7 +57,7 @@ export class AuthService {
         referredBy,
         accountType: dto.accountType || "full",
         targetExamId: dto.targetExamId || null,
-        preferredLocale: dto.preferredLocale || "en",
+        preferredLocale: dto.preferredLocale || "es",
       })
       .returning();
 
@@ -66,7 +66,7 @@ export class AuthService {
       { sub: user.id, purpose: "email-verify" },
       { secret: emailSecret, expiresIn: "24h" },
     );
-    await this.mailService.sendVerificationEmail(user.email, user.name, token, user.preferredLocale || "en");
+    await this.mailService.sendVerificationEmail(user.email, user.name, token, user.preferredLocale || "es");
 
     const tokens = await this.generateTokens(user);
 
@@ -105,7 +105,7 @@ export class AuthService {
           { sub: user.id, purpose: "password-reset" },
           { secret: resetSecret, expiresIn: "1h" },
         );
-        await this.mailService.sendPasswordReset(user.email, user.name, token, user.preferredLocale || "en");
+        await this.mailService.sendPasswordReset(user.email, user.name, token, user.preferredLocale || "es");
       }
       throw new UnauthorizedException(this.i18n.t("auth.accountMigrated"));
     }
@@ -117,7 +117,7 @@ export class AuthService {
         { sub: user.id, purpose: "email-verify" },
         { secret: emailSecret, expiresIn: "24h" },
       );
-    await this.mailService.sendVerificationEmail(user.email, user.name, token, user.preferredLocale || "en");
+    await this.mailService.sendVerificationEmail(user.email, user.name, token, user.preferredLocale || "es");
       throw new UnauthorizedException(this.i18n.t("auth.emailNotVerified"));
     }
     const tokens = await this.generateTokens(user);
@@ -168,7 +168,7 @@ export class AuthService {
         .update(users)
         .set({ emailVerifiedAt: new Date() })
         .where(eq(users.id, user.id));
-      await this.mailService.sendWelcome(user.email, user.name, user.preferredLocale || "en");
+      await this.mailService.sendWelcome(user.email, user.name, user.preferredLocale || "es");
       return { message: this.i18n.t("auth.emailVerified") };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
@@ -189,7 +189,7 @@ export class AuthService {
       { sub: user.id, purpose: "email-verify" },
       { secret: emailSecret, expiresIn: "24h" },
     );
-    await this.mailService.sendVerificationEmail(user.email, user.name, token, user.preferredLocale || "en");
+    await this.mailService.sendVerificationEmail(user.email, user.name, token, user.preferredLocale || "es");
     return { message: this.i18n.t("auth.verificationSent") };
   }
 
@@ -207,7 +207,7 @@ export class AuthService {
       { sub: user.id, purpose: "password-reset" },
       { secret: resetSecret, expiresIn: "1h" },
     );
-    await this.mailService.sendPasswordReset(user.email, user.name, token, user.preferredLocale || "en");
+    await this.mailService.sendPasswordReset(user.email, user.name, token, user.preferredLocale || "es");
     return { message: this.i18n.t("auth.passwordResetSent") };
   }
 
@@ -227,7 +227,7 @@ export class AuthService {
         .update(users)
         .set({ passwordHash })
         .where(eq(users.id, user.id));
-      await this.mailService.sendPasswordChanged(user.email, user.name, user.preferredLocale || "en");
+      await this.mailService.sendPasswordChanged(user.email, user.name, user.preferredLocale || "es");
       return { message: this.i18n.t("auth.passwordResetSuccess") };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;

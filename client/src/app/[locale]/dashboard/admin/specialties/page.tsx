@@ -177,7 +177,7 @@ export default function AdminSpecialtiesPage() {
           {selectedExamId && (
             <>
               <Button onClick={() => openCreate("specialty")}><Plus className="h-4 w-4 mr-2" /> {t("add_specialty")}</Button>
-              {exams.find((e: any) => e.id === selectedExamId)?.slug === "enurm" && (() => {
+              {["enurm", "enarm"].includes(exams.find((e: any) => e.id === selectedExamId)?.slug) && (() => {
                 const mirExam = exams.find((e: any) => e.slug === "mir");
                 if (!mirExam) return null;
                 return (

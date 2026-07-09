@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   ParseUUIDPipe,
+  Logger,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { CoursesService } from "./courses.service";
@@ -226,7 +227,12 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create course (admin)" })
   async create(@Body() data: CreateCourseDto, @CurrentUser() user: any) {
-    return this.coursesService.create({ ...data, createdBy: user.id });
+    try {
+      return await this.coursesService.create({ ...data, createdBy: user.id });
+    } catch (err) {
+      Logger.error(`Course create failed: ${err instanceof Error ? err.message : err}`, "CoursesController");
+      throw err;
+    }
   }
 
   @Get("check-enrollment/:slug")

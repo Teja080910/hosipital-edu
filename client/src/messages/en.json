@@ -670,6 +670,7 @@
     "description_col": "Description",
     "updated_col": "Updated",
     "add_parameter": "Add Parameter",
+    "add_defaults": "Add Defaults",
     "edit_parameter": "Edit Parameter",
     "configure_parameter": "Configure system parameter",
     "key_placeholder": "e.g. terms_of_service, faq_content",
@@ -744,6 +745,7 @@
     "delete_type_title": "Delete {type}",
     "delete_type_desc": "Are you sure you want to delete \"{name}\"?",
     "course": "Course",
+    "no_exams": "No exams available",
     "failed_to_load_testimonials": "Failed to load testimonials",
     "testimonial_updated": "Testimonial updated",
     "testimonial_created": "Testimonial created",
@@ -1222,6 +1224,8 @@
   "content": {
     "not_found": "Page Not Found",
     "not_found_desc": "The content you are looking for does not exist or has been removed.",
+    "not_available": "Content Not Available",
+    "not_available_desc": "This page has not been set up yet. The administrator can add this content in Admin > System Parameters.",
     "go_home": "Go Home",
     "back": "Back"
   },
