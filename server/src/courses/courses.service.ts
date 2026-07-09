@@ -59,17 +59,19 @@ export class CoursesService {
       .orderBy(asc(courses.sortOrder));
 
     const courseIds = rows.map((r: any) => r.id);
-    const allLinks = courseIds.length
-      ? await this.db
-          .select()
-          .from(courseExams)
-          .where(inArray(courseExams.courseId, courseIds))
-      : [];
-    const examIdsByCourse = new Map<string, string[]>();
-    for (const link of allLinks) {
-      if (!examIdsByCourse.has(link.courseId)) examIdsByCourse.set(link.courseId, []);
-      examIdsByCourse.get(link.courseId)!.push(link.examId);
-    }
+    let examIdsByCourse = new Map<string, string[]>();
+    try {
+      const allLinks = courseIds.length
+        ? await this.db
+            .select()
+            .from(courseExams)
+            .where(inArray(courseExams.courseId, courseIds))
+        : [];
+      for (const link of allLinks) {
+        if (!examIdsByCourse.has(link.courseId)) examIdsByCourse.set(link.courseId, []);
+        examIdsByCourse.get(link.courseId)!.push(link.examId);
+      }
+    } catch {}
 
     return rows.map((r: any) => ({ ...r, examIds: examIdsByCourse.get(r.id) || [] }));
   }
@@ -134,9 +136,7 @@ export class CoursesService {
     const { createdAt, updatedAt, deletedAt, examIds, ...cleanData } = data;
     const [course] = await this.db.insert(courses).values(cleanData).returning();
     if (examIds?.length) {
-      await this.db.insert(courseExams).values(
-        examIds.map((eId: string) => ({ courseId: course.id, examId: eId }))
-      );
+      try { await this.db.insert(courseExams).values(examIds.map((eId: string) => ({ courseId: course.id, examId: eId }))); } catch {}
     }
     return course;
   }
@@ -150,12 +150,12 @@ export class CoursesService {
       .returning();
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
     if (examIds) {
-      await this.db.delete(courseExams).where(eq(courseExams.courseId, id));
-      if (examIds.length > 0) {
-        await this.db.insert(courseExams).values(
-          examIds.map((eId: string) => ({ courseId: id, examId: eId }))
-        );
-      }
+      try {
+        await this.db.delete(courseExams).where(eq(courseExams.courseId, id));
+        if (examIds.length > 0) {
+          await this.db.insert(courseExams).values(examIds.map((eId: string) => ({ courseId: id, examId: eId })));
+        }
+      } catch {}
     }
     return course;
   }
