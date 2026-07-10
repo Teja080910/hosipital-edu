@@ -563,7 +563,8 @@ const sb = useTranslations("subscribe");
               const pName = plan.name?.en || plan.name;
               const pPopular = plan.sortOrder === 1;
               const pPeriod = plan.interval === "year" ? t("period_year") : plan.interval === "quarter" ? t("period_quarter") : t("period_month");
-              const features = planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"];
+              const pDesc = plan.description?.[currentLocale] || plan.description?.en || "";
+              const features = pDesc ? pDesc.split("\n").filter(Boolean) : (planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"]);
               return (
               <motion.div key={plan.id || pName} {...stagger(i)}>
                 <Card className={cn(
@@ -585,7 +586,7 @@ const sb = useTranslations("subscribe");
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-4">
-                    {features.map((f) => (
+                    {features.map((f:any) => (
                       <div key={f} className="flex items-start gap-3">
                         <Check className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -714,7 +715,8 @@ const sb = useTranslations("subscribe");
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.currentTarget);
+                const form = e.currentTarget;
+                const formData = new FormData(form);
                 const email = formData.get("email") as string;
                 const name = formData.get("name") as string;
                 if (!email?.trim()) return;
@@ -723,8 +725,9 @@ const sb = useTranslations("subscribe");
                 try {
                   await leadsApi.create({ email, name: name || undefined, source: "landing", locale: currentLocale });
                   setLeadMsg("success");
-                  e.currentTarget.reset();
+                  form.reset();
                 } catch (err: any) {
+                  console.error("Lead capture error:", err?.response?.data || err?.message || err);
                   if (err?.response?.status === 409) {
                     setLeadMsg("exists");
                   } else {

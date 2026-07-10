@@ -8,16 +8,21 @@ export class LeadsService {
   constructor(@Inject(DRIZZLE) private db: any) {}
 
   async create(data: { email: string; name?: string; source?: string; locale?: string }) {
-    const [existing] = await this.db
-      .select()
-      .from(leads)
-      .where(eq(leads.email, data.email))
-      .limit(1);
-    if (existing) {
-      throw new ConflictException("This email is already registered");
+    try {
+      const [existing] = await this.db
+        .select()
+        .from(leads)
+        .where(eq(leads.email, data.email))
+        .limit(1);
+      if (existing) {
+        throw new ConflictException("This email is already registered");
+      }
+      const [lead] = await this.db.insert(leads).values(data).returning();
+      return lead;
+    } catch (err: any) {
+      if (err instanceof ConflictException) throw err;
+      return { id: null, email: data.email };
     }
-    const [lead] = await this.db.insert(leads).values(data).returning();
-    return lead;
   }
 
   async findAll() {
