@@ -150,12 +150,12 @@ export class CoursesService {
       .returning();
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
     if (examIds) {
-      try {
-        await this.db.delete(courseExams).where(eq(courseExams.courseId, id));
-        if (examIds.length > 0) {
-          await this.db.insert(courseExams).values(examIds.map((eId: string) => ({ courseId: id, examId: eId })));
-        }
-      } catch {}
+      await this.db.delete(courseExams).where(eq(courseExams.courseId, id));
+      if (examIds.length > 0) {
+        await this.db.insert(courseExams).values(
+          examIds.map((eId: string) => ({ courseId: id, examId: eId }))
+        );
+      }
     }
     return course;
   }
