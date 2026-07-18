@@ -60,6 +60,10 @@ class CreatePlanDto {
 
   @IsOptional()
   @IsBoolean()
+  isPopular?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   isCourseOnly?: boolean;
 
   @IsOptional()
@@ -140,6 +144,10 @@ class UpdatePlanDto {
   @IsOptional()
   @IsBoolean()
   isVisible?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isPopular?: boolean;
 
   @IsOptional()
   @IsBoolean()

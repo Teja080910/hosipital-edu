@@ -16,7 +16,7 @@ import {
   users,
   courseExams,
 } from "../database/schema";
-import { eq, and, asc, inArray, sql, desc, type SQL } from "drizzle-orm";
+import { eq, and, asc, inArray, sql, desc, isNull, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 import { STRIPE } from "../subscriptions/stripe.provider";
 import Stripe from "stripe";
@@ -31,7 +31,7 @@ export class CoursesService {
   ) {}
 
   async findAll(onlyActive = true) {
-    const conditions: SQL[] = [];
+    const conditions: SQL[] = [isNull(courses.deletedAt)];
     if (onlyActive) conditions.push(eq(courses.isActive, true));
 
     const rows = await this.db
@@ -80,7 +80,7 @@ export class CoursesService {
     const [course] = await this.db
       .select()
       .from(courses)
-      .where(and(eq(courses.slug, slug), eq(courses.isActive, true)))
+      .where(and(eq(courses.slug, slug), eq(courses.isActive, true), isNull(courses.deletedAt)))
       .limit(1);
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
 
@@ -126,7 +126,7 @@ export class CoursesService {
     const [course] = await this.db
       .select({ id: courses.id })
       .from(courses)
-      .where(and(eq(courses.slug, slug), eq(courses.isActive, true)))
+      .where(and(eq(courses.slug, slug), eq(courses.isActive, true), isNull(courses.deletedAt)))
       .limit(1);
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
     return course.id;
@@ -163,7 +163,7 @@ export class CoursesService {
   async softDelete(id: string) {
     const [course] = await this.db
       .update(courses)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(eq(courses.id, id))
       .returning();
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
@@ -352,7 +352,7 @@ export class CoursesService {
         const [firstCourse] = await this.db
           .select({ id: courses.id })
           .from(courses)
-          .where(eq(courses.isActive, true))
+          .where(and(eq(courses.isActive, true), isNull(courses.deletedAt)))
           .orderBy(asc(courses.sortOrder))
           .limit(1);
         if (firstCourse && firstCourse.id === courseId) {

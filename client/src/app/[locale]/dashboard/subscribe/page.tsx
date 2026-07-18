@@ -156,9 +156,9 @@ export default function SubscribePage() {
                   <Card className={cn(
                     "relative flex flex-col w-full border-border/50 transition-all duration-300",
                     isCurrent && "border-amber-400/50 shadow-lg shadow-amber-500/10 scale-105 md:scale-105 z-10",
-                    !isCurrent && plan.interval === "quarter" && "border-primary shadow-card-hover scale-105 md:scale-105 z-10",
+                    !isCurrent && plan.isPopular && "border-primary shadow-card-hover scale-105 md:scale-105 z-10",
                   )}>
-                    {(isCurrent || plan.interval === "quarter") && !isCurrent && (
+                    {(isCurrent || plan.isPopular) && !isCurrent && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
                         <Badge className="px-4 py-1 text-xs font-semibold bg-primary text-primary-foreground shadow-subtle">
                           {t("most_popular")}
@@ -172,7 +172,7 @@ export default function SubscribePage() {
                         </Badge>
                       </div>
                     )}
-                    <CardHeader className={cn((isCurrent || plan.interval === "quarter") && "pt-8")}>
+                    <CardHeader className={cn((isCurrent || plan.isPopular) && "pt-8")}>
                       <CardTitle className="text-xl capitalize">{plan.interval}</CardTitle>
                       <div className="mt-3">
                         <span className="text-4xl font-bold">${plan.price}</span>
@@ -198,7 +198,7 @@ export default function SubscribePage() {
                       ) : (
                         <Button
                           className="w-full"
-                          variant={plan.interval === "quarter" ? "default" : "outline"}
+                          variant={plan.isPopular ? "default" : "outline"}
                           size="lg"
                           onClick={() => handleSubscribe(plan.id)}
                           disabled={subscribing === plan.id}

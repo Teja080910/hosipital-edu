@@ -571,9 +571,7 @@ export default function AdminQuestionsPage() {
                 {/* Question text */}
                 <div className="space-y-2">
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("question_label")}</p>
-                  <div className="rounded-xl border border-border/80 bg-muted/20 px-4 py-4 text-sm leading-relaxed">
-                    {viewQuestion.text}
-                  </div>
+                  <div className="rounded-xl border border-border/80 bg-muted/20 px-4 py-4 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: viewQuestion.text }} />
                 </div>
 
                 {/* Options */}
@@ -619,7 +617,7 @@ export default function AdminQuestionsPage() {
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("explanation")}</p>
                     <div className="flex gap-3 rounded-xl border border-amber-200/60 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800/40 px-4 py-4">
                       <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                      <p className="text-sm leading-relaxed text-foreground/80">{viewQuestion.explanation}</p>
+                      <p className="text-sm leading-relaxed text-foreground/80" dangerouslySetInnerHTML={{ __html: viewQuestion.explanation }} />
                     </div>
                   </div>
                 )}

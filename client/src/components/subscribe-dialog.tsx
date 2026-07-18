@@ -93,16 +93,16 @@ export function SubscribeDialog({ open, onOpenChange, courseTitle, courseId }: S
             {plans.map((plan) => (
               <Card key={plan.id} className={cn(
                 "relative flex flex-col border-border/50",
-                plan.interval === "quarter" && "border-primary shadow-lg scale-105 z-10",
+                plan.isPopular && "border-primary shadow-lg scale-105 z-10",
               )}>
-                {plan.interval === "quarter" && (
+                {plan.isPopular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                     <Badge className="px-3 py-0.5 text-xs font-semibold bg-primary text-primary-foreground">
                       {ts("most_popular")}
                     </Badge>
                   </div>
                 )}
-                <CardHeader className={cn(plan.interval === "quarter" && "pt-6")}>
+                <CardHeader className={cn(plan.isPopular && "pt-6")}>
                   <CardTitle className="text-lg capitalize">{plan.interval}</CardTitle>
                   <div className="mt-2">
                     <span className="text-3xl font-bold">${plan.price}</span>
@@ -123,7 +123,7 @@ export function SubscribeDialog({ open, onOpenChange, courseTitle, courseId }: S
                 <CardFooter>
                   <Button
                     className="w-full"
-                    variant={plan.interval === "quarter" ? "default" : "outline"}
+                    variant={plan.isPopular ? "default" : "outline"}
                     size="sm"
                     onClick={() => handleSubscribe(plan.id)}
                     disabled={subscribing === plan.id}

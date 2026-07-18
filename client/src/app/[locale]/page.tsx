@@ -134,7 +134,7 @@ const sb = useTranslations("subscribe");
     youtubeUrl: "https://www.youtube.com/@MD-exam",
     email: "info@md-exam.com",
     brandName: "MD Exam",
-    rightsText: "© 2024 MD Exam. All rights reserved.",
+    rightsText: `© ${new Date().getFullYear()} MD Exam. All rights reserved.`,
   });
 
   const getParamValue = (data: any, locale: string, fallback: string) => {
@@ -208,7 +208,7 @@ const sb = useTranslations("subscribe");
   }));
 
   const getPlanButton = (plan: any) => {
-    const isPopular = plan.sortOrder === 1;
+    const isPopular = plan.isPopular;
     if (!user) {
       return (
         <Link href="/register" className="w-full">
@@ -561,7 +561,7 @@ const sb = useTranslations("subscribe");
           <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
             {plans.map((plan, i) => {
               const pName = plan.name?.en || plan.name;
-              const pPopular = plan.sortOrder === 1;
+              const pPopular = plan.isPopular;
               const pPeriod = plan.interval === "year" ? t("period_year") : plan.interval === "quarter" ? t("period_quarter") : t("period_month");
               const pDesc = plan.description?.[currentLocale] || plan.description?.en || "";
               const features = pDesc ? pDesc.split("\n").filter(Boolean) : (planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"]);

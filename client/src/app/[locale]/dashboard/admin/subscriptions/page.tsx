@@ -52,6 +52,7 @@ export default function AdminSubscriptionsPage() {
     maxFlashcardAttempts: "",
     maxUses: "",
     courseId: "",
+    isPopular: false,
   });
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function AdminSubscriptionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "0", interval: "month", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, maxExamAttempts: "", maxFlashcardAttempts: "", maxUses: "", courseId: "" });
+    setForm({ name: "", description: "", price: "0", interval: "month", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, maxExamAttempts: "", maxFlashcardAttempts: "", maxUses: "", courseId: "", isPopular: false });
     setDialogOpen(true);
   };
 
@@ -94,6 +95,7 @@ export default function AdminSubscriptionsPage() {
       maxFlashcardAttempts: p.maxFlashcardAttempts?.toString() || "",
       maxUses: p.maxUses?.toString() || "",
       courseId: p.courseId || "",
+      isPopular: p.isPopular ?? false,
     });
     setDialogOpen(true);
   };
@@ -116,6 +118,7 @@ export default function AdminSubscriptionsPage() {
         maxFlashcardAttempts: form.maxFlashcardAttempts ? Number(form.maxFlashcardAttempts) : null,
         maxUses: form.maxUses ? Number(form.maxUses) : null,
         courseId: form.courseId || null,
+        isPopular: form.isPopular,
       };
       if (editing) {
         await subscriptionsApi.updatePlan(editing.id, payload);
@@ -309,6 +312,19 @@ export default function AdminSubscriptionsPage() {
               <div>
                 <label className="text-sm font-medium">{t("visible_label")}</label>
                 <p className="text-xs text-muted-foreground">{t("visible_desc")}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-primary/30">
+              <input
+                type="checkbox"
+                checked={form.isPopular}
+                onChange={(e) => setForm({ ...form, isPopular: e.target.checked })}
+                className="h-4 w-4 rounded border-border"
+              />
+              <div>
+                <label className="text-sm font-medium">{t("is_popular")}</label>
+                <p className="text-xs text-muted-foreground">{t("is_popular_desc")}</p>
               </div>
             </div>
 

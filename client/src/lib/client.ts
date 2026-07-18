@@ -11,6 +11,10 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (typeof window !== "undefined") {
+    const locale = window.location.pathname.split("/")[1] || "en";
+    config.headers["Accept-Language"] = locale;
+  }
   return config;
 });
 

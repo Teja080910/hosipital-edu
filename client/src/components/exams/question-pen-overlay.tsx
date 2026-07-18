@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Pen, Highlighter, Eraser } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function QuestionPenOverlay({ questionId, children }: { questionId: string; children: React.ReactNode }) {
+  const t = useTranslations("common");
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tool, setTool] = useState<"pen" | "highlighter" | null>(null);
@@ -123,7 +125,7 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
           type="button"
           onClick={() => setTool(tool === "pen" ? null : "pen")}
           className={`p-1.5 rounded transition-colors ${tool === "pen" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-          title="Pen"
+          title={t("pen")}
         >
           <Pen className="h-4 w-4" />
         </button>
@@ -131,7 +133,7 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
           type="button"
           onClick={() => setTool(tool === "highlighter" ? null : "highlighter")}
           className={`p-1.5 rounded transition-colors ${tool === "highlighter" ? "bg-yellow-500 text-yellow-950" : "hover:bg-muted"}`}
-          title="Highlighter"
+          title={t("highlighter")}
         >
           <Highlighter className="h-4 w-4" />
         </button>
@@ -139,7 +141,7 @@ export function QuestionPenOverlay({ questionId, children }: { questionId: strin
           type="button"
           onClick={clear}
           className="p-1.5 rounded hover:bg-muted transition-colors"
-          title="Clear"
+          title={t("clear")}
         >
           <Eraser className="h-4 w-4" />
         </button>

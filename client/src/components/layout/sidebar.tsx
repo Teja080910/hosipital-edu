@@ -86,8 +86,9 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const [subData, setSubData] = useState<{ sub: any; allPlans: any[] } | null>(null);
 
   const activePlan = subData?.sub?.plan;
+  const isCourseOnly = user?.accountType === "course_only";
   const hasExams = activePlan ? (activePlan.maxExamAttempts != null || parseFloat(activePlan.price || "0") > 0) : false;
-  const hasFlashcards = activePlan?.maxFlashcards != null || activePlan?.maxFlashcardAttempts != null;
+  const hasFlashcards = (!isCourseOnly && activePlan) ? (activePlan.maxFlashcards != null || activePlan?.maxFlashcardAttempts != null) : false;
   const hasVideos = hasExams;
   const hasProgress = hasExams || hasFlashcards;
   const hasCalendar = hasExams;

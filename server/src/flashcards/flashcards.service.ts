@@ -130,6 +130,13 @@ export class FlashcardsService {
   }
 
   async findDue(userId: string, limit = 20, specialtyId?: string) {
+    const [u] = await this.db
+      .select({ accountType: users.accountType })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (u?.accountType === "course_only") return [];
+
     const now = new Date();
 
     const conditions = [
@@ -372,10 +379,12 @@ export class FlashcardsService {
 
   async getSpecialties(userId: string) {
     const [user] = await this.db
-      .select({ role: users.role, targetExamId: users.targetExamId })
+      .select({ role: users.role, accountType: users.accountType, targetExamId: users.targetExamId })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
+
+    if (user?.accountType === "course_only") return [];
 
     const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
 
@@ -407,13 +416,17 @@ export class FlashcardsService {
     const { userId, mode, questionCount, timeLimit, customTitle, specialtyId, topicId } = data;
 
     const [user] = await this.db
-      .select({ role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
+      .select({ role: users.role, accountType: users.accountType, targetExamId: users.targetExamId, createdAt: users.createdAt })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
     if (!user) throw new NotFoundException("User not found");
 
     const isAdmin = user.role === "admin" || user.role === "super_admin";
+
+    if (user.accountType === "course_only") {
+      throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
+    }
 
     let sub: any = null;
 
