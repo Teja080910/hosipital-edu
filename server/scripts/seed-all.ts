@@ -7,6 +7,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
 
 // --- User config ---
+// Fallback admin emails if no admin/super_admin user exists in DB
 const ADMIN_EMAILS = ["tejasimma033@gmail.com", "sailakshmiborra4104@gmail.com"];
 
 // --- Exams & Specialties ---
@@ -402,22 +403,36 @@ function specialtySlug(examSlug: string, en: string): string {
 async function main() {
   console.log("Connected to database\n");
 
-  // Find admin user
+  // Find any admin or super_admin user in the database
   let adminUser: any = null;
-  for (const email of ADMIN_EMAILS) {
-    const rows = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.email, email))
-      .limit(1);
-    if (rows.length > 0) {
-      adminUser = rows[0];
-      break;
+
+  const adminUsers = await db
+    .select()
+    .from(schema.users)
+    .where(inArray(schema.users.role, ["admin", "super_admin"]))
+    .limit(1);
+
+  if (adminUsers.length > 0) {
+    adminUser = adminUsers[0];
+  }
+
+  // Fallback to hardcoded emails if no admin role exists yet
+  if (!adminUser) {
+    for (const email of ADMIN_EMAILS) {
+      const rows = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, email))
+        .limit(1);
+      if (rows.length > 0) {
+        adminUser = rows[0];
+        break;
+      }
     }
   }
 
   if (!adminUser) {
-    console.error(`No admin user found among: ${ADMIN_EMAILS.join(", ")}. Please create one first.`);
+    console.error("No admin user found. Create an admin user first, then re-run this script.");
     await pool.end();
     process.exit(1);
   }
