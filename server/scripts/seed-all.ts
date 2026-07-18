@@ -796,9 +796,17 @@ async function main() {
       continue;
     }
 
-    await db.insert(schema.subscriptionPlans).values(plan);
+    const [createdPlan] = await db.insert(schema.subscriptionPlans).values(plan).returning();
     console.log(`  Created: ${plan.name.en}`);
     pCreated++;
+
+    const allExams = await db.select({ id: schema.exams.id }).from(schema.exams);
+    for (const exam of allExams) {
+      await db
+        .insert(schema.planExams)
+        .values({ planId: createdPlan.id, examId: exam.id })
+        .onConflictDoNothing();
+    }
   }
   console.log(`Plans: ${pCreated} created\n`);
 
