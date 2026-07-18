@@ -27,7 +27,7 @@ export class SubscriptionExamGuard implements CanActivate {
       .select({ examId: subscriptionPlans.examId, currentPeriodEnd: userSubscriptions.currentPeriodEnd })
       .from(userSubscriptions)
       .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-      .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+      .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
       .limit(1);
 
     if (!sub) return false;

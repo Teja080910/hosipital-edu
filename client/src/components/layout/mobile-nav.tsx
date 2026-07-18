@@ -5,7 +5,7 @@ import { Link } from "@/routing";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
-import { LayoutDashboard, Library, GraduationCap, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Library, GraduationCap, BarChart3, BookOpen } from "lucide-react";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -17,6 +17,7 @@ export function MobileNav() {
     // { href: "/dashboard/questions", icon: FileQuestion, label: t("questions") },
     { href: "/dashboard/flashcards", icon: Library, label: t("flashcards"), accountTypes: ["full"] },
     { href: "/dashboard/exams", icon: GraduationCap, label: t("exams"), accountTypes: ["full"] },
+    { href: "/dashboard/courses", icon: BookOpen, label: t("courses") },
     { href: "/dashboard/progress", icon: BarChart3, label: t("progress"), accountTypes: ["full"] },
   ];
 

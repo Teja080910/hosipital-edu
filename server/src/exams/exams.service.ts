@@ -26,7 +26,7 @@ export class ExamsService {
           .select({ planId: subscriptionPlans.id, examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt), gt(userSubscriptions.currentPeriodEnd, new Date())))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), gt(userSubscriptions.currentPeriodEnd, new Date())))
           .limit(1);
       }
     }
@@ -95,7 +95,7 @@ export class ExamsService {
           .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt), gt(userSubscriptions.currentPeriodEnd, new Date())))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), gt(userSubscriptions.currentPeriodEnd, new Date())))
           .limit(1);
 
         if (!sub) {

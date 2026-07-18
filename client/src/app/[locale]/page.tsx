@@ -685,13 +685,19 @@ const sb = useTranslations("subscribe");
             transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="relative mx-auto max-w-4xl aspect-video rounded-2xl overflow-hidden border border-border/50 shadow-xl group"
           >
-            <iframe
-              src={promoVideoUrl}
-              title="MD Exam Promotional Video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full"
-            />
+            {promoVideoUrl ? (
+              <iframe
+                src={promoVideoUrl}
+                title=""
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-muted/30">
+                {t("no_video")}
+              </div>
+            )}
           </motion.div>
         </div>
       </section>

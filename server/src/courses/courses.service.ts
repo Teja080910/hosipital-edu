@@ -240,7 +240,7 @@ export class CoursesService {
       throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
     }
 
-    if (parseFloat(course.price) === 0 || isValidStripeSession || (sub && !isCourseOnly) || (isCourseOnly && subCourseId === courseId)) {
+    if (parseFloat(course.price) === 0 || isValidStripeSession || (isCourseOnly && subCourseId === courseId)) {
       const [enrollment] = await this.db
         .insert(userCourseEnrollments)
         .values({
