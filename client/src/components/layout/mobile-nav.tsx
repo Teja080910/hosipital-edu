@@ -5,7 +5,7 @@ import { Link } from "@/routing";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
-import { LayoutDashboard, FileQuestion, Library, GraduationCap, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Library, GraduationCap, BarChart3 } from "lucide-react";
 
 export function MobileNav() {
   const pathname = usePathname();

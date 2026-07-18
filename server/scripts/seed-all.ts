@@ -28,7 +28,7 @@ const examsData: ExamDef[] = [
   {
     slug: "enurm",
     name: { en: "ENURM", es: "ENURM" },
-    description: { en: "Examen Nacional Único de Residencias Médicas (Dominican Republic)", es: "Examen Nacional Único de Residencias Médicas (República Dominicana)" },
+    description: { en: "National Unified Medical Residency Exam - Dominican Republic", es: "EXAMEN NACIONAL ÚNICO DE RESIDENCIAS MÉDICAS - República Dominicana" },
     group: "residency",
     sortOrder: 0,
     specialties: [
@@ -364,7 +364,7 @@ const articlesData = [
 
 const plansData = [
   { name: { en: "Monthly", es: "Mensual" }, description: { en: "Full question bank access, basic analytics", es: "Acceso completo al banco de preguntas, analíticas básicas" }, price: "29", interval: "month", sortOrder: 0, isVisible: true, maxExamAttempts: 20 },
-  { name: { en: "Quarterly", es: "Trimestral" }, description: { en: "Everything in Monthly plus advanced analytics, priority support, mock exams", es: "Todo lo de Mensual más analíticas avanzadas, soporte prioritario, exámenes simulados" }, price: "69", interval: "quarter", sortOrder: 1, isVisible: true, maxExamAttempts: 50 },
+  { name: { en: "Quarterly", es: "Trimestral" }, description: { en: "Everything in Monthly plus advanced analytics, priority support, mock exams", es: "Todo lo de Mensual más analíticas avanzadas, soporte prioritario, exámenes simulados" }, price: "69", interval: "quarter", sortOrder: 1, isVisible: true, isPopular: true, maxExamAttempts: 50 },
   { name: { en: "Annual", es: "Anual" }, description: { en: "Everything in Quarterly plus 1-on-1 tutoring, certificate, early access", es: "Todo lo de Trimestral más tutoría personalizada, certificado, acceso anticipado" }, price: "199", interval: "year", sortOrder: 2, isVisible: true, maxExamAttempts: 999999 },
 ];
 
@@ -392,6 +392,41 @@ const paramsData = [
       es: "Preguntas Frecuentes\n\nP: ¿Cómo funciona el banco de preguntas?\nR: Nuestro banco contiene miles de preguntas tipo examen organizadas por especialidad y tema.\n\nP: ¿Qué es la repetición espaciada?\nR: La repetición espaciada programa revisiones en intervalos óptimos.\n\nP: ¿Puedo acceder al contenido en mi móvil?\nR: ¡Sí! Nuestra plataforma es totalmente responsive. La app móvil estará disponible pronto.\n\nP: ¿Hay garantía de devolución?\nR: Sí, ofrecemos una garantía de 14 días en todos los planes.\n\nP: ¿Cómo actualizo mi plan?\nR: Ve a la página de Suscripción y selecciona un nuevo plan.\n\nP: ¿Cómo cancelo mi suscripción?\nR: Ve a Suscripción y haz clic en Cancelar Suscripción.",
     },
     description: "FAQ page content",
+  },
+  {
+    key: "promo_video_url",
+    value: { en: "", es: "" },
+    description: "YouTube embed URL for the hero section video (e.g. https://www.youtube.com/embed/VIDEO_ID)",
+  },
+  {
+    key: "footer_facebook_url",
+    value: "",
+    description: "Facebook page URL in footer",
+  },
+  {
+    key: "footer_instagram_url",
+    value: "",
+    description: "Instagram page URL in footer",
+  },
+  {
+    key: "footer_youtube_url",
+    value: "",
+    description: "YouTube channel URL in footer",
+  },
+  {
+    key: "footer_email",
+    value: "",
+    description: "Contact email displayed in footer",
+  },
+  {
+    key: "footer_brand_name",
+    value: { en: "", es: "" },
+    description: "Brand name displayed in footer",
+  },
+  {
+    key: "footer_rights_text",
+    value: { en: "", es: "" },
+    description: "Copyright / all rights reserved text in footer",
   },
 ];
 
@@ -458,7 +493,6 @@ async function main() {
         slug: exam.slug,
         name: exam.name,
         description: exam.description,
-        group: exam.group,
         sortOrder: exam.sortOrder,
         isActive: true,
       }).returning();
@@ -540,6 +574,31 @@ async function main() {
     process.stdout.write(".");
   }
   console.log(`\nQuestions: ${qCreated} created\n`);
+
+  // Copy MIR questions to ENURM so all MIR questions are also available in ENURM
+  const [mirExam] = await db.select({ id: schema.exams.id }).from(schema.exams).where(eq(schema.exams.slug, "mir")).limit(1);
+  const [enurmExam] = await db.select({ id: schema.exams.id }).from(schema.exams).where(eq(schema.exams.slug, "enurm")).limit(1);
+  if (mirExam && enurmExam) {
+    const mirLinks = await db
+      .select({ questionId: schema.questionExams.questionId })
+      .from(schema.questionExams)
+      .where(eq(schema.questionExams.examId, mirExam.id));
+    const mirQIds = mirLinks.map((l: any) => l.questionId);
+    if (mirQIds.length > 0) {
+      const existingEnurmLinks = await db
+        .select({ questionId: schema.questionExams.questionId })
+        .from(schema.questionExams)
+        .where(eq(schema.questionExams.examId, enurmExam.id));
+      const existingEnurmIds = new Set(existingEnurmLinks.map((l: any) => l.questionId));
+      const toInsert = mirQIds.filter((id: string) => !existingEnurmIds.has(id));
+      if (toInsert.length > 0) {
+        await db.insert(schema.questionExams).values(
+          toInsert.map((questionId: string) => ({ questionId, examId: enurmExam.id })),
+        );
+        console.log(`Linked ${toInsert.length} MIR questions to ENURM`);
+      }
+    }
+  }
 
   // ========================================================================
   // 3. FLASHCARDS (for ENURM, ENARM, MIR — all specialties)

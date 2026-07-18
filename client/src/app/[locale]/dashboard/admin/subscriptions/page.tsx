@@ -42,13 +42,17 @@ export default function AdminSubscriptionsPage() {
     name: "",
     description: "",
     price: "0",
-    interval: "monthly",
+    interval: "month",
     currency: "USD",
     isVisible: true,
-    examId: "",
+    examIds: [] as string[],
     isCourseOnly: false,
     maxDays: 0,
+    maxExamAttempts: "",
+    maxFlashcardAttempts: "",
+    maxUses: "",
     courseId: "",
+    isPopular: false,
   });
 
   useEffect(() => {
@@ -71,7 +75,7 @@ export default function AdminSubscriptionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "0", interval: "monthly", currency: "USD", isVisible: true, examId: "", isCourseOnly: false, maxDays: 0, courseId: "" });
+    setForm({ name: "", description: "", price: "0", interval: "month", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, maxExamAttempts: "", maxFlashcardAttempts: "", maxUses: "", courseId: "", isPopular: false });
     setDialogOpen(true);
   };
 
@@ -81,13 +85,17 @@ export default function AdminSubscriptionsPage() {
       name: p.name?.en || p.name || "",
       description: p.description?.en || p.description || "",
       price: p.price || "0",
-      interval: p.interval || "monthly",
+      interval: p.interval || "month",
       currency: p.currency || "USD",
       isVisible: p.isVisible ?? true,
-      examId: p.examId || "",
+      examIds: p.examIds || (p.examId ? [p.examId] : []),
       isCourseOnly: p.isCourseOnly ?? false,
       maxDays: p.maxDays || 0,
+      maxExamAttempts: p.maxExamAttempts?.toString() || "",
+      maxFlashcardAttempts: p.maxFlashcardAttempts?.toString() || "",
+      maxUses: p.maxUses?.toString() || "",
       courseId: p.courseId || "",
+      isPopular: p.isPopular ?? false,
     });
     setDialogOpen(true);
   };
@@ -99,14 +107,18 @@ export default function AdminSubscriptionsPage() {
       const payload: Record<string, unknown> = {
         name: { en: form.name },
         description: { en: form.description },
-        price: form.price,
+        price: Number(form.price),
         interval: form.interval,
         currency: form.currency,
         isVisible: form.isVisible,
-        examId: form.examId || null,
+        examIds: form.examIds.length > 0 ? form.examIds : null,
         isCourseOnly: form.isCourseOnly,
         maxDays: form.maxDays || null,
+        maxExamAttempts: form.maxExamAttempts ? Number(form.maxExamAttempts) : null,
+        maxFlashcardAttempts: form.maxFlashcardAttempts ? Number(form.maxFlashcardAttempts) : null,
+        maxUses: form.maxUses ? Number(form.maxUses) : null,
         courseId: form.courseId || null,
+        isPopular: form.isPopular,
       };
       if (editing) {
         await subscriptionsApi.updatePlan(editing.id, payload);
@@ -139,15 +151,22 @@ export default function AdminSubscriptionsPage() {
   const columns = [
     { key: "name", header: t("title_col"), sortable: true, render: (row: any) => row.name?.en || row.name },
     { key: "price", header: t("price"), render: (row: any) => `$${row.price}` },
-    { key: "interval", header: t("plan"), render: (row: any) => <Badge variant="outline" className="capitalize">{row.interval}</Badge> },
+    { key: "interval", header: t("plan"), render: (row: any) => {
+      const label: Record<string, string> = { month: t("monthly"), quarter: t("quarterly"), year: t("annual") };
+      return <Badge variant="outline" className="capitalize">{label[row.interval] || row.interval}</Badge>;
+    }},
     { key: "exam", header: t("exam"), render: (row: any) => {
-      const exam = exams.find((e: any) => e.id === row.examId);
-      return exam ? (exam.name?.en || exam.slug) : <span className="text-muted-foreground italic">Any</span>;
+      const examIds = row.examIds || (row.examId ? [row.examId] : []);
+      if (examIds.length === 0) return <span className="text-muted-foreground italic">{t("all_exams")}</span>;
+      return <div className="flex flex-wrap gap-1">{examIds.map((eId: string) => {
+        const exam = exams.find((e: any) => e.id === eId);
+        return exam ? <Badge key={eId} variant="secondary" className="text-xs">{exam.name?.en || exam.slug}</Badge> : null;
+      })}</div>;
     }},
     { key: "isVisible", header: t("status"), render: (row: any) => <Badge variant={row.isVisible ? "default" : "secondary"}>{row.isVisible ? c("active") : c("draft")}</Badge> },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" onClick={() => openEdit(row)}><Pencil className="h-3 w-3" /></Button>
@@ -237,9 +256,9 @@ export default function AdminSubscriptionsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">{t("monthly")}</SelectItem>
-                    <SelectItem value="quarterly">{t("quarterly")}</SelectItem>
-                    <SelectItem value="annual">{t("annual")}</SelectItem>
+                    <SelectItem value="month">{t("monthly")}</SelectItem>
+                    <SelectItem value="quarter">{t("quarterly")}</SelectItem>
+                    <SelectItem value="year">{t("annual")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -260,19 +279,27 @@ export default function AdminSubscriptionsPage() {
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
-              <Select value={form.examId || "all"} onValueChange={(v) => setForm({ ...form, examId: v === "all" ? "" : v })}>
-                <SelectTrigger className="bg-muted/20 border-border/80 rounded-xl h-11 px-4">
-                  <SelectValue placeholder={t("select_exam_placeholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("all_exams")}</SelectItem>
-                  {exams.map((exam: any) => (
-                    <SelectItem key={exam.id} value={exam.id}>
-                      {exam.name?.en || exam.slug}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 max-h-40 overflow-y-auto p-3 bg-muted/20 rounded-xl border border-border/80">
+                {exams.map((exam: any) => (
+                  <label key={exam.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.examIds.includes(exam.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setForm({ ...form, examIds: [...form.examIds, exam.id] });
+                        } else {
+                          setForm({ ...form, examIds: form.examIds.filter((id) => id !== exam.id) });
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    {exam.name?.en || exam.slug}
+                  </label>
+                ))}
+                {exams.length === 0 && <p className="text-xs text-muted-foreground">{t("no_exams")}</p>}
+              </div>
+              <p className="text-xs text-muted-foreground">{t("exam_select_desc")}</p>
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border/60">
@@ -285,6 +312,19 @@ export default function AdminSubscriptionsPage() {
               <div>
                 <label className="text-sm font-medium">{t("visible_label")}</label>
                 <p className="text-xs text-muted-foreground">{t("visible_desc")}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-primary/30">
+              <input
+                type="checkbox"
+                checked={form.isPopular}
+                onChange={(e) => setForm({ ...form, isPopular: e.target.checked })}
+                className="h-4 w-4 rounded border-border"
+              />
+              <div>
+                <label className="text-sm font-medium">{t("is_popular")}</label>
+                <p className="text-xs text-muted-foreground">{t("is_popular_desc")}</p>
               </div>
             </div>
 
@@ -306,7 +346,7 @@ export default function AdminSubscriptionsPage() {
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("course")}</label>
                 <Select value={form.courseId || "__none__"} onValueChange={(v) => setForm({ ...form, courseId: v === "__none__" ? "" : v })}>
                   <SelectTrigger className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 rounded-xl h-11 px-4 transition-all duration-300 focus:border-primary/50 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)]">
-                    <SelectValue placeholder="Select a course" />
+                    <SelectValue placeholder={t("select_course_placeholder")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
                     <SelectItem value="__none__">{t("none")}</SelectItem>
@@ -329,6 +369,36 @@ export default function AdminSubscriptionsPage() {
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
               />
               <p className="text-xs text-muted-foreground">{t("max_days_desc")}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("remaining_exam_attempts")}</label>
+                <Input
+                  type="number"
+                  value={form.maxExamAttempts}
+                  onChange={(e) => setForm({ ...form, maxExamAttempts: e.target.value })}
+                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("remaining_flashcard_attempts")}</label>
+                <Input
+                  type="number"
+                  value={form.maxFlashcardAttempts}
+                  onChange={(e) => setForm({ ...form, maxFlashcardAttempts: e.target.value })}
+                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("remaining_uses")}</label>
+                <Input
+                  type="number"
+                  value={form.maxUses}
+                  onChange={(e) => setForm({ ...form, maxUses: e.target.value })}
+                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm outline-none"
+                />
+              </div>
             </div>
           </div>
 

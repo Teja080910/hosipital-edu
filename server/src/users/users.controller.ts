@@ -7,7 +7,8 @@ import {
   Patch,
   Query,
   UseGuards,
-  ValidationPipe,
+  ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -16,6 +17,26 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { I18nService } from "../common/i18n/i18n.service";
 import { UsersService } from "./users.service";
+import { IsOptional, IsString, IsEmail } from "class-validator";
+
+class UpdateUserDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  targetExamId?: string | null;
+
+}
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -42,7 +63,7 @@ export class UsersController {
   @ApiOperation({ summary: "Get user by id" })
   async findOne(@Param("id") id: string, @CurrentUser() user: any) {
     if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
-      return { message: this.i18n.t("users.accessDenied") };
+      throw new ForbiddenException(this.i18n.t("users.accessDenied"));
     }
     return this.usersService.findById(id);
   }
@@ -51,7 +72,7 @@ export class UsersController {
   @ApiOperation({ summary: "Get user's referral info" })
   async getReferral(@Param("id") id: string, @CurrentUser() user: any) {
     if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
-      return { message: this.i18n.t("users.accessDenied") };
+      throw new ForbiddenException(this.i18n.t("users.accessDenied"));
     }
     return this.usersService.getReferralInfo(id);
   }
@@ -79,13 +100,13 @@ export class UsersController {
   @ApiOperation({ summary: "Update user" })
   async update(
     @Param("id") id: string,
-    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false })) data: any,
+    @Body() data: UpdateUserDto,
     @CurrentUser() user: any,
   ) {
     if (user.role !== "admin" && user.role !== "super_admin" && user.id !== id) {
-      return { message: this.i18n.t("users.accessDenied") };
+      throw new ForbiddenException(this.i18n.t("users.accessDenied"));
     }
-    return this.usersService.update(id, data);
+    return this.usersService.update(id, data as any, user);
   }
 
   @Delete(":id")
@@ -105,6 +126,16 @@ export class UsersController {
     @Body("role") role: string,
     @CurrentUser() admin: any,
   ) {
+    const validRoles = ["admin", "super_admin", "student"];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(", ")}`);
+    }
+    if (role === "super_admin" && admin.role !== "super_admin") {
+      throw new ForbiddenException("Only super_admins can assign the super_admin role");
+    }
+    if (role === "super_admin" && admin.id === id) {
+      throw new ForbiddenException("Cannot self-promote to super_admin");
+    }
     return this.usersService.update(id, { role });
   }
 }

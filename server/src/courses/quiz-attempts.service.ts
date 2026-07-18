@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, Inject, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import {
   courseQuizzes,
   courseQuizAttempts,
   userCourseProgress,
+  userCourseEnrollments,
+  courses,
 } from "../database/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
@@ -22,6 +24,19 @@ export class QuizAttemptsService {
       .where(eq(courseQuizzes.id, quizId))
       .limit(1);
     if (!quiz) throw new NotFoundException(this.i18n.t("courses.quizNotFound"));
+
+    const [enrollment] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, quiz.courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (!enrollment) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
 
     const [existing] = await this.db
       .select()
@@ -51,13 +66,14 @@ export class QuizAttemptsService {
     return { ...attempt, quiz };
   }
 
-  async findById(id: string) {
+  async findById(id: string, userId: string) {
     const [attempt] = await this.db
       .select()
       .from(courseQuizAttempts)
       .where(eq(courseQuizAttempts.id, id))
       .limit(1);
     if (!attempt) throw new NotFoundException(this.i18n.t("courses.quizAttemptNotFound"));
+    if (attempt.userId !== userId) throw new ForbiddenException();
 
     const [quiz] = await this.db
       .select()
@@ -99,6 +115,19 @@ export class QuizAttemptsService {
       .from(courseQuizzes)
       .where(eq(courseQuizzes.id, attempt.quizId))
       .limit(1);
+
+    const [enrollment] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, quiz.courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (!enrollment) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
 
     const questions: any[] = Array.isArray(quiz.questions) ? quiz.questions : [];
     let correctCount = 0;

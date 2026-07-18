@@ -6,7 +6,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { StreamService } from "./stream.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
-import { Roles } from "../common/decorators/roles.decorator";
+import { AccountTypeGuard } from "../common/guards/account-type.guard";
+import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 
 @ApiTags("stream")
 @Controller("stream")
@@ -51,7 +52,8 @@ export class StreamController {
   }
 
   @Post("videos/:uid/token")
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Generate a signed viewing token for a video" })
   async getSignedToken(@Param("uid") uid: string) {
@@ -59,12 +61,16 @@ export class StreamController {
   }
 
   @Get("modules")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "List all video modules with lessons" })
   async listModules() {
     return this.stream.listModules();
   }
 
   @Get("modules/:id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Get a video module with lessons" })
   async getModule(@Param("id") id: string) {
     return this.stream.getModule(id);

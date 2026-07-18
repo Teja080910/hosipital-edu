@@ -10,14 +10,9 @@ import { BookOpen, Brain, GraduationCap, Target, Loader2, ChevronRight, Clock, C
 import { PageTransition } from "@/components/page-transition";
 import { Link, useRouter } from "@/routing";
 import { analyticsApi, examsApi, attemptsApi } from "@/lib/api";
+import { localizedText as localized } from "@/lib/utils";
 
 const PAGE_SIZE = 5;
-
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
-  if (!obj) return "";
-  if (typeof obj === "string") return obj;
-  return obj[locale] || Object.values(obj)[0] || "";
-}
 
 export default function DashboardPage() {
   const t = useTranslations("nav");
@@ -105,7 +100,7 @@ export default function DashboardPage() {
                             <p className="font-medium">{localized(exam.name)}</p>
                             <p className="text-sm text-muted-foreground">{te("questions_count", { count: exam._questionCount ?? "—" })}</p>
                           </div>
-                          <Lock className="h-5 w-5 text-muted-foreground" />
+                          <div className="flex items-center gap-2"><Lock className="h-5 w-5 text-muted-foreground" /><span className="text-sm text-muted-foreground">{te("subscribe")}</span></div>
                         </CardContent>
                       </Card>
                     ) : (
@@ -132,11 +127,6 @@ export default function DashboardPage() {
               <CardTitle>{td("quick_actions")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Link href="/dashboard/questions">
-                <Button className="w-full justify-start" variant="outline">
-                  <Brain className="mr-2 h-4 w-4" /> {td("study_questions")}
-                </Button>
-              </Link>
               <Link href="/dashboard/exams">
                 <Button className="w-full justify-start" variant="outline">
                   <GraduationCap className="mr-2 h-4 w-4" /> {td("take_an_exam")}

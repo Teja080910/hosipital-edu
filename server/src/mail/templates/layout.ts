@@ -5,7 +5,7 @@ interface LayoutProps {
 
 const LOGO_URL = "https://lh3.googleusercontent.com/d/1Vrc1VnGSP8pufWCpeJBpEctiH_Bh3cXX";
 
-export function emailLayout({ content, appUrl = "https://md-exams.com" }: LayoutProps): string {
+export function emailLayout({ content, appUrl = "https://md-exam.com" }: LayoutProps): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -62,8 +62,8 @@ export function emailLayout({ content, appUrl = "https://md-exams.com" }: Layout
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="font-size:13px;color:#94a3b8;line-height:1.6;">
-                    <p style="margin:0 0 4px;">&copy; 2024 MD Exam. All rights reserved.</p>
-                    <p style="margin:0;">MD Exam &mdash; Master Medical Education</p>
+                    <p style="margin:0 0 4px;">&copy; ${new Date().getFullYear()} MD Exam. All rights reserved.</p>
+                    <p style="margin:0;">MD Exam &mdash; Medical Study Platform</p>
                     <p style="margin:10px 0 0;">
                       <a href="${appUrl}" style="color:#2563eb;text-decoration:none;font-weight:500;">${appUrl}</a>
                     </p>

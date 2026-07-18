@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { I18nService } from "../i18n/i18n.service";
+import { ALLOWED_ACCOUNT_TYPES_KEY } from "../decorators/roles.decorator";
 
 @Injectable()
 export class AccountTypeGuard implements CanActivate {
@@ -10,7 +11,7 @@ export class AccountTypeGuard implements CanActivate {
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const allowedTypes = this.reflector.getAllAndOverride<string[]>("allowedAccountTypes", [
+    const allowedTypes = this.reflector.getAllAndOverride<string[]>(ALLOWED_ACCOUNT_TYPES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);

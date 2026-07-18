@@ -38,6 +38,31 @@ export interface Flashcard {
   repetitions: number;
 }
 
+export interface FlashcardExamAttempt {
+  id: string;
+  mode: string;
+  status: string;
+  customTitle: string | null;
+  questionCount: number;
+  answeredCount: number;
+  correctCount: number;
+  scorePercentage: number;
+  timeLimit: number | null;
+  timeSpent: number | null;
+  startedAt: string;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface FlashcardExamAnswer {
+  id: string;
+  flashcardId: string;
+  flashcardFront: string;
+  flashcardBack: string;
+  isCorrect: boolean;
+  answeredAt: string;
+}
+
 export interface Exam {
   id: string;
   title: string;

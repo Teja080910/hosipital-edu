@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   UseGuards,
+  ParseUUIDPipe,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { ExamsService } from "./exams.service";
@@ -16,6 +17,135 @@ import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { IsOptional, IsString, IsBoolean, IsNumber, IsObject } from "class-validator";
+
+class CreateExamDto {
+  @IsObject()
+  name!: object;
+
+  @IsOptional()
+  @IsObject()
+  title?: object;
+
+  @IsOptional()
+  @IsObject()
+  description?: object;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class UpdateExamDto {
+  @IsOptional()
+  @IsObject()
+  name?: object;
+
+  @IsOptional()
+  @IsObject()
+  title?: object;
+
+  @IsOptional()
+  @IsObject()
+  description?: object;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class CreateSpecialtyDto {
+  @IsObject()
+  name!: object;
+
+  @IsOptional()
+  @IsString()
+  nameEn?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class UpdateSpecialtyDto {
+  @IsOptional()
+  @IsObject()
+  name?: object;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class CreateTopicDto {
+  @IsObject()
+  name!: object;
+
+  @IsOptional()
+  @IsString()
+  nameEn?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class UpdateTopicDto {
+  @IsOptional()
+  @IsObject()
+  name?: object;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class CreateSubtopicDto {
+  @IsObject()
+  name!: object;
+
+  @IsOptional()
+  @IsString()
+  nameEn?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
+
+class UpdateSubtopicDto {
+  @IsOptional()
+  @IsObject()
+  name?: object;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+}
 
 @ApiTags("exams")
 @Controller("exams")
@@ -29,12 +159,24 @@ export class ExamsController {
     return this.examsService.findAll(user);
   }
 
+  @Post(":sourceId/copy-questions/:targetId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Copy question-exam associations from source exam to target exam (admin)" })
+  async copyQuestions(
+    @Param("sourceId", ParseUUIDPipe) sourceId: string,
+    @Param("targetId", ParseUUIDPipe) targetId: string,
+  ) {
+    return this.examsService.copyQuestions(sourceId, targetId);
+  }
+
   @Get(":id")
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
   @AllowedAccountTypes("full", "course_only")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get exam with specialties" })
-  async findOne(@Param("id") id: string, @CurrentUser() user: any) {
+  async findOne(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     return this.examsService.findById(id, user);
   }
 
@@ -43,8 +185,13 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create exam (admin)" })
-  async create(@Body() data: any) {
-    return this.examsService.create(data);
+  async create(@Body() data: CreateExamDto) {
+    const payload: any = { ...data };
+    if (payload.title && !payload.name) {
+      payload.name = payload.title;
+    }
+    delete payload.title;
+    return this.examsService.create(payload);
   }
 
   @Patch(":id")
@@ -52,8 +199,13 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update exam (admin)" })
-  async update(@Param("id") id: string, @Body() data: any) {
-    return this.examsService.update(id, data);
+  async update(@Param("id") id: string, @Body() data: UpdateExamDto) {
+    const payload: any = { ...data };
+    if (payload.title && !payload.name) {
+      payload.name = payload.title;
+    }
+    delete payload.title;
+    return this.examsService.update(id, payload);
   }
 
   // ─── Specialty CRUD ───
@@ -63,7 +215,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create specialty (admin)" })
-  async createSpecialty(@Param("examId") examId: string, @Body() data: any) {
+  async createSpecialty(@Param("examId", ParseUUIDPipe) examId: string, @Body() data: CreateSpecialtyDto) {
     return this.examsService.createSpecialty(examId, data);
   }
 
@@ -72,7 +224,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update specialty (admin)" })
-  async updateSpecialty(@Param("id") id: string, @Body() data: any) {
+  async updateSpecialty(@Param("id") id: string, @Body() data: UpdateSpecialtyDto) {
     return this.examsService.updateSpecialty(id, data);
   }
 
@@ -92,7 +244,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create topic (admin)" })
-  async createTopic(@Param("specialtyId") specialtyId: string, @Body() data: any) {
+  async createTopic(@Param("specialtyId", ParseUUIDPipe) specialtyId: string, @Body() data: CreateTopicDto) {
     return this.examsService.createTopic(specialtyId, data);
   }
 
@@ -101,7 +253,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update topic (admin)" })
-  async updateTopic(@Param("id") id: string, @Body() data: any) {
+  async updateTopic(@Param("id") id: string, @Body() data: UpdateTopicDto) {
     return this.examsService.updateTopic(id, data);
   }
 
@@ -121,7 +273,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create subtopic (admin)" })
-  async createSubtopic(@Param("topicId") topicId: string, @Body() data: any) {
+  async createSubtopic(@Param("topicId", ParseUUIDPipe) topicId: string, @Body() data: CreateSubtopicDto) {
     return this.examsService.createSubtopic(topicId, data);
   }
 
@@ -130,7 +282,7 @@ export class ExamsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update subtopic (admin)" })
-  async updateSubtopic(@Param("id") id: string, @Body() data: any) {
+  async updateSubtopic(@Param("id") id: string, @Body() data: UpdateSubtopicDto) {
     return this.examsService.updateSubtopic(id, data);
   }
 

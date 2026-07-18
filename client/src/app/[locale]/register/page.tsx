@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect, Suspense } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, Link } from "@/routing";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,8 @@ function RegisterPage() {
   const t = useTranslations("auth");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -74,10 +76,11 @@ function RegisterPage() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      await register(name, email, password, referralCode, targetExamId === COURSES_OPTION ? undefined : targetExamId || undefined, targetExamId === COURSES_OPTION ? "course_only" : undefined);
+      await register(name, email, password, referralCode, targetExamId === COURSES_OPTION ? undefined : targetExamId || undefined, targetExamId === COURSES_OPTION ? "course_only" : undefined, locale);
       toast.success(t("account_created"));
       setLoading(false);
       setShowVerificationSent(true);
+      submittingRef.current = false;
     } catch (error) {
       const message = (error as any)?.response?.data?.message;
       if (Array.isArray(message)) {

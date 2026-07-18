@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import {
   FastifyAdapter,
@@ -11,9 +12,29 @@ import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { LanguageInterceptor } from "./common/interceptors/language.interceptor";
 
 async function bootstrap() {
+  const fastifyAdapter = new FastifyAdapter({
+    logger: true,
+    bodyLimit: 1048576,
+  });
+
+  const instance = fastifyAdapter.getInstance() as any;
+  const { onProtoPoisoning, onConstructorPoisoning } = instance.initialConfig;
+  const defaultJsonParser = instance.getDefaultJsonParser(
+    onProtoPoisoning || "error",
+    onConstructorPoisoning || "error",
+  );
+  fastifyAdapter.useBodyParser(
+    "application/json",
+    true,
+    { bodyLimit: 1048576 },
+    (req: any, body: Buffer, done: any) => {
+      defaultJsonParser(req, body, done);
+    },
+  );
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: true }),
+    fastifyAdapter,
   );
 
   app.enableCors({
@@ -51,4 +72,7 @@ async function bootstrap() {
   );
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  Logger.error("Failed to start application", err, "Bootstrap");
+  process.exit(1);
+});

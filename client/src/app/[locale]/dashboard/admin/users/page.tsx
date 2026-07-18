@@ -25,7 +25,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataGrid } from "@/components/admin/data-grid";
 import { usersApi, subscriptionsApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2, CreditCard, Eye } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
 
 export default function AdminUsersPage() {
   const t = useTranslations("admin");
@@ -39,7 +39,7 @@ export default function AdminUsersPage() {
   const [subUser, setSubUser] = useState<any | null>(null);
   const [userSub, setUserSub] = useState<any | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
-  const [subForm, setSubForm] = useState({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "" });
+  const [subForm, setSubForm] = useState({ planId: "none", status: "active" });
   const [savingSub, setSavingSub] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -78,14 +78,12 @@ const deleteUser = async () => {
       const { data } = await usersApi.getSubscription(user.id);
       setUserSub(data);
       setSubForm({
-        planId: data?.planId || "",
+        planId: data?.planId || "none",
         status: data?.status || "active",
-        remainingExamAttempts: data?.remainingExamAttempts?.toString() || "",
-        remainingFlashcardAttempts: data?.remainingFlashcardAttempts?.toString() || "",
       });
     } catch {
       setUserSub(null);
-      setSubForm({ planId: "", status: "active", remainingExamAttempts: "", remainingFlashcardAttempts: "" });
+      setSubForm({ planId: "none", status: "active" });
     }
     setSubDialogOpen(true);
   };
@@ -95,8 +93,6 @@ const deleteUser = async () => {
     try {
       const payload: any = { status: subForm.status };
       if (subForm.planId) payload.planId = subForm.planId;
-      if (subForm.remainingExamAttempts) payload.remainingExamAttempts = parseInt(subForm.remainingExamAttempts);
-      if (subForm.remainingFlashcardAttempts) payload.remainingFlashcardAttempts = parseInt(subForm.remainingFlashcardAttempts);
       await usersApi.updateSubscription(subUser!.id, payload);
       toast.success(t("subscription_updated"));
       setSubDialogOpen(false);
@@ -158,7 +154,7 @@ const deleteUser = async () => {
     { key: "createdAt", header: t("joined"), sortable: true },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" onClick={() => openSubscription(row)}>
@@ -209,7 +205,7 @@ const deleteUser = async () => {
       </div>
 
       <Dialog open={subDialogOpen} onOpenChange={setSubDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent key={subDialogOpen ? "open" : "closed"} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("subscription_for")} {subUser?.name || subUser?.email}</DialogTitle>
           </DialogHeader>
@@ -218,7 +214,7 @@ const deleteUser = async () => {
               <div className="text-xs text-muted-foreground space-y-1 mb-2">
                 <p>{t("current_plan")}: <span className="font-medium text-foreground">{userSub.plan?.name?.en || userSub.planId}</span></p>
                 <p>{t("status")}: <Badge variant={userSub.status === "active" ? "default" : "secondary"} className="text-xs">{userSub.status}</Badge></p>
-                <p>{t("period_end")}: {new Date(userSub.currentPeriodEnd).toLocaleDateString()}</p>
+                <p>{t("period_end")}: {userSub.currentPeriodEnd ? new Date(userSub.currentPeriodEnd).toLocaleDateString() : "—"}</p>
               </div>
             )}
             <div className="space-y-2">
@@ -226,6 +222,7 @@ const deleteUser = async () => {
               <Select value={subForm.planId} onValueChange={(v) => setSubForm({ ...subForm, planId: v })}>
                 <SelectTrigger><SelectValue placeholder={t("select_plan")} /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">{t("select_plan")}</SelectItem>
                   {plans.map((p: any) => (
                     <SelectItem key={p.id} value={p.id}>{p.name?.en || p.id}</SelectItem>
                   ))}
@@ -244,14 +241,6 @@ const deleteUser = async () => {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-medium">{t("remaining_exam_attempts")}</label>
-                <Input type="number" value={subForm.remainingExamAttempts} onChange={(e) => setSubForm({ ...subForm, remainingExamAttempts: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium">{t("remaining_flashcard_attempts")}</label>
-                <Input type="number" value={subForm.remainingFlashcardAttempts} onChange={(e) => setSubForm({ ...subForm, remainingFlashcardAttempts: e.target.value })} />
-              </div>
             </div>
           </div>
           <DialogFooter>

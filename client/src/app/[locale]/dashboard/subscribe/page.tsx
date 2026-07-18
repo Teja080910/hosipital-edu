@@ -68,7 +68,8 @@ export default function SubscribePage() {
   });
 
   const currentPlanOrder = currentSub?.plan?.sortOrder ?? -1;
-  const isCurrentPlan = (sortOrder: number) => currentSub && currentPlanOrder === sortOrder;
+  const currentPlanId = currentSub?.plan?.id ?? null;
+  const isCurrentPlan = (planId: string) => currentSub && currentPlanId === planId;
 
   return (
     <PageTransition>
@@ -103,8 +104,30 @@ export default function SubscribePage() {
                     </p>
                   </div>
                 </div>
+                {(currentSub.remainingExamAttempts != null || currentSub.remainingFlashcardAttempts != null || currentSub.remainingUses != null) && (
+                  <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t">
+                    {currentSub.remainingExamAttempts != null && (
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{currentSub.remainingExamAttempts}</p>
+                        <p className="text-xs text-muted-foreground">{t("remaining_exams")}</p>
+                      </div>
+                    )}
+                    {currentSub.remainingFlashcardAttempts != null && (
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{currentSub.remainingFlashcardAttempts}</p>
+                        <p className="text-xs text-muted-foreground">{t("remaining_flashcards")}</p>
+                      </div>
+                    )}
+                    {currentSub.remainingUses != null && (
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{currentSub.remainingUses}</p>
+                        <p className="text-xs text-muted-foreground">{t("remaining_uses")}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {currentSub.currentPeriodEnd && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mt-3">
                     {t("renews_on", { date: new Date(currentSub.currentPeriodEnd).toLocaleDateString() })}
                   </p>
                 )}
@@ -125,7 +148,7 @@ export default function SubscribePage() {
         ) : (
           <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
             {plans.map((plan, i) => {
-              const isCurrent = isCurrentPlan(plan.sortOrder);
+              const isCurrent = isCurrentPlan(plan.id);
               const isDowngrade = currentSub && plan.sortOrder < currentPlanOrder;
               const isUpgrade = currentSub && plan.sortOrder > currentPlanOrder;
               return (
@@ -133,9 +156,9 @@ export default function SubscribePage() {
                   <Card className={cn(
                     "relative flex flex-col w-full border-border/50 transition-all duration-300",
                     isCurrent && "border-amber-400/50 shadow-lg shadow-amber-500/10 scale-105 md:scale-105 z-10",
-                    !isCurrent && plan.interval === "quarter" && "border-primary shadow-card-hover scale-105 md:scale-105 z-10",
+                    !isCurrent && plan.isPopular && "border-primary shadow-card-hover scale-105 md:scale-105 z-10",
                   )}>
-                    {(isCurrent || plan.interval === "quarter") && !isCurrent && (
+                    {(isCurrent || plan.isPopular) && !isCurrent && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
                         <Badge className="px-4 py-1 text-xs font-semibold bg-primary text-primary-foreground shadow-subtle">
                           {t("most_popular")}
@@ -149,7 +172,7 @@ export default function SubscribePage() {
                         </Badge>
                       </div>
                     )}
-                    <CardHeader className={cn((isCurrent || plan.interval === "quarter") && "pt-8")}>
+                    <CardHeader className={cn((isCurrent || plan.isPopular) && "pt-8")}>
                       <CardTitle className="text-xl capitalize">{plan.interval}</CardTitle>
                       <div className="mt-3">
                         <span className="text-4xl font-bold">${plan.price}</span>
@@ -175,7 +198,7 @@ export default function SubscribePage() {
                       ) : (
                         <Button
                           className="w-full"
-                          variant={plan.interval === "quarter" ? "default" : "outline"}
+                          variant={plan.isPopular ? "default" : "outline"}
                           size="lg"
                           onClick={() => handleSubscribe(plan.id)}
                           disabled={subscribing === plan.id}

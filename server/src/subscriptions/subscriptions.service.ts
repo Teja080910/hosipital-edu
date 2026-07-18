@@ -3,13 +3,14 @@ import { ConfigService } from "@nestjs/config";
 import { DRIZZLE } from "../database/database.provider";
 import {
   subscriptionPlans,
+  planExams,
   userSubscriptions,
   payments,
   users,
   userCourseEnrollments,
   courses,
 } from "../database/schema";
-import { eq, and, gt, sql, isNull } from "drizzle-orm";
+import { eq, and, gt, sql, isNull, inArray } from "drizzle-orm";
 import { STRIPE } from "./stripe.provider";
 import Stripe from "stripe";
 import { MailService } from "../mail/mail.service";
@@ -29,10 +30,23 @@ export class SubscriptionsService {
   async findPlans(visibleOnly = true) {
     const conditions = [eq(subscriptionPlans.isActive, true)];
     if (visibleOnly) conditions.push(eq(subscriptionPlans.isVisible, true));
-    return this.db
+    const rows = await this.db
       .select()
       .from(subscriptionPlans)
       .where(and(...conditions));
+
+    const planIds = rows.map((r: any) => r.id);
+    const examLinks = planIds.length > 0
+      ? await this.db.select().from(planExams).where(inArray(planExams.planId, planIds))
+      : [];
+
+    const examMap = new Map<string, string[]>();
+    for (const link of examLinks) {
+      if (!examMap.has(link.planId)) examMap.set(link.planId, []);
+      examMap.get(link.planId)!.push(link.examId);
+    }
+
+    return rows.map((r: any) => ({ ...r, examIds: examMap.get(r.id) || [] }));
   }
 
   async findPlanById(id: string) {
@@ -41,22 +55,50 @@ export class SubscriptionsService {
     const [plan] = await this.db
       .select()
       .from(subscriptionPlans)
-      .where(eq(subscriptionPlans.id, id))
+      .where(and(eq(subscriptionPlans.id, id), eq(subscriptionPlans.isActive, true)))
       .limit(1);
-    return plan;
+    if (!plan) return null;
+    const links = await this.db
+      .select()
+      .from(planExams)
+      .where(eq(planExams.planId, id));
+    return { ...plan, examIds: links.map((l: any) => l.examId) };
   }
 
   async createPlan(data: any) {
-    const [plan] = await this.db.insert(subscriptionPlans).values(stripTimestamps(data)).returning();
+    if (parseFloat(data.price || "0") > 0 && data.maxExamAttempts == null) {
+      if (data.interval === "month") data.maxExamAttempts = 20;
+      else data.maxExamAttempts = 100;
+    }
+    const { examIds, ...planData } = data;
+    const [plan] = await this.db.insert(subscriptionPlans).values(stripTimestamps(planData)).returning();
+    if (examIds?.length) {
+      await this.db.insert(planExams).values(
+        examIds.map((eId: string) => ({ planId: plan.id, examId: eId }))
+      );
+    }
     return plan;
   }
 
   async updatePlan(id: string, data: any) {
+    if (data.price !== undefined && parseFloat(String(data.price)) > 0 && data.maxExamAttempts == null) {
+      if (data.interval === "month") data.maxExamAttempts = 20;
+      else data.maxExamAttempts = 100;
+    }
+    const { examIds, ...planData } = data;
     const [plan] = await this.db
       .update(subscriptionPlans)
-      .set({ ...stripTimestamps(data), updatedAt: new Date() })
+      .set({ ...stripTimestamps(planData), updatedAt: new Date() })
       .where(eq(subscriptionPlans.id, id))
       .returning();
+    if (examIds) {
+      await this.db.delete(planExams).where(eq(planExams.planId, id));
+      if (examIds.length > 0) {
+        await this.db.insert(planExams).values(
+          examIds.map((eId: string) => ({ planId: id, examId: eId }))
+        );
+      }
+    }
     return plan;
   }
 
@@ -81,6 +123,9 @@ export class SubscriptionsService {
         currentPeriodStart: userSubscriptions.currentPeriodStart,
         currentPeriodEnd: userSubscriptions.currentPeriodEnd,
         canceledAt: userSubscriptions.canceledAt,
+        remainingExamAttempts: userSubscriptions.remainingExamAttempts,
+        remainingFlashcardAttempts: userSubscriptions.remainingFlashcardAttempts,
+        remainingUses: userSubscriptions.remainingUses,
         createdAt: userSubscriptions.createdAt,
         updatedAt: userSubscriptions.updatedAt,
         plan: {
@@ -90,6 +135,10 @@ export class SubscriptionsService {
           price: subscriptionPlans.price,
           currency: subscriptionPlans.currency,
           sortOrder: subscriptionPlans.sortOrder,
+          maxExamAttempts: subscriptionPlans.maxExamAttempts,
+          maxFlashcards: subscriptionPlans.maxFlashcards,
+          maxFlashcardAttempts: subscriptionPlans.maxFlashcardAttempts,
+          maxUses: subscriptionPlans.maxUses,
         },
       })
       .from(userSubscriptions)
@@ -128,46 +177,53 @@ export class SubscriptionsService {
     const plan = await this.findPlanById(planId);
     if (!plan) throw new HttpException(this.i18n.t("subscriptions.planNotFound"), HttpStatus.NOT_FOUND);
 
+    const isRecurring = plan.interval === "month";
+
     let stripePriceId = plan.stripePriceId;
-    if (!stripePriceId) {
+    if (!stripePriceId || !isRecurring) {
       const result = await this.createStripeProductAndPrice(plan);
       stripePriceId = result.priceId;
       await this.updatePlan(plan.id, { stripePriceId });
     }
 
     const existingSub = await this.getUserSubscription(userId);
-    const appUrl = this.config.get<string>("APP_URL")
+    const appUrl = this.config.get<string>("APP_URL");
 
-    if (existingSub?.stripeSubscriptionId) {
-      const stripeSub = await this.stripe.subscriptions.retrieve(existingSub.stripeSubscriptionId);
-      const currentItemId = stripeSub.items?.data?.[0]?.id;
+    if (existingSub && isRecurring) {
+      if (existingSub.stripeSubscriptionId) {
+        const stripeSub = await this.stripe.subscriptions.retrieve(existingSub.stripeSubscriptionId);
+        const currentItemId = stripeSub.items?.data?.[0]?.id;
 
-      if (currentItemId) {
-        await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
-          items: [{ id: currentItemId, price: stripePriceId }],
-          proration_behavior: "create_prorations",
-          metadata: { planId: plan.id },
-        });
-      } else {
-        await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
-          items: [{ price: stripePriceId }],
-          proration_behavior: "create_prorations",
-          metadata: { planId: plan.id },
-        });
+        if (currentItemId) {
+          await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
+            items: [{ id: currentItemId, price: stripePriceId }],
+            proration_behavior: "create_prorations",
+            metadata: { planId: plan.id },
+          });
+        } else {
+          await this.stripe.subscriptions.update(existingSub.stripeSubscriptionId, {
+            items: [{ price: stripePriceId }],
+            proration_behavior: "create_prorations",
+            metadata: { planId: plan.id },
+          });
+        }
       }
 
-      await this.db
-        .update(userSubscriptions)
-        .set({ planId: plan.id, updatedAt: new Date() })
-        .where(eq(userSubscriptions.id, existingSub.id));
+      await this.activateSubscription({
+        userId,
+        planId: plan.id,
+        stripeSubscriptionId: existingSub.stripeSubscriptionId || null,
+        stripeCustomerId: existingSub.stripeCustomerId || null,
+      });
 
-      return { url: `${appUrl}/${locale}/dashboard`, prorated: true };
+      return { url: `${appUrl}/${locale}/dashboard`, prorated: !!existingSub.stripeSubscriptionId };
     }
 
     let session;
+    const sessionMode = isRecurring ? "subscription" : "payment";
     try {
       session = await this.stripe.checkout.sessions.create({
-        mode: "subscription",
+        mode: sessionMode,
         payment_method_types: ["card"],
         line_items: [{ price: stripePriceId, quantity: 1 }],
         client_reference_id: userId,
@@ -180,7 +236,7 @@ export class SubscriptionsService {
         const result = await this.createStripeProductAndPrice(plan);
         await this.updatePlan(plan.id, { stripePriceId: result.priceId });
         session = await this.stripe.checkout.sessions.create({
-          mode: "subscription",
+          mode: sessionMode,
           payment_method_types: ["card"],
           line_items: [{ price: result.priceId, quantity: 1 }],
           client_reference_id: userId,
@@ -199,7 +255,6 @@ export class SubscriptionsService {
       amount: parseFloat(plan.price),
       currency: plan.currency || "USD",
       status: "pending",
-      description: this.i18n.t("subscriptions.descriptionTemplate", { name: plan.name?.en || "Subscription", interval: plan.interval }),
     });
 
     return { url: session.url };
@@ -207,114 +262,125 @@ export class SubscriptionsService {
 
   async confirmCheckout(sessionId: string, userId: string) {
     const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+    if (session.client_reference_id !== userId) {
+      throw new HttpException(this.i18n.t("subscriptions.sessionOwnershipMismatch"), HttpStatus.FORBIDDEN);
+    }
     if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
       return { status: "pending" };
     }
     const planId = session.metadata?.planId;
-    const stripeSubscriptionId = session.subscription as string;
-    const stripeCustomerId = session.customer as string;
-    if (!planId || !stripeSubscriptionId || !stripeCustomerId) {
-      return { status: "incomplete" };
+    if (!planId) return { status: "incomplete" };
+
+    if (session.mode === "subscription") {
+      const stripeSubscriptionId = session.subscription as string;
+      const stripeCustomerId = session.customer as string;
+      if (!stripeSubscriptionId || !stripeCustomerId) return { status: "incomplete" };
+      await this.activateSubscription({ userId, planId, stripeSubscriptionId, stripeCustomerId });
+    } else {
+      const stripeCustomerId = session.customer as string;
+      await this.activateSubscription({ userId, planId, stripeSubscriptionId: null, stripeCustomerId: stripeCustomerId || null });
     }
-    await this.activateSubscription({ userId, planId, stripeSubscriptionId, stripeCustomerId });
     return { status: "active" };
   }
 
   async activateSubscription(data: {
     userId: string;
     planId: string;
-    stripeSubscriptionId: string;
-    stripeCustomerId: string;
+    stripeSubscriptionId: string | null;
+    stripeCustomerId: string | null;
   }) {
     const plan = await this.findPlanById(data.planId);
     if (!plan) throw new Error(this.i18n.t("subscriptions.planNotFound"));
 
-    await this.db
-      .update(userSubscriptions)
-      .set({ status: "canceled", canceledAt: new Date(), updatedAt: new Date() })
-      .where(
-        and(
-          eq(userSubscriptions.userId, data.userId),
-          eq(userSubscriptions.status, "active"),
-        ),
-      );
-
     const now = new Date();
     const periodEnd = new Date(now);
+    const isRecurring = plan.interval === "month";
     if (plan.maxDays) {
       periodEnd.setDate(periodEnd.getDate() + plan.maxDays);
-    } else if (plan.interval === "year") {
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-    } else if (plan.interval === "quarter") {
+    } else if (!isRecurring) {
       periodEnd.setMonth(periodEnd.getMonth() + 3);
     } else {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    const [existing] = await this.db
-      .select({ id: userSubscriptions.id })
-      .from(userSubscriptions)
-      .where(eq(userSubscriptions.stripeSubscriptionId, data.stripeSubscriptionId))
-      .limit(1);
-
-    let sub;
-    if (existing) {
-      [sub] = await this.db
+    return this.db.transaction(async (tx: any) => {
+      await tx
         .update(userSubscriptions)
-        .set({
-          planId: data.planId,
-          status: "active",
-          currentPeriodStart: now,
-          currentPeriodEnd: periodEnd,
-          canceledAt: null,
-          remainingExamAttempts: plan.maxExamAttempts,
-          remainingFlashcardAttempts: plan.maxFlashcardAttempts,
-          remainingUses: plan.maxUses,
-          updatedAt: new Date(),
-        })
-        .where(eq(userSubscriptions.id, existing.id))
-        .returning();
-    } else {
-      [sub] = await this.db
-        .insert(userSubscriptions)
-        .values({
-          userId: data.userId,
-          planId: data.planId,
-          stripeSubscriptionId: data.stripeSubscriptionId,
-          stripeCustomerId: data.stripeCustomerId,
-          status: "active",
-          currentPeriodStart: now,
-          currentPeriodEnd: periodEnd,
-          remainingExamAttempts: plan.maxExamAttempts,
-          remainingFlashcardAttempts: plan.maxFlashcardAttempts,
-          remainingUses: plan.maxUses,
-        })
-        .returning();
-    }
+        .set({ status: "canceled", canceledAt: new Date(), updatedAt: new Date() })
+        .where(
+          and(
+            eq(userSubscriptions.userId, data.userId),
+            eq(userSubscriptions.status, "active"),
+          ),
+        );
 
-    const [user] = await this.db
-      .select()
-      .from(users)
-      .where(and(eq(users.id, data.userId), isNull(users.deletedAt)))
-      .limit(1);
+      const [existing] = data.stripeSubscriptionId
+        ? await tx
+            .select({ id: userSubscriptions.id })
+            .from(userSubscriptions)
+            .where(eq(userSubscriptions.stripeSubscriptionId, data.stripeSubscriptionId))
+            .limit(1)
+        : [null];
 
-    if (user) {
-      const planName = typeof plan.name === "object" ? plan.name?.en || plan.name : plan.name;
-      await this.mailService.sendSubscriptionConfirmed(user.email, user.name, {
-        name: planName,
-        amount: plan.price,
-        interval: plan.interval,
-      });
-
-      if (!plan.isCourseOnly && user.accountType === "course_only") {
-        await this.db
-          .update(users)
-          .set({ accountType: "full", updatedAt: new Date() })
-          .where(eq(users.id, data.userId));
+      let sub;
+      if (existing) {
+        [sub] = await tx
+          .update(userSubscriptions)
+          .set({
+            planId: data.planId,
+            status: "active",
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            canceledAt: null,
+            remainingExamAttempts: plan.maxExamAttempts,
+            remainingFlashcardAttempts: plan.maxFlashcardAttempts,
+            remainingUses: plan.maxUses,
+            updatedAt: new Date(),
+          })
+          .where(eq(userSubscriptions.id, existing.id))
+          .returning();
+      } else {
+        [sub] = await tx
+          .insert(userSubscriptions)
+          .values({
+            userId: data.userId,
+            planId: data.planId,
+            stripeSubscriptionId: data.stripeSubscriptionId,
+            stripeCustomerId: data.stripeCustomerId,
+            status: "active",
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            remainingExamAttempts: plan.maxExamAttempts,
+            remainingFlashcardAttempts: plan.maxFlashcardAttempts,
+            remainingUses: plan.maxUses,
+          })
+          .returning();
       }
-    }
 
-    return sub;
+      const [user] = await tx
+        .select()
+        .from(users)
+        .where(and(eq(users.id, data.userId), isNull(users.deletedAt)))
+        .limit(1);
+
+      if (user) {
+        const planName = typeof plan.name === "object" ? plan.name?.en || plan.name : plan.name;
+        await this.mailService.sendSubscriptionConfirmed(user.email, user.name, {
+          name: planName,
+          amount: plan.price,
+          interval: plan.interval,
+        }, user.preferredLocale || "es");
+
+        if (user.accountType === "course_only" && parseFloat(plan.price || "0") > 0) {
+          await tx
+            .update(users)
+            .set({ accountType: "full", updatedAt: new Date() })
+            .where(eq(users.id, data.userId));
+        }
+      }
+
+      return sub;
+    });
   }
 
   private async createStripeProductAndPrice(plan: any) {
@@ -322,15 +388,19 @@ export class SubscriptionsService {
       name: plan.name?.en || "Subscription",
       metadata: { planId: plan.id },
     });
-    const price = await this.stripe.prices.create({
+    const isRecurring = plan.interval === "month";
+    const priceData: any = {
       product: product.id,
       unit_amount: Math.round(parseFloat(plan.price) * 100),
       currency: plan.currency?.toLowerCase() || "usd",
-      recurring: {
-        interval: plan.interval === "year" ? "year" : "month",
-        interval_count: plan.interval === "quarter" ? 3 : 1,
-      },
-    });
+    };
+    if (isRecurring) {
+      priceData.recurring = {
+        interval: "month",
+        interval_count: 1,
+      };
+    }
+    const price = await this.stripe.prices.create(priceData);
     return { productId: product.id, priceId: price.id };
   }
 
@@ -361,108 +431,180 @@ export class SubscriptionsService {
       .limit(1);
 
     if (user) {
-      await this.mailService.sendSubscriptionCancelled(user.email, user.name);
+      await this.mailService.sendSubscriptionCancelled(user.email, user.name, user.preferredLocale || "es");
     }
 
     const [updated] = await this.db
       .update(userSubscriptions)
-      .set({ status: "canceled", canceledAt: new Date(), updatedAt: new Date() })
+      .set({ status: "cancelling", canceledAt: new Date(), updatedAt: new Date() })
       .where(eq(userSubscriptions.id, sub.id))
       .returning();
     return updated;
   }
-async handleWebhook(event: any) {
+  // In-memory dedup set — not shared across instances; use Redis or DB for multi-instance setups
+  private processedEvents = new Set<string>();
+  private readonly EVENT_TTL_MS = 60 * 60 * 1000; // 1 hour
+  private lastCleanup = Date.now();
 
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.client_reference_id;
-        const stripeSubscriptionId = session.subscription as string;
-        const stripeCustomerId = session.customer as string;
-        const planId = session.metadata?.planId;
-        const paymentIntent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+  private cleanupProcessedEvents() {
+    if (Date.now() - this.lastCleanup < this.EVENT_TTL_MS) return;
+    this.processedEvents.clear();
+    this.lastCleanup = Date.now();
+  }
 
-        await this.db
-          .update(payments)
-          .set({ status: "completed", stripePaymentIntentId: paymentIntent })
-          .where(eq(payments.stripePaymentIntentId, session.id));
+  async handleWebhook(event: any) {
+    this.cleanupProcessedEvents();
+    if (this.processedEvents.has(event.id)) {
+      return;
+    }
+    this.processedEvents.add(event.id);
 
-        if (session.metadata?.type === "course_enrollment") {
-          const courseId = session.metadata?.courseId;
-          if (userId && courseId) {
-            const [course] = await this.db
-              .select()
-              .from(courses)
-              .where(eq(courses.id, courseId))
-              .limit(1);
-            if (course) {
-              await this.db.insert(userCourseEnrollments).values({
+    try {
+      switch (event.type) {
+        case "checkout.session.completed": {
+          const session = event.data.object as Stripe.Checkout.Session;
+          const userId = session.client_reference_id;
+          const stripeSubscriptionId = session.subscription as string;
+          const stripeCustomerId = session.customer as string;
+          const planId = session.metadata?.planId;
+          const paymentIntent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+
+          await this.db
+            .update(payments)
+            .set({ status: "completed", stripePaymentIntentId: paymentIntent })
+            .where(eq(payments.stripePaymentIntentId, session.id));
+
+          if (session.metadata?.type === "course_enrollment") {
+            const courseId = session.metadata?.courseId;
+            if (userId && courseId) {
+              const [course] = await this.db
+                .select()
+                .from(courses)
+                .where(eq(courses.id, courseId))
+                .limit(1);
+              if (course) {
+                const [existingEnrollment] = await this.db
+                  .select({ id: userCourseEnrollments.id })
+                  .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userSubscriptions.userId, userId),
+          eq(userSubscriptions.status, "active"),
+          gt(userSubscriptions.currentPeriodEnd, new Date()),
+        ),
+      )
+                  .limit(1);
+                if (!existingEnrollment) {
+                  await this.db.insert(userCourseEnrollments).values({
+                    userId,
+                    courseId,
+                    stripePaymentId: session.id,
+                    accessExpiresAt: new Date(Date.now() + (course.durationDays || 365) * 86400000),
+                  });
+                }
+              }
+            }
+            return;
+          }
+
+          if (!planId || !userId) return;
+
+          if (session.mode === "subscription") {
+            if (stripeSubscriptionId) {
+              await this.activateSubscription({
                 userId,
-                courseId,
-                stripePaymentId: session.id,
-                accessExpiresAt: new Date(Date.now() + (course.durationDays || 365) * 86400000),
+                planId,
+                stripeSubscriptionId,
+                stripeCustomerId: stripeCustomerId || null,
               });
             }
-          }
-        } else if (planId && userId && stripeSubscriptionId) {
-          await this.activateSubscription({
-            userId,
-            planId,
-            stripeSubscriptionId,
-            stripeCustomerId,
-          });
-        } else if (session.line_items?.data?.[0]?.price?.id && userId && stripeSubscriptionId) {
-          const [plan] = await this.db
-            .select()
-            .from(subscriptionPlans)
-            .where(eq(subscriptionPlans.stripePriceId, session.line_items.data[0].price.id))
-            .limit(1);
-          if (plan) {
+          } else {
             await this.activateSubscription({
               userId,
-              planId: plan.id,
-              stripeSubscriptionId,
-              stripeCustomerId,
+              planId,
+              stripeSubscriptionId: null,
+              stripeCustomerId: stripeCustomerId || null,
             });
           }
+          break;
         }
-        break;
-      }
-      case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
-        if (invoice.subscription) {
-          const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription.id;
-          await this.db
-            .update(userSubscriptions)
-            .set({ status: "active", updatedAt: new Date() })
-            .where(eq(userSubscriptions.stripeSubscriptionId, subId));
-        }
-        break;
-      }
-      case "invoice.payment_failed": {
-        const failedInvoice = event.data.object as Stripe.Invoice;
-        const subId = typeof failedInvoice.subscription === "string"
-          ? failedInvoice.subscription
-          : failedInvoice.subscription?.id;
-        if (subId) {
-          const [sub] = await this.db
-            .select({ userId: userSubscriptions.userId })
-            .from(userSubscriptions)
-            .where(eq(userSubscriptions.stripeSubscriptionId, subId))
-            .limit(1);
-          if (sub) {
-            const [usr] = await this.db
-              .select()
-              .from(users)
-              .where(and(eq(users.id, sub.userId), isNull(users.deletedAt)))
+        case "invoice.payment_succeeded": {
+          const invoice = event.data.object as Stripe.Invoice;
+          if (invoice.subscription) {
+            const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription.id;
+            const periodEnd = invoice.period_end ? new Date(invoice.period_end * 1000) : undefined;
+
+            const [existingSub] = await this.db
+              .select({ planId: userSubscriptions.planId })
+              .from(userSubscriptions)
+              .where(eq(userSubscriptions.stripeSubscriptionId, subId))
               .limit(1);
-            if (usr) {
-              await this.mailService.sendPaymentFailed(usr.email, usr.name);
+
+            if (existingSub) {
+              const [plan] = await this.db
+                .select()
+                .from(subscriptionPlans)
+                .where(eq(subscriptionPlans.id, existingSub.planId))
+                .limit(1);
+
+              await this.db
+                .update(userSubscriptions)
+                .set({
+                  status: "active",
+                  currentPeriodEnd: periodEnd,
+                  remainingExamAttempts: plan?.maxExamAttempts ?? undefined,
+                  remainingFlashcardAttempts: plan?.maxFlashcardAttempts ?? undefined,
+                  remainingUses: plan?.maxUses ?? undefined,
+                  updatedAt: new Date(),
+                })
+                .where(eq(userSubscriptions.stripeSubscriptionId, subId));
             }
           }
+          break;
         }
-        break;
+        case "invoice.payment_failed": {
+          const failedInvoice = event.data.object as Stripe.Invoice;
+          const subId = typeof failedInvoice.subscription === "string"
+            ? failedInvoice.subscription
+            : failedInvoice.subscription?.id;
+          if (subId) {
+            await this.db
+              .update(userSubscriptions)
+              .set({ status: "past_due", updatedAt: new Date() })
+              .where(eq(userSubscriptions.stripeSubscriptionId, subId));
+
+            const [sub] = await this.db
+              .select({ userId: userSubscriptions.userId })
+              .from(userSubscriptions)
+              .where(eq(userSubscriptions.stripeSubscriptionId, subId))
+              .limit(1);
+            if (sub) {
+              const [usr] = await this.db
+                .select()
+                .from(users)
+                .where(and(eq(users.id, sub.userId), isNull(users.deletedAt)))
+                .limit(1);
+              if (usr) {
+                await this.mailService.sendPaymentFailed(usr.email, usr.name, usr.preferredLocale || "es");
+              }
+            }
+          }
+          break;
+        }
+        case "customer.subscription.deleted": {
+          const deletedSub = event.data.object as Stripe.Subscription;
+          if (deletedSub.id) {
+            await this.db
+              .update(userSubscriptions)
+              .set({ status: "canceled", updatedAt: new Date() })
+              .where(eq(userSubscriptions.stripeSubscriptionId, deletedSub.id));
+          }
+          break;
+        }
       }
+    } catch (err) {
+      console.error("Webhook handler error:", err);
+      throw err;
     }
   }
 }

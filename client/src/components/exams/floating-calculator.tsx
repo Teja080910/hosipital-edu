@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Calculator, X } from "lucide-react";
 
 export function FloatingCalculator() {
+  const t = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [display, setDisplay] = useState("0");
   const prev = useRef<number | null>(null);
@@ -96,7 +98,7 @@ export function FloatingCalculator() {
       {open && (
         <div className="fixed bottom-16 right-5 z-[999] w-60 p-3 rounded-xl border bg-card shadow-2xl">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Calc</span>
+            <span className="text-xs text-muted-foreground">{t("calculator")}</span>
             <button type="button" onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
               <X className="h-3.5 w-3.5" />
             </button>

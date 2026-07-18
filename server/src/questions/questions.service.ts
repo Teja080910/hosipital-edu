@@ -1,11 +1,12 @@
 import {
   Injectable,
   NotFoundException,
+  ForbiddenException,
   Inject,
 } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { questions, questionExams, questionOptions, questionImages, userSubscriptions, subscriptionPlans, users } from "../database/schema";
-import { and, eq, isNull, ilike, asc, inArray, or, type SQL } from "drizzle-orm";
+import { and, eq, isNull, ilike, asc, inArray, sql } from "drizzle-orm";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { getAccessibleExamId } from "../common/utils/access-helper";
 import { I18nService } from "../common/i18n/i18n.service";
@@ -40,25 +41,83 @@ export class QuestionsService {
         .where(eq(users.id, user.id))
         .limit(1);
       isAdmin = u && (u.role === "admin" || u.role === "super_admin");
-      isCourseOnly = u?.accountType === "course_only";
+      if (u?.accountType === "course_only") {
+        const [activeSub] = await this.db
+          .select({ planId: userSubscriptions.planId })
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .limit(1);
+        if (activeSub) {
+          const [plan] = await this.db
+            .select({ price: subscriptionPlans.price })
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, activeSub.planId))
+            .limit(1);
+          if (plan && parseFloat(plan.price || "0") > 0) {
+            isCourseOnly = false;
+          } else {
+            isCourseOnly = true;
+          }
+        } else {
+          isCourseOnly = true;
+        }
+      }
     }
 
     let subExamId: string | null = null;
-    if (user && !isAdmin && !isCourseOnly) {
-      subExamId = await this.getSubscriptionExamId(user.id);
+    if (user && !isAdmin) {
+      if (isCourseOnly) {
+        subExamId = "none";
+      } else {
+        const [sub] = await this.db
+          .select({ planId: userSubscriptions.planId })
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .limit(1);
+        if (sub) {
+          const [plan] = await this.db
+            .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts, price: subscriptionPlans.price })
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, sub.planId))
+            .limit(1);
+          if (plan && plan.maxExamAttempts == null && parseFloat(plan.price || "0") === 0) {
+            return { data: [], total: 0, page, limit };
+          }
+        }
+        subExamId = await this.getSubscriptionExamId(user.id);
+      }
     }
 
     if (subExamId) {
-      const subQIds = await this.db
-        .select({ questionId: questionExams.questionId })
-        .from(questionExams)
-        .where(eq(questionExams.examId, subExamId));
-      const subIds = subQIds.map((r: any) => r.questionId);
-      conditions.push(inArray(questions.id, subIds));
-      if (examId && examId !== subExamId) {
-        return [];
+      if (subExamId !== "__all__") {
+        const subQIds = await this.db
+          .select({ questionId: questionExams.questionId })
+          .from(questionExams)
+          .where(eq(questionExams.examId, subExamId));
+        const subIds = subQIds.map((r: any) => r.questionId);
+        conditions.push(inArray(questions.id, subIds));
+        if (examId && examId !== subExamId) {
+          return { data: [], total: 0, page, limit };
+        }
       }
     } else if (examId) {
+      if (user && !isAdmin) {
+        const [sub] = await this.db
+          .select()
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .limit(1);
+        if (!sub) {
+          const [u] = await this.db
+            .select({ createdAt: users.createdAt, targetExamId: users.targetExamId })
+            .from(users)
+            .where(eq(users.id, user.id))
+            .limit(1);
+          if (!u || !u.targetExamId || u.targetExamId !== examId || (Date.now() - new Date(u.createdAt).getTime()) > 86400000) {
+            return { data: [], total: 0, page, limit };
+          }
+        }
+      }
       const examQIds = await this.db
         .select({ questionId: questionExams.questionId })
         .from(questionExams)
@@ -73,6 +132,11 @@ export class QuestionsService {
     if (difficulty) conditions.push(eq(questions.difficulty, difficulty));
     if (search) conditions.push(ilike(questions.text, `%${search}%`));
 
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(questions)
+      .where(and(...conditions));
+
     const items = await this.db
       .select()
       .from(questions)
@@ -80,7 +144,7 @@ export class QuestionsService {
       .limit(limit)
       .offset(offset);
 
-    if (!items.length) return items;
+    if (!items.length) return { data: [], total: 0, page, limit };
 
     const qIds = items.map((q: any) => q.id);
     const allOptions = await this.db
@@ -118,12 +182,17 @@ export class QuestionsService {
       examIdsByQ.get(link.questionId)!.push(link.examId);
     }
 
-    return items.map((q: any) => ({
-      ...q,
-      options: optionsByQ.get(q.id) || [],
-      images: imagesByQ.get(q.id) || [],
-      examIds: examIdsByQ.get(q.id) || [],
-    }));
+    return {
+      data: items.map((q: any) => ({
+        ...q,
+        options: optionsByQ.get(q.id) || [],
+        images: imagesByQ.get(q.id) || [],
+        examIds: examIdsByQ.get(q.id) || [],
+      })),
+      total: count,
+      page,
+      limit,
+    };
   }
 
   async findById(id: string, user?: any) {
@@ -142,9 +211,12 @@ export class QuestionsService {
         .limit(1);
       const isAdmin = u && (u.role === "admin" || u.role === "super_admin");
       const isCourseOnly = u?.accountType === "course_only";
-      if (!isAdmin && !isCourseOnly) {
+      if (isCourseOnly) {
+        throw new ForbiddenException(this.i18n.t("questions.notFound"));
+      }
+      if (!isAdmin) {
         const subExamId = await this.getSubscriptionExamId(user.id);
-        if (subExamId) {
+        if (subExamId && subExamId !== "__all__") {
           const links = await this.db
             .select()
             .from(questionExams)
@@ -214,6 +286,7 @@ export class QuestionsService {
     if (examId !== undefined) cleanData.examId = examId || null;
     if (specialtyId !== undefined) cleanData.specialtyId = specialtyId || null;
     if (topicId !== undefined) cleanData.topicId = topicId || null;
+    if (subtopicId !== undefined) cleanData.subtopicId = subtopicId || null;
     const [question] = await this.db
       .update(questions)
       .set(cleanData)

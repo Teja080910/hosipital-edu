@@ -4,8 +4,11 @@ import { ThrottlerGuard, Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { ResendVerificationDto } from "./dto/resend-verification.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
-import { LocalAuthGuard } from "../common/guards/local-auth.guard";
+
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { I18nService } from "../common/i18n/i18n.service";
 
@@ -18,6 +21,8 @@ export class AuthController {
   ) {}
 
   @Post("register")
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: "Register new user" })
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
@@ -51,20 +56,20 @@ export class AuthController {
 
   @Post("resend-verification")
   @ApiOperation({ summary: "Resend verification email" })
-  async resendVerification(@Body("email") email: string) {
-    return this.authService.resendVerification(email);
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    return this.authService.resendVerification(dto.email);
   }
 
   @Post("forgot-password")
   @ApiOperation({ summary: "Send password reset email" })
-  async forgotPassword(@Body("email") email: string) {
-    return this.authService.forgotPassword(email);
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
   }
 
   @Post("reset-password")
   @ApiOperation({ summary: "Reset password with token" })
-  async resetPassword(@Body("token") token: string, @Body("password") password: string) {
-    return this.authService.resetPassword(token, password);
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.password);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -77,10 +82,13 @@ export class AuthController {
 
   @Get("google")
   @ApiOperation({ summary: "Google OAuth login" })
-  async googleAuth() {}
+  async googleAuth() {
+    // TODO: Google OAuth not yet implemented
+  }
 
   @Get("google/callback")
   @ApiOperation({ summary: "Google OAuth callback" })
+  // TODO: Add @UseGuards(AuthGuard('google')) when Google OAuth is implemented
   async googleAuthRedirect(@Req() req: any) {
     return req.user;
   }

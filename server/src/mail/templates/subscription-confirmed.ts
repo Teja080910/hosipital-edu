@@ -31,7 +31,7 @@ export function subscriptionConfirmedTemplate(
       </table>
       ${emailDivider()}
       ${emailText(t(locale, "subscriptionConfirmed.body2"))}
-      ${emailButton(t(locale, "subscriptionConfirmed.button"), `${appUrl || "https://md-exams.com"}/dashboard`)}
+      ${emailButton(t(locale, "subscriptionConfirmed.button"), `${appUrl || "https://md-exam.com"}/${locale}/dashboard`)}
       ${emailSmall(t(locale, "subscriptionConfirmed.footer"))}
     `,
     appUrl,

@@ -57,14 +57,16 @@ export class AuthService {
         referredBy,
         accountType: dto.accountType || "full",
         targetExamId: dto.targetExamId || null,
+        preferredLocale: dto.preferredLocale || "es",
       })
       .returning();
 
+    const emailSecret = this.config.get<string>("JWT_SECRET") + "-email-verify";
     const token = this.jwtService.sign(
       { sub: user.id, purpose: "email-verify" },
-      { expiresIn: "24h" },
+      { secret: emailSecret, expiresIn: "24h" },
     );
-    await this.mailService.sendVerificationEmail(user.email, user.name, token);
+    await this.mailService.sendVerificationEmail(user.email, user.name, token, user.preferredLocale || "es");
 
     const tokens = await this.generateTokens(user);
 
@@ -98,22 +100,24 @@ export class AuthService {
     if (!user.passwordHash) {
       const autoReset = this.config.get<string>("AUTO_SEND_RESET_ON_MIGRATED", "false") === "true";
       if (autoReset) {
+        const resetSecret = this.config.get<string>("JWT_SECRET") + "-password-reset";
         const token = this.jwtService.sign(
           { sub: user.id, purpose: "password-reset" },
-          { expiresIn: "1h" },
+          { secret: resetSecret, expiresIn: "1h" },
         );
-        await this.mailService.sendPasswordReset(user.email, user.name, token);
+        await this.mailService.sendPasswordReset(user.email, user.name, token, user.preferredLocale || "es");
       }
       throw new UnauthorizedException(this.i18n.t("auth.accountMigrated"));
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new UnauthorizedException(this.i18n.t("auth.incorrectPassword"));
     if (!user.emailVerifiedAt) {
+      const emailSecret = this.config.get<string>("JWT_SECRET") + "-email-verify";
       const token = this.jwtService.sign(
         { sub: user.id, purpose: "email-verify" },
-        { expiresIn: "24h" },
+        { secret: emailSecret, expiresIn: "24h" },
       );
-      await this.mailService.sendVerificationEmail(user.email, user.name, token);
+    await this.mailService.sendVerificationEmail(user.email, user.name, token, user.preferredLocale || "es");
       throw new UnauthorizedException(this.i18n.t("auth.emailNotVerified"));
     }
     const tokens = await this.generateTokens(user);
@@ -150,7 +154,8 @@ export class AuthService {
 
   async verifyEmail(token: string) {
     try {
-      const payload = this.jwtService.verify(token);
+      const emailSecret = this.config.get<string>("JWT_SECRET") + "-email-verify";
+      const payload = this.jwtService.verify(token, { secret: emailSecret });
       if (payload.purpose !== "email-verify") throw new BadRequestException(this.i18n.t("auth.invalidToken"));
       const [user] = await this.db
         .select()
@@ -163,7 +168,7 @@ export class AuthService {
         .update(users)
         .set({ emailVerifiedAt: new Date() })
         .where(eq(users.id, user.id));
-      await this.mailService.sendWelcome(user.email, user.name);
+      await this.mailService.sendWelcome(user.email, user.name, user.preferredLocale || "es");
       return { message: this.i18n.t("auth.emailVerified") };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
@@ -179,11 +184,12 @@ export class AuthService {
       .limit(1);
     if (!user) return { message: this.i18n.t("auth.ifEmailExists") };
     if (user.emailVerifiedAt) throw new BadRequestException(this.i18n.t("auth.emailAlreadyVerified"));
+    const emailSecret = this.config.get<string>("JWT_SECRET") + "-email-verify";
     const token = this.jwtService.sign(
       { sub: user.id, purpose: "email-verify" },
-      { expiresIn: "24h" },
+      { secret: emailSecret, expiresIn: "24h" },
     );
-    await this.mailService.sendVerificationEmail(user.email, user.name, token);
+    await this.mailService.sendVerificationEmail(user.email, user.name, token, user.preferredLocale || "es");
     return { message: this.i18n.t("auth.verificationSent") };
   }
 
@@ -196,17 +202,19 @@ export class AuthService {
     if (!user) {
       return { message: this.i18n.t("auth.ifEmailExistsReset") };
     }
+    const resetSecret = this.config.get<string>("JWT_SECRET") + "-password-reset";
     const token = this.jwtService.sign(
       { sub: user.id, purpose: "password-reset" },
-      { expiresIn: "1h" },
+      { secret: resetSecret, expiresIn: "1h" },
     );
-    await this.mailService.sendPasswordReset(user.email, user.name, token);
+    await this.mailService.sendPasswordReset(user.email, user.name, token, user.preferredLocale || "es");
     return { message: this.i18n.t("auth.passwordResetSent") };
   }
 
   async resetPassword(token: string, newPassword: string) {
     try {
-      const payload = this.jwtService.verify(token);
+      const resetSecret = this.config.get<string>("JWT_SECRET") + "-password-reset";
+      const payload = this.jwtService.verify(token, { secret: resetSecret });
       if (payload.purpose !== "password-reset") throw new BadRequestException(this.i18n.t("auth.invalidToken"));
       const [user] = await this.db
         .select()
@@ -219,7 +227,7 @@ export class AuthService {
         .update(users)
         .set({ passwordHash })
         .where(eq(users.id, user.id));
-      await this.mailService.sendPasswordChanged(user.email, user.name);
+      await this.mailService.sendPasswordChanged(user.email, user.name, user.preferredLocale || "es");
       return { message: this.i18n.t("auth.passwordResetSuccess") };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
@@ -240,7 +248,10 @@ export class AuthService {
 
   private async verifyTurnstile(token?: string) {
     const secret = this.config.get<string>("TURNSTILE_SECRET_KEY");
-    if (!secret || secret.startsWith("0x")) return;
+    if (!secret) {
+      throw new BadRequestException(this.i18n.t("auth.captchaNotConfigured"));
+    }
+    if (secret.startsWith("0x")) return;
     if (!token) {
       throw new BadRequestException(this.i18n.t("auth.captchaRequired"));
     }
@@ -258,8 +269,12 @@ export class AuthService {
   }
 
   sanitizeUser(user: any) {
-    const { passwordHash, ...rest } = user;
-    return rest;
+    const sensitiveFields = ["passwordHash", "resetToken", "emailVerificationToken"];
+    const result = { ...user };
+    for (const field of sensitiveFields) {
+      delete result[field];
+    }
+    return result;
   }
 
   async getMe(userId: string) {

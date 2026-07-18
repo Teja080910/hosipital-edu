@@ -14,8 +14,9 @@ import {
   subscriptionPlans,
   exams,
   users,
+  courseExams,
 } from "../database/schema";
-import { eq, and, asc, inArray, sql, desc, type SQL } from "drizzle-orm";
+import { eq, and, asc, inArray, sql, desc, isNull, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 import { STRIPE } from "../subscriptions/stripe.provider";
 import Stripe from "stripe";
@@ -29,11 +30,11 @@ export class CoursesService {
     @Inject(STRIPE) private stripe: Stripe,
   ) {}
 
-  async findAll(onlyActive = true, _userId?: string) {
-    const conditions: SQL[] = [];
+  async findAll(onlyActive = true) {
+    const conditions: SQL[] = [isNull(courses.deletedAt)];
     if (onlyActive) conditions.push(eq(courses.isActive, true));
 
-    return this.db
+    const rows = await this.db
       .select({
         id: courses.id,
         slug: courses.slug,
@@ -56,15 +57,32 @@ export class CoursesService {
       .where(and(...conditions))
       .groupBy(courses.id)
       .orderBy(asc(courses.sortOrder));
+
+    const courseIds = rows.map((r: any) => r.id);
+    let examIdsByCourse = new Map<string, string[]>();
+    try {
+      const allLinks = courseIds.length
+        ? await this.db
+            .select()
+            .from(courseExams)
+            .where(inArray(courseExams.courseId, courseIds))
+        : [];
+      for (const link of allLinks) {
+        if (!examIdsByCourse.has(link.courseId)) examIdsByCourse.set(link.courseId, []);
+        examIdsByCourse.get(link.courseId)!.push(link.examId);
+      }
+    } catch {}
+
+    return rows.map((r: any) => ({ ...r, examIds: examIdsByCourse.get(r.id) || [] }));
   }
 
   async findBySlug(slug: string) {
     const [course] = await this.db
       .select()
       .from(courses)
-      .where(eq(courses.slug, slug))
+      .where(and(eq(courses.slug, slug), eq(courses.isActive, true), isNull(courses.deletedAt)))
       .limit(1);
-    if (!course || !course.isActive) throw new NotFoundException(this.i18n.t("courses.notFound"));
+    if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
 
     const mods = await this.db
       .select()
@@ -94,40 +112,58 @@ export class CoursesService {
       lessons: lessonsByModule[mod.id] || [],
     }));
 
-    return { ...course, modules: modulesWithLessons };
+    const ceRows = await this.db
+      .select({ examId: courseExams.examId })
+      .from(courseExams)
+      .where(eq(courseExams.courseId, course.id));
+    const examIds = ceRows.map((r: any) => r.examId);
+    if (course.examId && !examIds.includes(course.examId)) examIds.push(course.examId);
+
+    return { ...course, modules: modulesWithLessons, examIds };
   }
 
   async findIdBySlug(slug: string) {
     const [course] = await this.db
       .select({ id: courses.id })
       .from(courses)
-      .where(and(eq(courses.slug, slug), eq(courses.isActive, true)))
+      .where(and(eq(courses.slug, slug), eq(courses.isActive, true), isNull(courses.deletedAt)))
       .limit(1);
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
     return course.id;
   }
 
   async create(data: any) {
-    const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
+    const { createdAt, updatedAt, deletedAt, examIds, ...cleanData } = data;
     const [course] = await this.db.insert(courses).values(cleanData).returning();
+    if (examIds?.length) {
+      try { await this.db.insert(courseExams).values(examIds.map((eId: string) => ({ courseId: course.id, examId: eId }))); } catch {}
+    }
     return course;
   }
 
   async update(id: string, data: any) {
-    const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
+    const { createdAt, updatedAt, deletedAt, examIds, ...cleanData } = data;
     const [course] = await this.db
       .update(courses)
       .set({ ...cleanData, updatedAt: new Date() })
       .where(eq(courses.id, id))
       .returning();
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
+    if (examIds) {
+      await this.db.delete(courseExams).where(eq(courseExams.courseId, id));
+      if (examIds.length > 0) {
+        await this.db.insert(courseExams).values(
+          examIds.map((eId: string) => ({ courseId: id, examId: eId }))
+        );
+      }
+    }
     return course;
   }
 
   async softDelete(id: string) {
     const [course] = await this.db
       .update(courses)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(eq(courses.id, id))
       .returning();
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
@@ -135,6 +171,13 @@ export class CoursesService {
   }
 
   async enroll(userId: string, courseId: string, stripePaymentId?: string, locale?: string) {
+    const [userRecord] = await this.db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const isAdmin = userRecord && (userRecord.role === "admin" || userRecord.role === "super_admin");
+
     const [course] = await this.db
       .select()
       .from(courses)
@@ -155,6 +198,19 @@ export class CoursesService {
       .limit(1);
 
     if (existing) throw new BadRequestException(this.i18n.t("courses.alreadyEnrolled"));
+
+    if (isAdmin) {
+      const [enrollment] = await this.db
+        .insert(userCourseEnrollments)
+        .values({
+          userId,
+          courseId,
+          stripePaymentId,
+          accessExpiresAt: new Date(Date.now() + (course.durationDays || 365) * 86400000),
+        })
+        .returning();
+      return enrollment;
+    }
 
     const [sub] = await this.db
       .select()
@@ -178,7 +234,13 @@ export class CoursesService {
       throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
     }
 
-    if (parseFloat(course.price) === 0 || stripePaymentId || (sub && !isCourseOnly) || (isCourseOnly && subCourseId === courseId)) {
+    const isValidStripeSession = stripePaymentId?.startsWith("cs_");
+    const subExamId = sub?.subscription_plans?.examId;
+    if (sub && !isCourseOnly && subExamId && subExamId !== course.examId) {
+      throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
+    }
+
+    if (parseFloat(course.price) === 0 || isValidStripeSession || (sub && !isCourseOnly) || (isCourseOnly && subCourseId === courseId)) {
       const [enrollment] = await this.db
         .insert(userCourseEnrollments)
         .values({
@@ -216,12 +278,29 @@ export class CoursesService {
   }
 
   async checkAccess(userId: string, courseId: string) {
+    const [userRecord] = await this.db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (userRecord && (userRecord.role === "admin" || userRecord.role === "super_admin")) {
+      return { hasAccess: true };
+    }
+
     const [course] = await this.db
-      .select({ examId: courses.examId, sortOrder: courses.sortOrder })
+      .select({ examId: courses.examId, sortOrder: courses.sortOrder, id: courses.id })
       .from(courses)
       .where(eq(courses.id, courseId))
       .limit(1);
     if (!course) return { hasAccess: false };
+
+    const ceRows = await this.db
+      .select({ examId: courseExams.examId })
+      .from(courseExams)
+      .where(eq(courseExams.courseId, courseId));
+    const courseExamIds: string[] = [];
+    if (course.examId) courseExamIds.push(course.examId);
+    ceRows.forEach((r: any) => { if (!courseExamIds.includes(r.examId)) courseExamIds.push(r.examId); });
 
     const [sub] = await this.db
       .select()
@@ -241,12 +320,24 @@ export class CoursesService {
     if (sub) {
       const plan = sub.subscription_plans;
       if (plan.isCourseOnly) {
+        if (plan.courseId !== courseId) {
+          return { hasAccess: false };
+        }
         return { hasAccess: true };
       }
-      if (plan.examId && course.examId) {
-        return { hasAccess: plan.examId === course.examId };
+      if (courseExamIds.length > 0) {
+        if (plan.examId && courseExamIds.includes(plan.examId)) return { hasAccess: true };
+        const [planUser] = await this.db
+          .select({ targetExamId: users.targetExamId })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (planUser?.targetExamId && courseExamIds.includes(planUser.targetExamId)) return { hasAccess: true };
+        return { hasAccess: false };
       }
-      return { hasAccess: true };
+      if (parseFloat(plan.price) > 0) {
+        return { hasAccess: true };
+      }
     }
 
     const [user] = await this.db
@@ -261,7 +352,7 @@ export class CoursesService {
         const [firstCourse] = await this.db
           .select({ id: courses.id })
           .from(courses)
-          .where(eq(courses.isActive, true))
+          .where(and(eq(courses.isActive, true), isNull(courses.deletedAt)))
           .orderBy(asc(courses.sortOrder))
           .limit(1);
         if (firstCourse && firstCourse.id === courseId) {
@@ -356,6 +447,19 @@ export class CoursesService {
   }
 
   async completeLesson(userId: string, courseId: string, lessonId: string) {
+    const [enrollment] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (!enrollment) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
+
     const [existing] = await this.db
       .select()
       .from(userCourseProgress)
@@ -398,6 +502,19 @@ export class CoursesService {
   }
 
   async incompleteLesson(userId: string, courseId: string, lessonId: string) {
+    const [enrollment] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (!enrollment) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
+
     const [existing] = await this.db
       .select()
       .from(userCourseProgress)
@@ -471,7 +588,14 @@ export class CoursesService {
       .from(courseQuizzes)
       .where(eq(courseQuizzes.lessonId, lessonId))
       .limit(1);
-    return quiz || null;
+    if (!quiz) return null;
+    if (quiz.questions && Array.isArray(quiz.questions)) {
+      quiz.questions = quiz.questions.map((q: any) => {
+        const { correctIndex, ...rest } = q;
+        return rest;
+      });
+    }
+    return quiz;
   }
 
   async getCourseQuiz(courseId: string, type: "pre_test" | "post_test") {
@@ -485,7 +609,14 @@ export class CoursesService {
         ),
       )
       .limit(1);
-    return quiz || null;
+    if (!quiz) return null;
+    if (quiz.questions && Array.isArray(quiz.questions)) {
+      quiz.questions = quiz.questions.map((q: any) => {
+        const { correctIndex, ...rest } = q;
+        return rest;
+      });
+    }
+    return quiz;
   }
 
   async getTestResults(userId: string, courseId: string) {

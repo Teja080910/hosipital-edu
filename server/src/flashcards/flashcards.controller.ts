@@ -16,6 +16,107 @@ import { RolesGuard } from "../common/guards/roles.guard";
 import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { IsOptional, IsString, IsUUID, IsInt, IsBoolean, IsArray, Min } from "class-validator";
+import { Type } from "class-transformer";
+
+class CreateFlashcardDto {
+  @IsString()
+  front!: string;
+
+  @IsString()
+  back!: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
+
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  topicId?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+}
+
+class UpdateFlashcardDto {
+  @IsOptional()
+  @IsString()
+  front?: string;
+
+  @IsOptional()
+  @IsString()
+  back?: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  topicId?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+}
+
+class StartFlashcardExamDto {
+  @IsString()
+  mode!: string;
+
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  questionCount!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  timeLimit?: number;
+
+  @IsOptional()
+  @IsString()
+  customTitle?: string;
+
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  topicId?: string;
+}
+
+class AnswerFlashcardDto {
+  @IsUUID()
+  flashcardId!: string;
+
+  @IsBoolean()
+  isCorrect!: boolean;
+}
 
 @ApiTags("flashcards")
 @Controller("flashcards")
@@ -52,8 +153,8 @@ export class FlashcardsController {
   @AllowedAccountTypes("full", "course_only")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get due flashcards for review" })
-  async findDue(@CurrentUser() user: any, @Query("limit") limit?: number) {
-    return this.flashcardsService.findDue(user.id, limit);
+  async findDue(@CurrentUser() user: any, @Query("limit") limit?: number, @Query("specialtyId") specialtyId?: string) {
+    return this.flashcardsService.findDue(user.id, limit, specialtyId);
   }
 
   @Post()
@@ -61,7 +162,7 @@ export class FlashcardsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create flashcard (admin)" })
-  async create(@Body() data: any, @CurrentUser() user: any) {
+  async create(@Body() data: CreateFlashcardDto, @CurrentUser() user: any) {
     return this.flashcardsService.create({ ...data, createdBy: user.id });
   }
 
@@ -70,7 +171,7 @@ export class FlashcardsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update flashcard (admin)" })
-  async update(@Param("id") id: string, @Body() data: any) {
+  async update(@Param("id") id: string, @Body() data: UpdateFlashcardDto) {
     return this.flashcardsService.update(id, data);
   }
 
@@ -97,5 +198,50 @@ export class FlashcardsController {
       flashcardId: id,
       quality,
     });
+  }
+
+  @Get("exam-history")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get flashcard exam history" })
+  async getExamHistory(@CurrentUser() user: any) {
+    return this.flashcardsService.getExamHistory(user.id);
+  }
+
+  @Get("exam-history/:id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get flashcard exam attempt detail" })
+  async getExamAttemptDetail(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.flashcardsService.getExamAttemptDetail(id, user.id);
+  }
+
+  @Post("exam/start")
+  @UseGuards(JwtAuthGuard, AccountTypeGuard)
+  @AllowedAccountTypes("full", "course_only")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Start a flashcard exam" })
+  async startExam(@Body() data: StartFlashcardExamDto, @CurrentUser() user: any) {
+    return this.flashcardsService.startExam({ ...data, userId: user.id });
+  }
+
+  @Patch("exam/:id/answer")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Answer a flashcard in an exam" })
+  async answerFlashcard(
+    @Param("id") id: string,
+    @Body() data: AnswerFlashcardDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.flashcardsService.answerFlashcardQuestion({ attemptId: id, ...data }, user.id);
+  }
+
+  @Patch("exam/:id/complete")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Complete a flashcard exam" })
+  async completeExam(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.flashcardsService.completeExam(id, user.id);
   }
 }

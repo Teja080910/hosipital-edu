@@ -1,9 +1,8 @@
-import { Inject, Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
-import { getAccessibleExamId } from "../common/utils/access-helper";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, questionExams, specialties, subscriptionPlans, subtopics, topics, userSubscriptions } from "../database/schema";
+import { exams, questionExams, specialties, subscriptionPlans, planExams, subtopics, topics, userSubscriptions, users } from "../database/schema";
 
 @Injectable()
 export class ExamsService {
@@ -13,45 +12,24 @@ export class ExamsService {
   ) {}
 
   async findAll(user?: any) {
-    let allowedExamId: string | null = null;
-    let hasAccess = false;
+    let sub: any = null;
+    let isAdmin = false;
     if (user) {
-      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      const [u] = await this.db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      isAdmin = u && (u.role === "admin" || u.role === "super_admin");
       if (!isAdmin) {
-        const [sub] = await this.db
-          .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
+        [sub] = await this.db
+          .select({ planId: subscriptionPlans.id, examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt), gt(userSubscriptions.currentPeriodEnd, new Date())))
           .limit(1);
-        if (sub) {
-          if (sub.examId) {
-            allowedExamId = sub.examId;
-          } else if (user.targetExamId) {
-            allowedExamId = user.targetExamId;
-          }
-          hasAccess = true;
-        } else if (user.targetExamId) {
-          allowedExamId = user.targetExamId;
-          const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
-          if (hoursSinceRegistration <= 24) {
-            hasAccess = true;
-          }
-        }
-      } else {
-        hasAccess = true;
       }
     }
-
-    if (user && !allowedExamId && !hasAccess && user.role !== "admin" && user.role !== "super_admin") return [];
-
-    const questionFilter = allowedExamId
-      ? sql`(SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = ${allowedExamId} AND question_exams.question_id = questions.id)`
-      : sql`(SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = exams.id AND question_exams.question_id = questions.id)`;
-
-    const examFilter = allowedExamId
-      ? eq(exams.id, allowedExamId)
-      : eq(exams.isActive, true);
 
     const rows = await this.db
       .select({
@@ -62,12 +40,39 @@ export class ExamsService {
         isActive: exams.isActive,
         sortOrder: exams.sortOrder,
         createdAt: exams.createdAt,
-        _questionCount: sql<number>`(SELECT COUNT(*) FROM questions WHERE ${questionFilter} > 0 AND questions.is_active = true)`,
+        _questionCount: sql`(SELECT COUNT(*) FROM questions WHERE (SELECT COUNT(*) FROM question_exams WHERE question_exams.exam_id = exams.id AND question_exams.question_id = questions.id) > 0 AND questions.is_active = true)`,
       })
       .from(exams)
-      .where(examFilter)
+      .where(eq(exams.isActive, true))
       .orderBy(asc(exams.sortOrder));
-    return rows.map((r) => ({ ...r, hasAccess }));
+
+    let planExamIds: string[] = [];
+    if (sub?.planId) {
+      const peRows = await this.db
+        .select({ examId: planExams.examId })
+        .from(planExams)
+        .where(eq(planExams.planId, sub.planId));
+      planExamIds = peRows.map((r: any) => r.examId);
+    }
+
+    return rows.map((r: typeof rows[number]) => {
+      let hasAccess = false;
+      if (isAdmin) {
+        hasAccess = true;
+      } else if (sub) {
+        if (planExamIds.length > 0) {
+          hasAccess = planExamIds.includes(r.id);
+        } else if (!sub.examId || sub.examId === r.id) {
+          hasAccess = true;
+        }
+      } else if (user && user.targetExamId === r.id) {
+        const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+        if (hoursSinceRegistration <= 24) {
+          hasAccess = true;
+        }
+      }
+      return { ...r, hasAccess };
+    });
   }
 
   async findById(id: string, user?: any) {
@@ -79,22 +84,27 @@ export class ExamsService {
     if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
 
     if (user) {
-      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      const [u] = await this.db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      const isAdmin = u && (u.role === "admin" || u.role === "super_admin");
       if (!isAdmin) {
         const [sub] = await this.db
           .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt)))
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), isNull(userSubscriptions.canceledAt), gt(userSubscriptions.currentPeriodEnd, new Date())))
           .limit(1);
 
-        if (!sub || sub.isCourseOnly) {
+        if (!sub) {
           if (user.targetExamId && user.targetExamId === id) {
             const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
             if (hoursSinceRegistration > 24) {
               throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
             }
-          } else if (!sub) {
+          } else {
             throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
           }
         } else if (sub.examId && sub.examId !== id) {
@@ -250,5 +260,35 @@ export class ExamsService {
   async deleteSubtopic(id: string) {
     await this.db.delete(subtopics).where(eq(subtopics.id, id));
     return { deleted: true };
+  }
+
+  async copyQuestions(sourceExamId: string, targetExamId: string) {
+    const [source] = await this.db.select({ id: exams.id }).from(exams).where(eq(exams.id, sourceExamId)).limit(1);
+    const [target] = await this.db.select({ id: exams.id }).from(exams).where(eq(exams.id, targetExamId)).limit(1);
+    if (!source) throw new NotFoundException("Source exam not found");
+    if (!target) throw new NotFoundException("Target exam not found");
+
+    const sourceLinks = await this.db
+      .select({ questionId: questionExams.questionId })
+      .from(questionExams)
+      .where(eq(questionExams.examId, sourceExamId));
+
+    if (!sourceLinks.length) return { copied: 0, message: "No questions found in source exam" };
+
+    const sourceQIds = sourceLinks.map((l: any) => l.questionId);
+    const existingTargetLinks = await this.db
+      .select({ questionId: questionExams.questionId })
+      .from(questionExams)
+      .where(eq(questionExams.examId, targetExamId));
+    const existingIds = new Set(existingTargetLinks.map((l: any) => l.questionId));
+    const toInsert = sourceQIds.filter((id: string) => !existingIds.has(id));
+
+    if (!toInsert.length) return { copied: 0, message: "All source questions already exist in target exam" };
+
+    await this.db.insert(questionExams).values(
+      toInsert.map((questionId: string) => ({ questionId, examId: targetExamId })),
+    );
+
+    return { copied: toInsert.length, message: `Copied ${toInsert.length} questions from source to target` };
   }
 }

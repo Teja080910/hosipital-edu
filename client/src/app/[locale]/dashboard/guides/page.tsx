@@ -4,7 +4,7 @@ import { PageTransition } from "@/components/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { BookOpen, ChevronRight, Shield, ShieldCheck, UserRound } from "lucide-react";
+import { BookOpen, ChevronRight, Shield, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 const userGuides = [

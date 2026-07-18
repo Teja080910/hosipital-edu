@@ -17,13 +17,15 @@ export const examsApi = {
   createSubtopic: (topicId: string, data: Record<string, unknown>) => api.post(`/exams/topics/${topicId}/subtopics`, data),
   updateSubtopic: (id: string, data: Record<string, unknown>) => api.patch(`/exams/subtopics/${id}`, data),
   deleteSubtopic: (id: string) => api.delete(`/exams/subtopics/${id}`),
+  copyQuestions: (sourceId: string, targetId: string) => api.post(`/exams/${sourceId}/copy-questions/${targetId}`),
 };
 
 export const attemptsApi = {
-  create: (data: { examId: string; mode: string; questionCount: number; timeLimit?: number; customTitle?: string }) =>
+  create: (data: { examId: string; mode: string; questionCount: number; questionIds?: string[]; timeLimit?: number; customTitle?: string }) =>
     api.post("/exam-attempts", data),
   list: () => api.get("/exam-attempts"),
   get: (id: string) => api.get(`/exam-attempts/${id}`),
+  getActive: (examId: string) => api.get(`/exam-attempts/active/${examId}`),
   answer: (id: string, data: { questionId: string; selectedOptionId: string; timeSpent: number }) =>
     api.patch(`/exam-attempts/${id}/answer`, data),
   complete: (id: string) => api.patch(`/exam-attempts/${id}/complete`),

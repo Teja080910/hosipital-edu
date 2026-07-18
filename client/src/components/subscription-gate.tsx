@@ -14,6 +14,8 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkRef = useRef<() => Promise<void>>();
 
   useEffect(() => {
     if (isLoading) return;
@@ -33,8 +35,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
           const { data } = await subscriptionsApi.confirmCheckout(sessionId);
           if (data.status === "active") {
             await refreshUser();
-            const url = pathname.replace("?checkout=success", "").replace(`&session_id=${sessionId}`, "").replace(`?session_id=${sessionId}`, "");
-            router.replace(url);
+            router.replace(pathname);
             setChecking(false);
             return true;
           }
@@ -49,21 +50,24 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
       const confirmed = await confirmStripeCheckout();
       if (confirmed) return;
 
-      subscriptionsApi.mySubscription()
-        .then(({ data }) => {
-          if (data?.status === "active") {
-            if (pollRef.current) clearInterval(pollRef.current);
-          }
-          setChecking(false);
-        })
-        .catch(() => setChecking(false));
+      try {
+        const { data } = await subscriptionsApi.mySubscription();
+        if (data?.status === "active") {
+          if (pollRef.current) clearInterval(pollRef.current);
+        }
+      } catch {
+        // no subscription
+      } finally {
+        setChecking(false);
+      }
     };
 
+    checkRef.current = checkSubscription;
     checkSubscription();
 
-    if (pathname.includes("checkout=success")) {
-      pollRef.current = setInterval(checkSubscription, 2000);
-      setTimeout(() => {
+    if (searchParams?.has("checkout")) {
+      pollRef.current = setInterval(() => checkRef.current?.(), 2000);
+      timeoutRef.current = setTimeout(() => {
         if (pollRef.current) clearInterval(pollRef.current);
         setChecking(false);
       }, 15000);
@@ -71,6 +75,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [user, isLoading, router, pathname, searchParams]);
 

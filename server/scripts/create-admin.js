@@ -1,5 +1,5 @@
 const { Pool } = require("pg");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 
 async function main() {
   const [name, email, password] = process.argv.slice(2);

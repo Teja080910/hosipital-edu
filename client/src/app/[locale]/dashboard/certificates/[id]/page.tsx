@@ -10,6 +10,7 @@ import { Loader2, Download, ArrowLeft, CheckCircle2 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Link } from "@/routing";
+import { localizedText as localized } from "@/lib/utils";
 
 interface Certificate {
   id: string;
@@ -22,7 +23,7 @@ interface Certificate {
   pdfUrl?: string;
 }
 
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
+function localizedText(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
   if (!obj) return "";
   if (typeof obj === "string") return obj;
   return obj[locale] || Object.values(obj)[0] || "";
@@ -49,7 +50,7 @@ export default function CertificatePage() {
     certificatesApi
       .get(id as string)
       .then(({ data }) => setCert(data))
-      .catch(() => setError("Certificate not found"))
+      .catch(() => setError(t("not_found_error")))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -79,7 +80,7 @@ export default function CertificatePage() {
 
           <p style="font-size:13px;color:#94a3b8;margin:20px 0 6px 0;letter-spacing:0.05em;">${t("has_completed")}</p>
 
-          <h2 style="font-size:24px;font-weight:700;color:#2563eb;max-width:700px;text-align:center;margin:0;">${localized(cert.courseName)}</h2>
+          <h2 style="font-size:24px;font-weight:700;color:#2563eb;max-width:700px;text-align:center;margin:0;">${localizedText(cert.courseName)}</h2>
 
           <div style="margin:24px 0 16px 0;padding:10px 28px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
             <p style="font-size:11px;color:#94a3b8;margin:0 0 3px 0;text-transform:uppercase;letter-spacing:0.1em;">${t("date_of_completion")}</p>
@@ -138,9 +139,9 @@ export default function CertificatePage() {
   if (error || !cert) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">{error || "Certificate not found"}</p>
+        <p className="text-muted-foreground">{error || t("not_found_error")}</p>
         <Button variant="outline" asChild>
-          <Link href="/dashboard"><ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard</Link>
+          <Link href="/dashboard"><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_dashboard")}</Link>
         </Button>
       </div>
     );
@@ -173,7 +174,7 @@ export default function CertificatePage() {
                   {cert.studentName}
               </h1>
               <p className="text-sm text-gray-500 mb-0.5">{t("has_completed")}</p>
-<h2 className="text-3xl font-bold text-blue-600 max-w-4xl text-center">                {localized(cert.courseName)}
+<h2 className="text-3xl font-bold text-blue-600 max-w-4xl text-center">                {localizedText(cert.courseName)}
               </h2>
             </div>
 

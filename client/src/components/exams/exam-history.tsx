@@ -8,12 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { attemptsApi } from "@/lib/api";
 import { Clock, Loader2 } from "lucide-react";
-
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
-  if (!obj) return "";
-  if (typeof obj === "string") return obj;
-  return obj[locale] || Object.values(obj)[0] || "";
-}
+import { localizedText as localized } from "@/lib/utils";
 
 export function ExamHistory() {
   const t = useTranslations("exams");

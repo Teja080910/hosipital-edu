@@ -1,7 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { videoModules, videoModuleExams, videoLessons, userVideoProgress, userSubscriptions, subscriptionPlans, users } from "../database/schema";
-import { eq, asc, and, inArray, isNull, or, type SQL } from "drizzle-orm";
+import { eq, asc, and, inArray } from "drizzle-orm";
 import { getAccessibleExamId } from "../common/utils/access-helper";
 
 @Injectable()
@@ -9,6 +9,57 @@ export class VideosService {
   constructor(@Inject(DRIZZLE) private db: any) {}
 
   async findAll(user?: any) {
+    if (user) {
+      const [u] = await this.db
+        .select({ accountType: users.accountType, role: users.role })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      if (u?.accountType === "course_only") {
+        const [activeSub] = await this.db
+          .select({ planId: userSubscriptions.planId })
+          .from(userSubscriptions)
+          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .limit(1);
+        if (activeSub) {
+          const [plan] = await this.db
+            .select({ price: subscriptionPlans.price })
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, activeSub.planId))
+            .limit(1);
+          if (plan && parseFloat(plan.price || "0") > 0) {
+            // has paid plan, allow access
+          } else {
+            return [];
+          }
+        } else {
+          return [];
+        }
+      }
+      if (u?.role !== "admin" && u?.role !== "super_admin") {
+        const [sub] = await this.db
+          .select()
+          .from(userSubscriptions)
+          .where(
+            and(
+              eq(userSubscriptions.userId, user.id),
+              eq(userSubscriptions.status, "active"),
+            ),
+          )
+          .limit(1);
+        if (!sub) {
+          return [];
+        }
+        const [plan] = await this.db
+          .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts, price: subscriptionPlans.price })
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, sub.planId))
+          .limit(1);
+        if (plan && plan.maxExamAttempts == null && parseFloat(plan.price || "0") === 0) {
+          return [];
+        }
+      }
+    }
     let subExamId: string | null = null;
     if (user) {
       subExamId = await getAccessibleExamId(this.db, user.id);
@@ -20,24 +71,34 @@ export class VideosService {
       .where(eq(videoModules.isActive, true))
       .orderBy(asc(videoModules.sortOrder));
 
+    const moduleIds = modules.map((m: typeof modules[number]) => m.id);
+    const allExamLinks = await this.db
+      .select()
+      .from(videoModuleExams)
+      .where(inArray(videoModuleExams.moduleId, moduleIds));
+    const allLessons = await this.db
+      .select()
+      .from(videoLessons)
+      .where(inArray(videoLessons.moduleId, moduleIds))
+      .orderBy(asc(videoLessons.sortOrder));
+
+    const examLinksByModule = new Map<string, any[]>();
+    for (const link of allExamLinks) {
+      if (!examLinksByModule.has(link.moduleId)) examLinksByModule.set(link.moduleId, []);
+      examLinksByModule.get(link.moduleId)!.push(link);
+    }
+    const lessonsByModule = new Map<string, any[]>();
+    for (const lesson of allLessons) {
+      if (!lessonsByModule.has(lesson.moduleId)) lessonsByModule.set(lesson.moduleId, []);
+      lessonsByModule.get(lesson.moduleId)!.push(lesson);
+    }
+
     const result: Array<Record<string, unknown>> = [];
     for (const mod of modules) {
-      const examLinks = await this.db
-        .select()
-        .from(videoModuleExams)
-        .where(eq(videoModuleExams.moduleId, mod.id));
-
+      const examLinks = examLinksByModule.get(mod.id) || [];
       const modExamIds = examLinks.map((l: any) => l.examId);
-
-      if (subExamId && modExamIds.length > 0 && !modExamIds.includes(subExamId)) {
-        continue;
-      }
-
-      const lessons = await this.db
-        .select()
-        .from(videoLessons)
-        .where(eq(videoLessons.moduleId, mod.id))
-        .orderBy(asc(videoLessons.sortOrder));
+      if (subExamId && subExamId !== "__all__" && modExamIds.length > 0 && !modExamIds.includes(subExamId)) continue;
+      const lessons = lessonsByModule.get(mod.id) || [];
       result.push({ ...mod, lessons, examIds: modExamIds });
     }
     return result;

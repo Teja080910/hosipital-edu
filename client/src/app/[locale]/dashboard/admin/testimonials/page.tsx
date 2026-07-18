@@ -178,7 +178,7 @@ export default function AdminTestimonialsPage() {
     },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>

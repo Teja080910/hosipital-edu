@@ -9,8 +9,12 @@ import {
   users,
   questions,
   specialties,
+  payments,
+  courses,
+  exams,
+  auditLogs,
 } from "../database/schema";
-import { eq, and, count, sql, gte, lte, desc, between } from "drizzle-orm";
+import { eq, and, count, sql, gte, desc, isNull } from "drizzle-orm";
 
 @Injectable()
 export class AnalyticsService {
@@ -152,26 +156,123 @@ export class AnalyticsService {
   async getAdminStats() {
     const [totalUsers] = await this.db
       .select({ count: count() })
-      .from(users);
-
-    const [totalAttempts] = await this.db
-      .select({ count: count() })
-      .from(examAttempts);
+      .from(users)
+      .where(isNull(users.deletedAt));
 
     const [totalQuestions] = await this.db
       .select({ count: count() })
-      .from(userQuestionProgress);
+      .from(questions)
+      .where(eq(questions.isActive, true));
 
-    const [totalFlashcards] = await this.db
+    const [activeExams] = await this.db
       .select({ count: count() })
-      .from(userFlashcardReviews);
+      .from(exams);
+
+    const [revenue] = await this.db
+      .select({
+        total: sql<string>`coalesce(sum(${payments.amount}), 0)`,
+      })
+      .from(payments)
+      .where(eq(payments.status, "completed"));
+
+    const [activeCourses] = await this.db
+      .select({ count: count() })
+      .from(courses)
+      .where(and(eq(courses.isActive, true), isNull(courses.deletedAt)));
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const [todayUsers] = await this.db
+      .select({ count: count() })
+      .from(users)
+      .where(and(isNull(users.deletedAt), gte(users.createdAt, todayStart)));
+
+    const lastWeek = new Date();
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const [recentPayments] = await this.db
+      .select({ total: sql<string>`coalesce(sum(${payments.amount}), 0)` })
+      .from(payments)
+      .where(and(eq(payments.status, "completed"), gte(payments.createdAt, lastWeek)));
 
     return {
       totalUsers: totalUsers?.count || 0,
-      totalAttempts: totalAttempts?.count || 0,
-      totalQuestionsAnswered: totalQuestions?.count || 0,
-      totalFlashcardsReviewed: totalFlashcards?.count || 0,
+      totalQuestions: totalQuestions?.count || 0,
+      activeExams: activeExams?.count || 0,
+      revenue: revenue?.total || "0",
+      activeCourses: activeCourses?.count || 0,
+      todayUsers: todayUsers?.count || 0,
+      recentRevenue: recentPayments?.total || "0",
     };
+  }
+
+  async getRecentActivity(limit = 10) {
+    const [recentUsers, recentPayments, recentAttempts, recentCourses] = await Promise.all([
+      this.db
+        .select({
+          action: sql<string>`'New user registered'`,
+          entityType: sql<string>`'user'`,
+          entityId: users.id,
+          description: users.name,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .orderBy(desc(users.createdAt))
+        .limit(limit),
+      this.db
+        .select({
+          action: sql<string>`'Payment received'`,
+          entityType: sql<string>`'payment'`,
+          entityId: payments.id,
+          description: sql<string>`concat('$', ${payments.amount}::text)`,
+          createdAt: payments.createdAt,
+        })
+        .from(payments)
+        .where(eq(payments.status, "completed"))
+        .orderBy(desc(payments.createdAt))
+        .limit(limit),
+      this.db
+        .select({
+          action: sql<string>`'Exam completed'`,
+          entityType: sql<string>`'exam'`,
+          entityId: examAttempts.id,
+          description: sql<string>`''`,
+          createdAt: examAttempts.startedAt,
+        })
+        .from(examAttempts)
+        .where(eq(examAttempts.status, "completed"))
+        .orderBy(desc(examAttempts.startedAt))
+        .limit(limit),
+      this.db
+        .select({
+          action: sql<string>`'Course created'`,
+          entityType: sql<string>`'course'`,
+          entityId: courses.id,
+          description: sql<string>`${courses.title}->>'en'`,
+          createdAt: courses.createdAt,
+        })
+        .from(courses)
+        .orderBy(desc(courses.createdAt))
+        .limit(limit),
+    ]);
+
+    const all = [
+      ...recentUsers.map((r: any) => ({ ...r, description: r.description })),
+      ...recentPayments.map((r: any) => ({ ...r, description: r.description })),
+      ...recentAttempts.map((r: any) => ({ ...r, description: r.description })),
+      ...recentCourses.map((r: any) => ({ ...r, description: r.description })),
+    ];
+
+    return all
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit)
+      .map((r: any) => ({
+        id: r.entityId,
+        action: r.action,
+        entityType: r.entityType,
+        entityId: r.entityId,
+        metadata: { description: r.description },
+        createdAt: r.createdAt,
+      }));
   }
 
   async getDailyActiveUsers(days = 30) {
@@ -222,10 +323,10 @@ export class AnalyticsService {
       .where(sql`${users.createdAt} IS NOT NULL`)
       .orderBy(sql`date_trunc('month', ${users.createdAt})::date`);
 
-    const cohorts: Record<string, { total: number; activeMonths: Set<number> }> = {};
+    const cohorts: Record<string, { total: number; activeByMonth: Map<number, Set<string>> }> = {};
     for (const row of rows) {
       const cohort = new Date(row.cohortMonth).getTime();
-      if (!cohorts[cohort]) cohorts[cohort] = { total: 0, activeMonths: new Set() };
+      if (!cohorts[cohort]) cohorts[cohort] = { total: 0, activeByMonth: new Map() };
       cohorts[cohort].total++;
     }
 
@@ -250,7 +351,12 @@ export class AnalyticsService {
         const monthOffset = Math.round(
           (new Date(act.month).getTime() - cohort) / (30 * 24 * 60 * 60 * 1000),
         );
-        if (monthOffset >= 0) cohorts[cohort].activeMonths.add(monthOffset);
+        if (monthOffset >= 0) {
+          if (!cohorts[cohort].activeByMonth.has(monthOffset)) {
+            cohorts[cohort].activeByMonth.set(monthOffset, new Set());
+          }
+          cohorts[cohort].activeByMonth.get(monthOffset)!.add(act.userId);
+        }
       }
     }
 
@@ -258,9 +364,8 @@ export class AnalyticsService {
     for (const [cohortKey, data] of Object.entries(cohorts)) {
       const retention: Record<string, number> = {};
       for (let m = 0; m <= 6; m++) {
-        retention[`month_${m}`] = data.activeMonths.has(m)
-          ? Math.round((data.activeMonths.size / data.total) * 100)
-          : 0;
+        const activeUsersInMonth = data.activeByMonth.get(m)?.size || 0;
+        retention[`month_${m}`] = Math.round((activeUsersInMonth / data.total) * 100);
       }
       result.push({
         cohort: new Date(Number(cohortKey)).toISOString().slice(0, 7),

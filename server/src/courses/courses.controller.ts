@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   ParseUUIDPipe,
+  Logger,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { CoursesService } from "./courses.service";
@@ -16,6 +17,196 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { IsOptional, IsString, IsBoolean, IsNumber, IsUUID, IsObject, IsArray } from "class-validator";
+
+class CreateCourseDto {
+  @IsObject()
+  title!: object;
+
+  @IsOptional()
+  @IsObject()
+  description?: object;
+
+  @IsOptional()
+  @IsObject()
+  shortDescription?: object;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  coverImage?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsNumber()
+  duration?: number;
+
+  @IsOptional()
+  @IsNumber()
+  durationDays?: number;
+
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  hasCertificate?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  objectives?: object;
+
+  @IsOptional()
+  @IsObject()
+  targetAudience?: object;
+
+  @IsOptional()
+  @IsObject()
+  prerequisites?: object;
+
+  @IsOptional()
+  @IsObject()
+  whatYouWillLearn?: object;
+
+  @IsOptional()
+  @IsObject()
+  introduction?: object;
+
+  @IsOptional()
+  @IsObject()
+  preExamInstructions?: object;
+
+  @IsOptional()
+  @IsObject()
+  postExamInstructions?: object;
+
+  @IsOptional()
+  @IsObject()
+  certificateInstructions?: object;
+}
+
+class UpdateCourseDto {
+  @IsOptional()
+  @IsObject()
+  title?: object;
+
+  @IsOptional()
+  @IsObject()
+  description?: object;
+
+  @IsOptional()
+  @IsObject()
+  shortDescription?: object;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  coverImage?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsNumber()
+  duration?: number;
+
+  @IsOptional()
+  @IsNumber()
+  durationDays?: number;
+
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  hasCertificate?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  objectives?: object;
+
+  @IsOptional()
+  @IsObject()
+  targetAudience?: object;
+
+  @IsOptional()
+  @IsObject()
+  prerequisites?: object;
+
+  @IsOptional()
+  @IsObject()
+  whatYouWillLearn?: object;
+
+  @IsOptional()
+  @IsObject()
+  introduction?: object;
+
+  @IsOptional()
+  @IsObject()
+  preExamInstructions?: object;
+
+  @IsOptional()
+  @IsObject()
+  postExamInstructions?: object;
+
+  @IsOptional()
+  @IsObject()
+  certificateInstructions?: object;
+}
 
 @ApiTags("courses")
 @Controller("courses")
@@ -27,7 +218,7 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "List courses" })
   async findAll(@Query("all") all?: string, @CurrentUser() user?: any) {
-    return this.coursesService.findAll(all !== "true", user?.id);
+    return this.coursesService.findAll(all !== "true");
   }
 
   @Post()
@@ -35,8 +226,13 @@ export class CoursesController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create course (admin)" })
-  async create(@Body() data: any, @CurrentUser() user: any) {
-    return this.coursesService.create({ ...data, createdBy: user.id });
+  async create(@Body() data: CreateCourseDto, @CurrentUser() user: any) {
+    try {
+      return await this.coursesService.create({ ...data, createdBy: user.id });
+    } catch (err) {
+      Logger.error(`Course create failed: ${err instanceof Error ? err.message : err}`, "CoursesController");
+      throw err;
+    }
   }
 
   @Get("check-enrollment/:slug")
@@ -262,7 +458,7 @@ export class CoursesController {
   @ApiOperation({ summary: "Update course (admin)" })
   async update(
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() data: any,
+    @Body() data: UpdateCourseDto,
   ) {
     return this.coursesService.update(id, data);
   }

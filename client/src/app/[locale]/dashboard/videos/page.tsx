@@ -8,12 +8,7 @@ import { videosApi } from "@/lib/api";
 import { BookOpen, Clock, Loader2, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
-  if (!obj) return "";
-  if (typeof obj === "string") return obj;
-  return obj[locale] || Object.values(obj)[0] || "";
-}
+import { localizedText as localized } from "@/lib/utils";
 
 export default function VideosPage() {
   const t = useTranslations("videos");
@@ -49,8 +44,8 @@ export default function VideosPage() {
       <PageTransition>
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <BookOpen className="h-12 w-12 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">{t("noVideos") || "No videos available"}</h2>
-          <p className="text-muted-foreground">{t("noVideosDesc") || "Video lessons are being prepared."}</p>
+          <h2 className="text-xl font-semibold">{t("noVideos")}</h2>
+          <p className="text-muted-foreground">{t("noVideosDesc")}</p>
         </div>
       </PageTransition>
     );
@@ -65,36 +60,8 @@ export default function VideosPage() {
           <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
-          <div className="space-y-4">
-            {modules.map((mod: any) => (
-              <div key={mod.id} className="space-y-1">
-                <button
-                  onClick={() => { setSelectedModule(mod); setSelectedLesson(mod.lessons?.[0] || null); }}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    selectedModule?.id === mod.id ? "bg-primary/10 border border-primary/30" : "hover:bg-muted border border-transparent"
-                  }`}
-                >
-                  <p className="font-medium text-sm">{localized(mod.title)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("lessons_count", { count: mod.lessons?.length || 0 })}</p>
-                </button>
-                {selectedModule?.id === mod.id && mod.lessons?.map((lesson: any) => (
-                  <button
-                    key={lesson.id}
-                    onClick={() => setSelectedLesson(lesson)}
-                    className={`w-full text-left pl-6 pr-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
-                      selectedLesson?.id === lesson.id ? "bg-primary/5 text-primary font-medium" : "hover:bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <Play className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{localized(lesson.title)}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          <div>
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="sticky top-0 z-10 bg-background lg:static lg:order-2 lg:self-start lg:flex-1">
             {selectedLesson ? (
               <div className="space-y-4">
                 {selectedLesson.videoUrl ? (
@@ -107,7 +74,7 @@ export default function VideosPage() {
                     </div>
                   </div>
                 )}
-                <div>
+                <div className="overflow-y-auto max-h-32">
                   <h2 className="text-xl font-semibold">{localized(selectedLesson.title)}</h2>
                   <p className="text-muted-foreground mt-1">{localized(selectedLesson.description)}</p>
                   <div className="flex items-center gap-3 mt-3">
@@ -122,6 +89,36 @@ export default function VideosPage() {
                 <p className="text-muted-foreground">{t("select_lesson")}</p>
               </div>
             )}
+          </div>
+
+          <div className="lg:overflow-y-auto lg:max-h-[calc(100vh-12rem)] lg:w-[300px] lg:flex-shrink-0">
+            <div className="space-y-4">
+              {modules.map((mod: any) => (
+                <div key={mod.id} className="space-y-1">
+                  <button
+                    onClick={() => { setSelectedModule(mod); setSelectedLesson(mod.lessons?.[0] || null); }}
+                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                      selectedModule?.id === mod.id ? "bg-primary/10 border border-primary/30" : "hover:bg-muted border border-transparent"
+                    }`}
+                  >
+                    <p className="font-medium text-sm">{localized(mod.title)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("lessons_count", { count: mod.lessons?.length || 0 })}</p>
+                  </button>
+                  {selectedModule?.id === mod.id && mod.lessons?.map((lesson: any) => (
+                    <button
+                      key={lesson.id}
+                      onClick={() => setSelectedLesson(lesson)}
+                      className={`w-full text-left pl-6 pr-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
+                        selectedLesson?.id === lesson.id ? "bg-primary/5 text-primary font-medium" : "hover:bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <Play className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{localized(lesson.title)}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { DRIZZLE } from "../database/database.provider";
 import {
   examAnswers,
@@ -19,7 +19,7 @@ import {
   userSubscriptions,
   users,
 } from "../database/schema";
-import { getAccessibleExamId } from "../common/utils/access-helper";
+
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -34,119 +34,145 @@ export class AttemptsService {
     examId: string;
     mode: string;
     questionCount: number;
+    questionIds?: string[];
     timeLimit?: number;
     customTitle?: string;
   }) {
-    const [user] = await this.db
-      .select({ role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
-      .from(users)
-      .where(eq(users.id, data.userId))
-      .limit(1);
+    return this.db.transaction(async (tx: any) => {
+      const [exam] = await tx
+        .select({ id: exams.id })
+        .from(exams)
+        .where(eq(exams.id, data.examId))
+        .limit(1);
+      if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
 
-    const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+      const [existingActive] = await tx
+        .select({ id: examAttempts.id })
+        .from(examAttempts)
+        .where(and(eq(examAttempts.userId, data.userId), eq(examAttempts.examId, data.examId), eq(examAttempts.status, "in_progress")))
+        .for("update")
+        .limit(1);
+      if (existingActive) throw new HttpException(this.i18n.t("exams.duplicateActiveAttempt"), HttpStatus.BAD_REQUEST);
 
-    if (!isAdmin && user.targetExamId && user.targetExamId !== data.examId) {
-      throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
-    }
-
-    let sub: any = null;
-
-    if (!isAdmin) {
-      [sub] = await this.db
-        .select()
-        .from(userSubscriptions)
-        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-        .where(
-          and(
-            eq(userSubscriptions.userId, data.userId),
-            eq(userSubscriptions.status, "active"),
-          ),
-        )
+      const [user] = await tx
+        .select({ role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
+        .from(users)
+        .where(eq(users.id, data.userId))
         .limit(1);
 
-      if (!sub) {
-        if (user.targetExamId && user.targetExamId === data.examId) {
-          const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
-          if (hoursSinceRegistration <= 24) {
-            const [attempt] = await this.db
-              .insert(examAttempts)
-              .values({
-                userId: data.userId,
-                examId: data.examId,
-                mode: data.mode,
-                questionCount: data.questionCount,
-                timeLimit: data.timeLimit,
-                customTitle: data.customTitle,
-              })
-              .returning();
-            return attempt;
+      const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+      let sub: any = null;
+
+      if (!isAdmin) {
+        [sub] = await tx
+          .select()
+          .from(userSubscriptions)
+          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+          .where(
+            and(
+              eq(userSubscriptions.userId, data.userId),
+              eq(userSubscriptions.status, "active"),
+            ),
+          )
+          .limit(1);
+
+        if (!sub) {
+          if (user.targetExamId && user.targetExamId === data.examId) {
+            const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
+            if (hoursSinceRegistration <= 24) {
+              const [attempt] = await tx
+                .insert(examAttempts)
+                .values({
+                  userId: data.userId,
+                  examId: data.examId,
+                  mode: data.mode,
+                  questionCount: data.questionCount,
+                  questionIds: data.questionIds ?? null,
+                  timeLimit: data.timeLimit,
+                  customTitle: data.customTitle,
+                })
+                .returning();
+              return attempt;
+            }
+          }
+          throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
+        }
+
+        const plan = sub.subscription_plans;
+        if (plan.isCourseOnly) {
+          throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
+        }
+
+        if (plan.maxExamAttempts == null && parseFloat(plan.price || "0") === 0) {
+          throw new HttpException(this.i18n.t("exams.notSubscribed"), HttpStatus.FORBIDDEN);
+        }
+
+        if (plan.examId && plan.examId !== data.examId) {
+          throw new HttpException(this.i18n.t("exams.subscriptionNotIncludeExam"), HttpStatus.FORBIDDEN);
+        }
+
+        if (sub.user_subscriptions.remainingExamAttempts != null && sub.user_subscriptions.remainingExamAttempts < 1) {
+          throw new HttpException(this.i18n.t("exams.noRemainingAttempts"), HttpStatus.FORBIDDEN);
+        }
+
+        if (sub.user_subscriptions.remainingUses != null && sub.user_subscriptions.remainingUses < 1) {
+          throw new HttpException(this.i18n.t("exams.usageLimitExceeded"), HttpStatus.FORBIDDEN);
+        }
+
+        if (plan.maxDays) {
+          const created = new Date(sub.user_subscriptions.createdAt);
+          const expired = new Date(created.getTime() + plan.maxDays * 24 * 60 * 60 * 1000);
+          if (new Date() > expired) {
+            throw new HttpException(this.i18n.t("exams.planExpired"), HttpStatus.FORBIDDEN);
           }
         }
-        throw new HttpException(this.i18n.t("exams.noActiveSubscription"), HttpStatus.FORBIDDEN);
       }
 
-      const plan = sub.subscription_plans;
-      if (plan.isCourseOnly && plan.examId !== data.examId) {
-        throw new HttpException(this.i18n.t("exams.planOnlyCourses"), HttpStatus.FORBIDDEN);
+      const [attempt] = await tx
+        .insert(examAttempts)
+        .values({
+          userId: data.userId,
+          examId: data.examId,
+          mode: data.mode,
+          questionCount: data.questionCount,
+          questionIds: data.questionIds ? JSON.stringify(data.questionIds) : null,
+          timeLimit: data.timeLimit,
+          customTitle: data.customTitle,
+        })
+        .returning();
+
+      if (sub && sub.user_subscriptions.remainingExamAttempts != null) {
+        await tx
+          .update(userSubscriptions)
+          .set({ remainingExamAttempts: sql`${userSubscriptions.remainingExamAttempts} - 1` })
+          .where(and(
+            eq(userSubscriptions.id, sub.user_subscriptions.id),
+            gt(userSubscriptions.remainingExamAttempts, 0),
+          ));
       }
 
-      if (plan.examId && plan.examId !== data.examId) {
-        throw new HttpException(this.i18n.t("exams.subscriptionNotIncludeExam"), HttpStatus.FORBIDDEN);
+      if (sub && sub.user_subscriptions.remainingUses != null) {
+        await tx
+          .update(userSubscriptions)
+          .set({ remainingUses: sql`${userSubscriptions.remainingUses} - 1` })
+          .where(and(
+            eq(userSubscriptions.id, sub.user_subscriptions.id),
+            gt(userSubscriptions.remainingUses, 0),
+          ));
       }
 
-      if (sub.user_subscriptions.remainingExamAttempts != null && sub.user_subscriptions.remainingExamAttempts < 1) {
-        throw new HttpException(this.i18n.t("exams.noRemainingAttempts"), HttpStatus.FORBIDDEN);
-      }
-
-      if (sub.user_subscriptions.remainingUses != null && sub.user_subscriptions.remainingUses < 1) {
-        throw new HttpException(this.i18n.t("exams.usageLimitExceeded"), HttpStatus.FORBIDDEN);
-      }
-
-      if (plan.maxDays) {
-        const created = new Date(sub.user_subscriptions.createdAt);
-        const expired = new Date(created.getTime() + plan.maxDays * 24 * 60 * 60 * 1000);
-        if (new Date() > expired) {
-          throw new HttpException(this.i18n.t("exams.planExpired"), HttpStatus.FORBIDDEN);
-        }
-      }
-    }
-
-    const [attempt] = await this.db
-      .insert(examAttempts)
-      .values({
-        userId: data.userId,
-        examId: data.examId,
-        mode: data.mode,
-        questionCount: data.questionCount,
-        timeLimit: data.timeLimit,
-        customTitle: data.customTitle,
-      })
-      .returning();
-
-    if (sub && sub.user_subscriptions.remainingExamAttempts != null) {
-      await this.db
-        .update(userSubscriptions)
-        .set({ remainingExamAttempts: sub.user_subscriptions.remainingExamAttempts - 1 })
-        .where(eq(userSubscriptions.id, sub.user_subscriptions.id));
-    }
-
-    if (sub && sub.user_subscriptions.remainingUses != null) {
-      await this.db
-        .update(userSubscriptions)
-        .set({ remainingUses: sub.user_subscriptions.remainingUses - 1 })
-        .where(eq(userSubscriptions.id, sub.user_subscriptions.id));
-    }
-
-    return attempt;
+      return attempt;
+    });
   }
 
-  async findById(id: string) {
+  async findById(id: string, userId: string) {
     const [attempt] = await this.db
       .select()
       .from(examAttempts)
       .where(eq(examAttempts.id, id))
       .limit(1);
     if (!attempt) throw new NotFoundException(this.i18n.t("exams.attemptNotFound"));
+    if (attempt.userId !== userId) throw new ForbiddenException();
 
     const answers = await this.db
       .select()
@@ -154,9 +180,12 @@ export class AttemptsService {
       .where(eq(examAnswers.attemptId, id))
       .orderBy(asc(examAnswers.answeredAt));
 
-    if (!answers.length) return { ...attempt, answers };
+    const questionIds = answers.length
+      ? [...new Set(answers.map((a: any) => a.questionId))] as string[]
+      : (attempt.questionIds || []) as string[];
 
-    const questionIds = [...new Set(answers.map((a: any) => a.questionId))] as string[];
+    if (!questionIds.length) return { ...attempt, answers };
+
     const allQuestions = await this.db
       .select()
       .from(questions)
@@ -176,9 +205,15 @@ export class AttemptsService {
 
     const qMap = new Map(allQuestions.map((q: any) => [q.id, { ...q, options: qOptMap.get(q.id) || [] }]));
 
+    const mergedAnswers = questionIds.map((qId: string) => {
+      const existing = answers.find((a: any) => a.questionId === qId);
+      if (existing) return { ...existing, question: qMap.get(qId) || null };
+      return { attemptId: id, questionId: qId, selectedOptionId: null, isCorrect: false, timeSpent: 0, isFlagged: false, answeredAt: null, question: qMap.get(qId) || null };
+    });
+
     return {
       ...attempt,
-      answers: answers.map((a: any) => ({ ...a, question: qMap.get(a.questionId) || null })),
+      answers: mergedAnswers,
     };
   }
 
@@ -215,12 +250,22 @@ export class AttemptsService {
     questionId: string;
     selectedOptionId: string;
     timeSpent: number;
-  }) {
+  }, userId: string) {
+    const [attemptCheck] = await this.db
+      .select({ userId: examAttempts.userId, status: examAttempts.status })
+      .from(examAttempts)
+      .where(eq(examAttempts.id, data.attemptId))
+      .limit(1);
+    if (!attemptCheck) throw new NotFoundException(this.i18n.t("exams.attemptNotFound"));
+    if (attemptCheck.userId !== userId) throw new ForbiddenException();
+    if (attemptCheck.status === "completed") throw new HttpException(this.i18n.t("exams.attemptAlreadyCompleted"), HttpStatus.BAD_REQUEST);
+
     const [option] = await this.db
       .select()
       .from(questionOptions)
-      .where(eq(questionOptions.id, data.selectedOptionId))
+      .where(and(eq(questionOptions.id, data.selectedOptionId), eq(questionOptions.questionId, data.questionId)))
       .limit(1);
+    if (!option) throw new HttpException(this.i18n.t("exams.invalidOption"), HttpStatus.BAD_REQUEST);
 
     const isCorrect = option?.isCorrect || false;
 
@@ -237,6 +282,10 @@ export class AttemptsService {
 
     let answer: any;
     if (existingAnswer) {
+      const oldIsCorrect = existingAnswer.isCorrect;
+      const correctDelta = (isCorrect ? 1 : 0) - (oldIsCorrect ? 1 : 0);
+
+      const oldTimeSpent = existingAnswer.timeSpent || 0;
       [answer] = await this.db
         .update(examAnswers)
         .set({
@@ -247,6 +296,14 @@ export class AttemptsService {
         })
         .where(eq(examAnswers.id, existingAnswer.id))
         .returning();
+
+      await this.db
+        .update(examAttempts)
+        .set({
+          correctCount: sql`${examAttempts.correctCount} + ${correctDelta}`,
+          timeSpent: sql`${examAttempts.timeSpent} - ${oldTimeSpent} + ${data.timeSpent}`,
+        })
+        .where(eq(examAttempts.id, data.attemptId));
     } else {
       [answer] = await this.db
         .insert(examAnswers)
@@ -258,27 +315,22 @@ export class AttemptsService {
           timeSpent: data.timeSpent,
         })
         .returning();
+
+      await this.db
+        .update(examAttempts)
+        .set({
+          answeredCount: sql`${examAttempts.answeredCount} + 1`,
+          correctCount: sql`${examAttempts.correctCount} + ${isCorrect ? 1 : 0}`,
+          timeSpent: sql`${examAttempts.timeSpent} + ${data.timeSpent}`,
+        })
+        .where(eq(examAttempts.id, data.attemptId));
     }
 
     const [attempt] = await this.db
-      .select()
+      .select({ userId: examAttempts.userId })
       .from(examAttempts)
       .where(eq(examAttempts.id, data.attemptId))
       .limit(1);
-
-    const allAnswers = await this.db
-      .select()
-      .from(examAnswers)
-      .where(eq(examAnswers.attemptId, data.attemptId));
-
-    const answeredCount = allAnswers.length;
-    const totalCorrect = allAnswers.filter((a: any) => a.isCorrect).length;
-    const accumulatedTime = allAnswers.reduce((sum: number, a: any) => sum + (a.timeSpent || 0), 0);
-
-    await this.db
-      .update(examAttempts)
-      .set({ answeredCount, correctCount: totalCorrect, timeSpent: accumulatedTime })
-      .where(eq(examAttempts.id, data.attemptId));
 
     const [existing] = await this.db
       .select()
@@ -316,7 +368,63 @@ export class AttemptsService {
     return { answer, isCorrect };
   }
 
-  async complete(id: string) {
+  async findActiveByExam(userId: string, examId: string) {
+    const [attempt] = await this.db
+      .select()
+      .from(examAttempts)
+      .where(
+        and(
+          eq(examAttempts.userId, userId),
+          eq(examAttempts.examId, examId),
+          eq(examAttempts.status, "in_progress"),
+        ),
+      )
+      .limit(1);
+    if (!attempt) return null;
+
+    const answers = await this.db
+      .select()
+      .from(examAnswers)
+      .where(eq(examAnswers.attemptId, attempt.id))
+      .orderBy(asc(examAnswers.answeredAt));
+
+    if (!answers.length) return { ...attempt, answers: [] };
+
+    const questionIds = [...new Set(answers.map((a: any) => a.questionId))] as string[];
+    const allQuestions = await this.db
+      .select()
+      .from(questions)
+      .where(inArray(questions.id, questionIds));
+
+    const qOptions = await this.db
+      .select()
+      .from(questionOptions)
+      .where(inArray(questionOptions.questionId, questionIds))
+      .orderBy(asc(questionOptions.sortOrder));
+
+    const qOptMap = new Map<string, any[]>();
+    for (const opt of qOptions) {
+      if (!qOptMap.has(opt.questionId)) qOptMap.set(opt.questionId, []);
+      qOptMap.get(opt.questionId)!.push(opt);
+    }
+
+    const qMap = new Map(allQuestions.map((q: any) => [q.id, { ...q, options: qOptMap.get(q.id) || [] }]));
+
+    return {
+      ...attempt,
+      answers: answers.map((a: any) => ({ ...a, question: qMap.get(a.questionId) || null })),
+    };
+  }
+
+  async complete(id: string, userId: string) {
+    const [attemptCheck] = await this.db
+      .select({ userId: examAttempts.userId })
+      .from(examAttempts)
+      .where(eq(examAttempts.id, id))
+      .limit(1);
+    if (!attemptCheck) throw new NotFoundException(this.i18n.t("exams.attemptNotFound"));
+    if (attemptCheck.userId !== userId) throw new ForbiddenException();
+
     const [attempt] = await this.db
       .update(examAttempts)
       .set({ status: "completed", completedAt: new Date() })

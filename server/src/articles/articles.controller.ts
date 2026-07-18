@@ -8,14 +8,73 @@ import {
   Body,
   Query,
   UseGuards,
-  Req,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { ArticlesService } from "./articles.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { OptionalJwtAuthGuard } from "../common/guards/optional-jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { IsOptional, IsString, IsBoolean, IsUUID, IsObject } from "class-validator";
+
+class CreateArticleDto {
+  @IsObject()
+  title!: Record<string, string>;
+
+  @IsObject()
+  content!: Record<string, string>;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsObject()
+  excerpt?: Record<string, string>;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+}
+
+class UpdateArticleDto {
+  @IsOptional()
+  @IsObject()
+  title?: Record<string, string>;
+
+  @IsOptional()
+  @IsObject()
+  content?: Record<string, string>;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsObject()
+  excerpt?: Record<string, string>;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+}
 
 @ApiTags("articles")
 @Controller("articles")
@@ -23,7 +82,7 @@ export class ArticlesController {
   constructor(private articlesService: ArticlesService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "List articles" })
   async findAll(
@@ -39,8 +98,8 @@ export class ArticlesController {
 
   @Get(":slug")
   @ApiOperation({ summary: "Get single article by slug" })
-  async findOne(@Param("slug") slug: string) {
-    return this.articlesService.findBySlug(slug);
+  async findOne(@Param("slug") slug: string, @CurrentUser() user?: any) {
+    return this.articlesService.findBySlug(slug, user);
   }
 
   @Post()
@@ -48,7 +107,7 @@ export class ArticlesController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create article (admin)" })
-  async create(@Body() data: any, @CurrentUser() user: any) {
+  async create(@Body() data: CreateArticleDto, @CurrentUser() user: any) {
     return this.articlesService.create({ ...data, authorId: user.id });
   }
 
@@ -57,7 +116,7 @@ export class ArticlesController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update article (admin)" })
-  async update(@Param("id") id: string, @Body() data: any) {
+  async update(@Param("id") id: string, @Body() data: UpdateArticleDto) {
     return this.articlesService.update(id, data);
   }
 

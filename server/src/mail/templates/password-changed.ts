@@ -13,7 +13,7 @@ export function passwordChangedTemplate(name: string, appUrl?: string, locale: s
       </div>
       ${emailText(t(locale, "passwordChanged.body1", { name }))}
       ${emailText(t(locale, "passwordChanged.body2"))}
-      ${emailButton(t(locale, "passwordChanged.button"), `${appUrl || "https://md-exams.com"}/dashboard`)}
+      ${emailButton(t(locale, "passwordChanged.button"), `${appUrl || "https://md-exam.com"}/${locale}/dashboard`)}
       ${emailSmall(t(locale, "passwordChanged.footer"))}
     `,
     appUrl,

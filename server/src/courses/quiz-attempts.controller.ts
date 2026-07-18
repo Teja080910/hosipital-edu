@@ -36,8 +36,8 @@ export class QuizAttemptsController {
 
   @Get(":id")
   @ApiOperation({ summary: "Get quiz attempt details" })
-  async findOne(@Param("id", ParseUUIDPipe) id: string) {
-    return this.quizAttemptsService.findById(id);
+  async findOne(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.quizAttemptsService.findById(id, user.id);
   }
 
   @Post(":id/submit")

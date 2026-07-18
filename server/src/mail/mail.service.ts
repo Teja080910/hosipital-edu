@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Resend } from "resend";
 import {
@@ -12,15 +12,14 @@ import {
   SubscriptionPlanDetails,
 } from "./templates";
 import { t } from "./templates/mail-messages";
-import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
   private resend: Resend | null = null;
 
   constructor(
     private config: ConfigService,
-    private i18n: I18nService,
   ) {
     const apiKey = this.config.get<string>("RESEND_API_KEY");
     if (apiKey && apiKey !== "re_placeholder") {
@@ -29,7 +28,7 @@ export class MailService {
   }
 
   private get appUrl(): string {
-    return this.config.get<string>("APP_URL", "https://md-exams.com");
+    return this.config.get<string>("APP_URL", "https://md-exam.com");
   }
 
   private get from(): string {
@@ -38,7 +37,7 @@ export class MailService {
 
   async sendEmail(to: string, subject: string, html: string) {
     if (!this.resend) {
-      return { message: this.i18n.t("common.mailNotConfigured"), to, subject };
+      return { message: "Mail not configured - skipping send", to, subject };
     }
     try {
       const result = await this.resend.emails.send({
@@ -47,16 +46,16 @@ export class MailService {
         subject,
         html,
       });
-      console.log(`[Mail] Email sent to ${to}:`, JSON.stringify(result));
+      this.logger.log(`Email sent to ${to}: ${JSON.stringify(result)}`);
       return result;
     } catch (err) {
-      console.error(`[Mail] Failed to send to ${to}:`, err);
+      this.logger.error(`Failed to send to ${to}: ${err}`);
       throw err;
     }
   }
 
   async sendVerificationEmail(to: string, name: string, token: string, locale: string = "en") {
-    const url = `${this.appUrl}/verify-email?token=${token}`;
+    const url = `${this.appUrl}/${locale}/verify-email?token=${token}`;
     return this.sendEmail(
       to,
       t(locale, "verifyEmail.subject"),
@@ -65,7 +64,7 @@ export class MailService {
   }
 
   async sendWelcome(to: string, name: string, locale: string = "en") {
-    const url = `${this.appUrl}/dashboard`;
+    const url = `${this.appUrl}/${locale}/dashboard`;
     return this.sendEmail(
       to,
       t(locale, "welcome.subject"),
@@ -74,7 +73,7 @@ export class MailService {
   }
 
   async sendPasswordReset(to: string, name: string, token: string, locale: string = "en") {
-    const url = `${this.appUrl}/reset-password?token=${token}`;
+    const url = `${this.appUrl}/${locale}/reset-password?token=${token}`;
     return this.sendEmail(
       to,
       t(locale, "passwordReset.subject"),
@@ -114,7 +113,4 @@ export class MailService {
     );
   }
 
-  private resolveLocalized(locale: string, key: string): string {
-    return t(locale, key);
-  }
 }

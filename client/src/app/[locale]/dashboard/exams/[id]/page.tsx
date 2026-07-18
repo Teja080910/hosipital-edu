@@ -10,12 +10,15 @@ import { QuestionTimer } from "@/components/questions/question-timer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { attemptsApi, examsApi, questionsApi } from "@/lib/api";
+import { cn, localizedText as localized } from "@/lib/utils";
 import { useRouter } from "@/routing";
 import type { Question } from "@/types";
 import { useExamStore } from "@/store/exam-store";
@@ -33,17 +36,11 @@ import {
   XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type PageState = "config" | "taking" | "results";
-
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
-  if (!obj) return "";
-  if (typeof obj === "string") return obj;
-  return obj[locale] || Object.values(obj)[0] || "";
-}
 
 export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -60,6 +57,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [allAttemptIds, setAllAttemptIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
@@ -98,15 +96,18 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const confirmSubmitRef = useRef<() => Promise<void>>();
   const isSubmittingRef = useRef(false);
   const submittedRef = useRef(false);
+  const [activeAttempt, setActiveAttempt] = useState<any>(null);
+  const [checkingActive, setCheckingActive] = useState(true);
   const specialtiesRef = useRef<HTMLDivElement>(null);
   const topicsRef = useRef<HTMLDivElement>(null);
   const subtopicsRef = useRef<HTMLDivElement>(null);
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     const loadExams = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const examIds = params.getAll("examIds");
-      const specialtyIds = params.getAll("specialtyIds");
+      const examIds = searchParams.getAll("examIds");
+      const specialtyIds = searchParams.getAll("specialtyIds");
       if (specialtyIds.length > 0) {
         setSelectedSpecialties(specialtyIds);
       }
@@ -117,7 +118,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         );
         setCombinedExams(results);
         const allQuestions = await Promise.all(
-          examIds.map((eid) => questionsApi.list({ examId: eid }).then((r) => r.data))
+          examIds.map((eid) => questionsApi.list({ examId: eid }).then((r) => r.data.data))
         );
         const merged = allQuestions.flat();
         setAllQuestions(merged);
@@ -129,8 +130,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           questionsApi.list({ examId: id, limit: 10000 }),
         ]);
         setExam(examRes.data);
-        setAllQuestions(questionsRes.data);
-        setFilteredQuestions(questionsRes.data);
+        setAllQuestions(questionsRes.data.data);
+        setFilteredQuestions(questionsRes.data.data);
       }
     };
     loadExams()
@@ -139,12 +140,48 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [id, t]);
 
   useEffect(() => {
+    if (!loading && exam && pageState === "config") {
+      attemptsApi.getActive(id).then((res) => {
+        if (res.data) {
+          setActiveAttempt(res.data);
+        }
+      }).catch(() => {}).finally(() => setCheckingActive(false));
+    } else if (!loading) {
+      setCheckingActive(false);
+    }
+  }, [loading, exam, id, pageState]);
+
+  useEffect(() => {
+    if (!loading && exam) {
+      const reviewId = searchParams.get("review");
+      if (reviewId) {
+        attemptsApi.get(reviewId).then(({ data }) => {
+          const questions = data?.answers
+            ?.filter((a: any) => a.question)
+            ?.map((a: any) => a.question) || [];
+          const restored: Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }> = {};
+          data?.answers?.forEach((a: any) => {
+            restored[a.questionId] = { optionId: a.selectedOptionId, isCorrect: a.isCorrect, flagged: a.isFlagged || false };
+          });
+          if (questions.length > 0) {
+            setExamQuestions(questions);
+            setAnswers(restored);
+            setReviewMode(true);
+            setPageState("taking");
+            setShowAnswer(true);
+            setCurrentIndex(0);
+            setAttemptId(reviewId);
+            setTotalTimeSpent(data.timeSpent || 0);
+          }
+        }).catch(() => {});
+      }
+    }
+  }, [loading, exam, searchParams, t]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (pageState !== "config") return;
-      if (specialtiesRef.current && !specialtiesRef.current.contains(target)) {
-        setShowSpecialties(false);
-      }
       if (topicsRef.current && !topicsRef.current.contains(target)) {
         setShowTopics(false);
       }
@@ -157,16 +194,15 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [pageState]);
 
   useEffect(() => {
-    return () => { useExamStore.setState({ isActive: false }); };
+    return () => { useExamStore.getState().endExam(); };
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const modeParam = params.get("mode");
+    const modeParam = searchParams.get("mode");
     if (modeParam === "exam" || modeParam === "study") {
       setMode(modeParam);
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (pageState !== "taking" || mode !== "exam" || reviewMode) return;
@@ -193,13 +229,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     if (pageState !== "taking" && pageState !== "results") return;
     const handleFullscreenChange = () => {
       if (isSubmittingRef.current) return;
-      if (!document.fullscreenElement) {
-        if (pageState === "taking" && mode === "exam" && !showSubmitDialog) {
-          setShowSubmitDialog(true);
-        } else if (pageState === "results") {
-          router.push("/dashboard/exams");
-        }
+    if (!document.fullscreenElement) {
+      if (pageState === "taking" && mode === "exam" && !showSubmitDialog) {
+        setShowSubmitDialog(true);
       }
+    }
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -211,6 +245,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     if (selectedTopic) filtered = filtered.filter((q) => q.topicId === selectedTopic);
     if (selectedSubtopic) filtered = filtered.filter((q) => q.subtopicId === selectedSubtopic);
     setFilteredQuestions(filtered);
+    setQuestionLimit(Math.min(10, filtered.length));
   }, [selectedSpecialties, selectedTopic, selectedSubtopic, allQuestions]);
 
   const specialties = combinedExams.length > 0
@@ -218,6 +253,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     : exam?.specialties || [];
   const validSpecialtyIds = new Set(specialties.map((s: any) => s.id));
   const effectiveSelected = selectedSpecialties.filter((id) => validSpecialtyIds.has(id));
+  const isAllSelected = selectedSpecialties.length === 0 || (specialties.length > 0 && effectiveSelected.length === specialties.length);
   const currentSpecialties = specialties.filter((s: any) => effectiveSelected.includes(s.id));
   const topics = currentSpecialties.length > 0 ? currentSpecialties.flatMap((s: any) => s.topics || []) : specialties.flatMap((s: any) => s.topics || []);
   const currentTopic = topics.find((t: any) => t.id === selectedTopic);
@@ -232,33 +268,90 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const totalQuestions = Math.min(questionLimit, filteredQuestions.length);
     if (totalQuestions === 0) { toast.error(t("no_questions")); return; }
     try {
+      const shuffled = [...filteredQuestions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const selected = shuffled.slice(0, totalQuestions);
+      const questionIds = selected.map(q => q.id);
       const examIdsToUse = combinedExamIds.length > 0 ? combinedExamIds : [id];
       const attempts = await Promise.all(
         examIdsToUse.map((eid) =>
           attemptsApi.create({
             examId: eid, mode,
             questionCount: Math.ceil(totalQuestions / examIdsToUse.length),
+            questionIds,
             timeLimit: mode === "exam" ? timeLimit : undefined,
             customTitle: customTitle || undefined,
           }).then((r) => r.data)
         )
       );
-      const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
-      setExamQuestions(shuffled);
+      setExamQuestions(selected);
       setAttemptId(attempts[0].id);
+      setAllAttemptIds(attempts.map((a: any) => a.id));
       setTimeRemaining(mode === "exam" ? timeLimit * 60 : 0);
       setTotalTimeSpent(0); setAnswers({}); setCurrentIndex(0);
       setSelectedOption(null); setShowAnswer(false);
       setQuestionEntryTime(Date.now()); setPerQuestionTime({});
       setPageState("taking");
-      useExamStore.setState({ isActive: true });
+      useExamStore.getState().startExam(id, questionIds, mode === "exam" ? timeLimit : 0);
       if (mode === "exam") {
-        window.history.replaceState({}, "", `${window.location.pathname}?mode=exam`);
+        const params = new URLSearchParams(window.location.search);
+        params.set("mode", "exam");
+        window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
         document.documentElement.requestFullscreen().catch(() => {});
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || t("start_failed");
       toast.error(Array.isArray(msg) ? msg[0] : msg);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!activeAttempt) return;
+    try {
+      const attempt = activeAttempt;
+      const qIds = attempt.questionIds ? (typeof attempt.questionIds === "string" ? JSON.parse(attempt.questionIds) : attempt.questionIds) : [];
+      let questions: Question[];
+      if (qIds.length > 0) {
+        const res = await questionsApi.list({ examId: id, limit: 10000 });
+        const allQ = res.data.data;
+        const qMap = new Map(allQ.map((q: any) => [q.id, q]));
+        questions = qIds.map((qid: string) => qMap.get(qid)).filter(Boolean);
+      } else {
+        const res = await questionsApi.list({ examId: id, limit: 10000 });
+        questions = res.data.data;
+      }
+      setExamQuestions(questions);
+      setAttemptId(attempt.id);
+      setMode(attempt.mode);
+      setTimeRemaining(attempt.timeLimit ? attempt.timeLimit * 60 - (attempt.timeSpent || 0) : 0);
+      setTotalTimeSpent(attempt.timeSpent || 0);
+      setCurrentIndex(0);
+      setShowAnswer(false);
+      setQuestionEntryTime(Date.now());
+      setPerQuestionTime({});
+      const restoredAnswers: Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }> = {};
+      for (const a of attempt.answers || []) {
+        restoredAnswers[a.questionId] = {
+          optionId: a.selectedOptionId,
+          isCorrect: a.isCorrect,
+          flagged: a.isFlagged || false,
+        };
+      }
+      setAnswers(restoredAnswers);
+      setPageState("taking");
+      useExamStore.getState().startExam(id, questions.map(q => q.id), attempt.timeLimit || 0);
+      if (attempt.mode === "exam") {
+        const params = new URLSearchParams(window.location.search);
+        params.set("mode", "exam");
+        window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      setActiveAttempt(null);
+    } catch (err: any) {
+      toast.error(t("start_failed"));
     }
   };
 
@@ -272,7 +365,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       [currentQuestion.id]: { optionId: selectedOption, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
     }));
     if (mode === "exam") {
-      try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { /* silent */ }
+      try { await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed }); } catch { toast.error(t("answer_failed")); }
       if (currentIndex < examQuestions.length - 1) {
         handleNext();
       }
@@ -304,7 +397,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const computeTopicBreakdown = () => {
     const topicMap: Record<string, { correct: number; total: number }> = {};
     for (const q of displayQuestions) {
-      const tName = q.topic || "unknown";
+      const tName = q.topic || t("unknown_topic");
       if (!topicMap[tName]) topicMap[tName] = { correct: 0, total: 0 };
       topicMap[tName].total++;
       if (answers[q.id]?.isCorrect) topicMap[tName].correct++;
@@ -317,26 +410,61 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     isSubmittingRef.current = true;
     submittedRef.current = true;
     setSubmitting(true); setShowSubmitDialog(false); setShowTimeWarning(false);
-    const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
-    const total = displayQuestions.length;
-    setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
-    setPageState("results");
-    useExamStore.setState({ isActive: false });
-    window.history.replaceState({}, "", `/dashboard/exams/${id}`);
-    if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
-    try { await attemptsApi.complete(attemptId); } catch { /* silent */ }
+    try {
+      if (currentQuestion && selectedOption && mode === "exam") {
+        const isCorrect = currentQuestion.options.find((o) => o.id === selectedOption)?.isCorrect ?? false;
+        const elapsed = Math.floor((Date.now() - questionEntryTime) / 1000);
+        setAnswers((prev) => ({
+          ...prev,
+          [currentQuestion.id]: { optionId: selectedOption, isCorrect, flagged: prev[currentQuestion.id]?.flagged ?? false },
+        }));
+        await attemptsApi.answer(attemptId, { questionId: currentQuestion.id, selectedOptionId: selectedOption, timeSpent: elapsed });
+      }
+      const completeIds = [...new Set([...allAttemptIds, attemptId].filter(Boolean))] as string[];
+      await Promise.all(completeIds.map((aid) => attemptsApi.complete(aid).catch(() => {})));
+      const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
+      const total = displayQuestions.length;
+      setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
+      setPageState("results");
+      setActiveAttempt(null);
+      useExamStore.getState().endExam();
+      window.history.replaceState({}, "", `/${locale}/dashboard/exams/${id}`);
+      if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
+    } catch {
+      toast.error(t("submit_failed"));
+    }
     setSubmitting(false);
     isSubmittingRef.current = false;
   };
 
   const handleFinishStudy = async () => {
     if (!attemptId) return;
-    try { await attemptsApi.complete(attemptId); } catch { /* silent */ }
+    try {
+      const questionEntries = Object.entries(answers);
+      const questionsPerAttempt = Math.ceil(questionEntries.length / allAttemptIds.length);
+      await Promise.all(
+        allAttemptIds.map((aid, idx) => {
+          const slice = questionEntries.slice(idx * questionsPerAttempt, (idx + 1) * questionsPerAttempt);
+          return Promise.all(
+            slice.map(([questionId, answer]) =>
+              answer.optionId
+                ? attemptsApi.answer(aid, { questionId, selectedOptionId: answer.optionId, timeSpent: perQuestionTime[questionId] || 0 })
+                : Promise.resolve()
+            )
+          );
+        })
+      );
+      const completeIds = [...new Set([...allAttemptIds, attemptId].filter(Boolean))] as string[];
+      await Promise.all(completeIds.map((aid) => attemptsApi.complete(aid).catch(() => {})));
+    } catch {
+      toast.error(t("submit_failed"));
+      return;
+    }
     const correct = Object.values(answers).filter((a) => a.isCorrect === true).length;
     const total = displayQuestions.length;
     setResults({ score: Math.round((correct / total) * 100), totalQuestions: total, correctAnswers: correct, incorrectAnswers: total - correct, timeSpent: totalTimeSpent, topicBreakdown: computeTopicBreakdown() });
     setPageState("results");
-    useExamStore.setState({ isActive: false });
+    useExamStore.getState().endExam();
   };
 
   if (loading) return <PageTransition><div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></PageTransition>;
@@ -349,8 +477,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
             onReview={() => { setReviewMode(true); setPageState("taking"); setShowAnswer(true); setCurrentIndex(0); }}
-            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.setState({ isActive: false }); setPageState("config"); setResults(null); setAttemptId(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); }}
-            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }} />
+            onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.getState().endExam(); setPageState("config"); setResults(null); setAttemptId(null); setActiveAttempt(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); setTimeLimit(20); setCustomTitle(""); setCombinedExamIds([]); setCombinedExams([]); setMode("exam"); setShowSpecialties(false); setShowTopics(false); setShowSubtopics(false); setPerQuestionTime({}); setTotalTimeSpent(0); setTimeRemaining(0); setQuestionEntryTime(Date.now()); setSubmitting(false); setReviewMode(false); setAllAttemptIds([]); setShowSubmitDialog(false); setShowTimeWarning(false); setLightboxImage(null); tabWarningsRef.current = 0; setTabWarnings(0); submittedRef.current = false; isSubmittingRef.current = false; }}
+            onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); setActiveAttempt(null); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
             <Card>
               <CardHeader><CardTitle className="text-lg">{t("topic_breakdown")}</CardTitle></CardHeader>
@@ -382,7 +510,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       <PageTransition>
         <div className="mx-auto max-w-6xl space-y-5 px-4 p-20">
           {reviewMode && (
-            <Button variant="ghost" onClick={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.setState({ isActive: false }); router.push("/dashboard/exams"); }}>
+            <Button variant="ghost" onClick={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); router.push("/dashboard/exams"); }}>
               <ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}
             </Button>
           )}
@@ -422,7 +550,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
           )}
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <Card className="overflow-hidden border-border/70 shadow-card hover:translate-y-0 overflow-hidden">
+            <Card className="overflow-hidden border-border/70 shadow-card hover:translate-y-0">
               <CardHeader className="border-b bg-muted/30">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
@@ -445,8 +573,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent className="space-y-6 p-5 sm:p-6">
                 <QuestionPenOverlay questionId={currentQuestion.id}>
-                  <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words">{currentQuestion.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
-                </QuestionPenOverlay>
+                  <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words" dangerouslySetInnerHTML={{ __html: currentQuestion.text }} />
                 {currentQuestion.images && currentQuestion.images.filter((img: any) => img.section === "title").length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.filter((img: any) => img.section === "title").map((img: any) => (
@@ -483,14 +610,23 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                               showAnswer && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
                               String.fromCharCode(65 + optionIndex)}
                           </div>
-                           <span className="pt-1.5 leading-6 break-words">{option.text}</span>
+                            <span className="pt-1.5 leading-6 break-words">{option.text}</span>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("explanation")}</p><div className="text-sm leading-6 text-muted-foreground space-y-2 break-words">{currentQuestion.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>{currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}</div>)}
-                {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{currentQuestion.reference}</p></div>)}
+                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden mt-4">
+                  <p className="text-sm font-semibold mb-1">{t("explanation")}</p>
+                  {(() => {
+                    const correctOpt = currentQuestion.options.find((o: any) => o.isCorrect);
+                    return correctOpt ? <p className="text-sm font-medium mb-2">{correctOpt.text}</p> : null;
+                  })()}
+                  <div className="text-sm leading-6 text-muted-foreground space-y-2 break-words" dangerouslySetInnerHTML={{ __html: currentQuestion.explanation }} />
+                  {currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}
+                </div>)}
+                {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden mt-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{currentQuestion.reference}</p></div>)}
+                </QuestionPenOverlay>
                 {!showAnswer && selectedOption && !answers[currentQuestion.id]?.optionId && (
                   <Button onClick={handleSubmitAnswer} className="w-full" size="lg">{t("submit")}</Button>
                 )}
@@ -559,20 +695,51 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }
 
   const maxQuestions = filteredQuestions.length;
-  const timeOptions = [5, 10, 15, 20, 30, 60];
+  const timeOptions = [5, 10, 15, 30, 60, 120];
+
+  const handleToggleSpecialty = (sId: string) => {
+    if (selectedSpecialties.length === 0) {
+      setSelectedSpecialties([sId]);
+    } else if (selectedSpecialties.includes(sId)) {
+      const next = selectedSpecialties.filter((id) => id !== sId);
+      setSelectedSpecialties(next);
+    } else {
+      const next = [...selectedSpecialties, sId];
+      setSelectedSpecialties(next.length === specialties.length ? [] : next);
+    }
+  };
+
+  const handleToggleAllSpecialties = () => {
+    setSelectedSpecialties([]);
+  };
 
   return (
     <AccountTypeGate>
     <PageTransition>
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto space-y-6">
         <Button variant="ghost" onClick={() => router.push("/dashboard/exams")}><ArrowLeft className="h-4 w-4 mr-2" /> {t("back_to_exams")}</Button>
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4"><div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center"><Settings2 className="h-8 w-8 text-primary" /></div></div>
             <CardTitle className="text-2xl">{localized(exam.name, locale)}</CardTitle>
-            <CardDescription>{localized(exam.description, locale)}</CardDescription>
+            <CardDescription>{t.has(`desc_${exam.slug}`) ? t(`desc_${exam.slug}`) : localized(exam.description, locale)}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {activeAttempt && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-200">{t("active_attempt_found")}</p>
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      {activeAttempt.answeredCount || 0}/{activeAttempt.questionCount || 0} {t("answered")} &middot; {activeAttempt.mode === "exam" ? t("exam_mode") : t("study_mode")}
+                    </p>
+                  </div>
+                  <Button onClick={handleResume} variant="default" className="shrink-0">
+                    <Play className="h-4 w-4 mr-2" /> {t("resume")}
+                  </Button>
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium mb-2 block">{t("select_mode")}</label>
               <div className="grid grid-cols-2 gap-3">
@@ -598,70 +765,98 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
             {specialties.length > 0 && (
               <div ref={specialtiesRef}>
                 <label className="text-sm font-medium mb-2 block">{t("specialty")}</label>
-                <div className="relative">
-                  <button onClick={() => { setShowSpecialties(!showSpecialties); }} className="w-full border rounded-lg p-3 text-left flex items-center justify-between">
-                    <span className={effectiveSelected.length > 0 ? "" : "text-muted-foreground"}>
-                      {effectiveSelected.length > 0
-                        ? `${effectiveSelected.length} ${t("selected")}`
-                        : t("all_specialties")}
-                    </span><ChevronDown className="h-4 w-4 flex-shrink-0" />
-                  </button>
-                  {showSpecialties && (
-                    <Card className="absolute top-full left-0 right-0 mt-1 z-10 shadow-lg">
-                      <div className="max-h-72 overflow-y-auto p-1">
-                        <button onClick={() => { setSelectedSpecialties([]); }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">{effectiveSelected.length === 0 && <Check className="h-4 w-4 text-primary" />}{t("all_specialties")}</button>
-                        {[...specialties].sort((a: any, b: any) => {
-                          const aSel = effectiveSelected.includes(a.id) ? 0 : 1;
-                          const bSel = effectiveSelected.includes(b.id) ? 0 : 1;
-                          return aSel - bSel;
-                        }).map((s: any) => {
-                          const isSelected = effectiveSelected.includes(s.id);
-                          return (
-                            <button key={s.id} onClick={() => {
-                              setSelectedSpecialties((prev) =>
-                                prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id]
-                              );
-                            }} className="w-full text-left p-2 rounded hover:bg-muted text-sm flex items-center gap-2">
-                              <div className={`h-4 w-4 rounded border flex items-center justify-center ${isSelected ? "bg-primary border-primary" : "border-input"}`}>
-                                {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                              </div>
-                              {localized(s.name, locale)}
-                            </button>
-                          );
-                        })}
+                <Popover open={showSpecialties} onOpenChange={setShowSpecialties}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className={isAllSelected ? "text-muted-foreground" : ""}>
+                        {isAllSelected
+                          ? t("all_specialties")
+                          : `${effectiveSelected.length} ${t("selected")}`}
+                      </span>
+                      <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-1" align="start">
+                    <div className="max-h-72 overflow-y-auto">
+                      <div 
+                        onClick={handleToggleAllSpecialties}
+                        className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer text-sm"
+                      >
+                        <Checkbox
+                          className="h-5 w-5 pointer-events-none"
+                          checked={isAllSelected}
+                        />
+                        <span>{t("all_specialties")}</span>
                       </div>
-                    </Card>
-                  )}
+                      {specialties.map((s: any) => {
+                        const isChecked = isAllSelected || effectiveSelected.includes(s.id);
+                        return (
+                          <div 
+                            key={s.id} 
+                            onClick={() => handleToggleSpecialty(s.id)}
+                            className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer text-sm"
+                          >
+                            <Checkbox
+                              className="h-5 w-5 pointer-events-none"
+                              checked={isChecked}
+                            />
+                            <span>{localized(s.name, locale)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            {maxQuestions > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">{t("select_questions")} (max {maxQuestions})</label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min={1}
+                    max={Math.max(1, maxQuestions)}
+                    step={1}
+                    value={Math.min(questionLimit, maxQuestions)}
+                    onChange={(e) => setQuestionLimit(Number(e.target.value))}
+                    className="flex-1 h-1.5 rounded-lg appearance-none cursor-pointer bg-border [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:active:scale-110 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:active:scale-110"
+                    style={{
+                      background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${
+                        maxQuestions > 1 
+                          ? ((Math.min(questionLimit, maxQuestions) - 1) / (maxQuestions - 1)) * 100 
+                          : 100
+                      }%, var(--border) ${
+                        maxQuestions > 1 
+                          ? ((Math.min(questionLimit, maxQuestions) - 1) / (maxQuestions - 1)) * 100 
+                          : 100
+                      }%, var(--border) 100%)`
+                    }}
+                  />
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={questionLimit || ""}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, "");
+                      if (v === "") { setQuestionLimit(0); return; }
+                      const n = parseInt(v, 10);
+                      setQuestionLimit(Math.min(n, maxQuestions));
+                    }}
+                    onBlur={() => { if (questionLimit < 1 || isNaN(questionLimit)) setQuestionLimit(Math.max(1, maxQuestions)); }}
+                    className="w-20 text-center"
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>1</span>
+                  <span className="font-medium text-sm">{t("questions_count", { count: Math.min(questionLimit, maxQuestions) })}</span>
+                  <span>{maxQuestions}</span>
                 </div>
               </div>
             )}
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">{t("select_questions")} (max {maxQuestions})</label>
-              <div className="flex items-center gap-4">
-                <input type="range" min={1} max={Math.max(1, maxQuestions)} step={1} value={Math.min(questionLimit, maxQuestions)} onChange={(e) => setQuestionLimit(Number(e.target.value))} className="flex-1 accent-primary" />
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  value={questionLimit || ""}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, "");
-                    if (v === "") { setQuestionLimit(0); return; }
-                    const n = parseInt(v, 10);
-                    setQuestionLimit(Math.min(n, maxQuestions));
-                  }}
-                  onBlur={() => { if (questionLimit < 1 || isNaN(questionLimit)) setQuestionLimit(Math.max(1, maxQuestions)); }}
-                  className="w-20 text-center"
-                />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>1</span>
-                <span className="font-medium text-sm">{t("questions_count", { count: Math.min(questionLimit, maxQuestions) })}</span>
-                <span>{maxQuestions}</span>
-              </div>
-            </div>
-
-          {mode === "exam" && !reviewMode && (
+          {mode === "exam" && !reviewMode && maxQuestions > 0 && (
               <div>
                 <label className="text-sm font-medium mb-2 block">{t("time_limit")}</label>
                 <div className="grid grid-cols-3 gap-2">

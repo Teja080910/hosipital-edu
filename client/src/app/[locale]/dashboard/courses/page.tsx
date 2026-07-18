@@ -24,7 +24,7 @@ interface Course {
   examId: string | null;
 }
 
-function localized(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
+function localizedText(obj: Record<string, string> | string | null | undefined, locale = "en"): string {
   if (!obj) return "";
   if (typeof obj === "string") return obj;
   return obj[locale] || Object.values(obj)[0] || "";
@@ -78,19 +78,18 @@ export default function CoursesPage() {
         });
         setEnrolledIds(subscribed);
 
-        if (slugs.length > 0) {
+        const finalSlugs = data.filter((c: Course) => subscribed.has(c.id)).map((c: Course) => c.slug);
+        if (finalSlugs.length > 0) {
           const progressResults = await Promise.allSettled(
-            slugs.map((s) => coursesApi.getProgress(s))
+            finalSlugs.map((s: string) => coursesApi.getProgress(s))
           );
           const pmap: Record<string, number> = {};
-          let idx = 0;
-          for (const id of enrolled) {
-            const res = progressResults[idx];
+          progressResults.forEach((res, idx) => {
             if (res.status === "fulfilled") {
-              pmap[id] = res.value.data.percentage || 0;
+              const courseId = data.find((c: Course) => c.slug === finalSlugs[idx])?.id;
+              if (courseId) pmap[courseId] = res.value.data.percentage || 0;
             }
-            idx++;
-          }
+          });
           setProgressMap(pmap);
         }
       }
@@ -144,8 +143,8 @@ export default function CoursesPage() {
                 course={{
                   id: course.id,
                   slug: course.slug,
-                  title: localized(course.title),
-                  description: localized(course.shortDescription) || localized(course.description),
+                  title: localizedText(course.title),
+                  description: localizedText(course.shortDescription) || localizedText(course.description),
                   thumbnail: course.coverImage || "",
                   progress: progressMap[course.id] || 0,
                   lessons: course.lessonCount || 0,

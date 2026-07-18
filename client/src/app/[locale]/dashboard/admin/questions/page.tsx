@@ -26,7 +26,7 @@ import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { questionsApi, examsApi, uploadApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Check, Eye, BookOpen, Lightbulb, CheckCircle2, XCircle, ImageIcon, Upload, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Check, Eye, BookOpen, Lightbulb, CheckCircle2, XCircle, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
@@ -48,7 +48,7 @@ export default function AdminQuestionsPage() {
   const [viewQuestion, setViewQuestion] = useState<any | null>(null);
   const [viewLoading, setViewLoading] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [exams, setExams] = useState<any[]>([]);
@@ -69,7 +69,7 @@ export default function AdminQuestionsPage() {
   const fetchQuestions = useCallback(async () => {
     try {
       const { data } = await questionsApi.list();
-      setQuestions(data);
+      setQuestions(Array.isArray(data) ? data : data?.data ?? []);
     } catch {
       toast.error(t("load_failed_questions"));
     } finally {
@@ -103,9 +103,8 @@ export default function AdminQuestionsPage() {
     setDialogOpen(true);
   };
 
-  // Fix: fetch full question with options before opening edit
   const openEdit = async (q: any) => {
-    setLoadingEdit(true);
+    setLoadingEditId(q.id);
     try {
       const { data } = await questionsApi.get(q.id);
       setEditing(data);
@@ -126,7 +125,7 @@ export default function AdminQuestionsPage() {
     } catch {
       toast.error(t("load_failed_question_details"));
     } finally {
-      setLoadingEdit(false);
+      setLoadingEditId(null);
     }
   };
 
@@ -251,14 +250,14 @@ export default function AdminQuestionsPage() {
     },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); openView(row); }}>
             <Eye className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); openEdit(row); }} disabled={loadingEdit}>
-            {loadingEdit ? <Loader2 className="h-3 w-3 animate-spin" /> : <Pencil className="h-3.5 w-3.5" />}
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); openEdit(row); }} disabled={loadingEditId === row.id}>
+            {loadingEditId === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Pencil className="h-3.5 w-3.5" />}
           </Button>
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }}>
             <Trash2 className="h-3.5 w-3.5" />
@@ -572,9 +571,7 @@ export default function AdminQuestionsPage() {
                 {/* Question text */}
                 <div className="space-y-2">
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("question_label")}</p>
-                  <div className="rounded-xl border border-border/80 bg-muted/20 px-4 py-4 text-sm leading-relaxed">
-                    {viewQuestion.text}
-                  </div>
+                  <div className="rounded-xl border border-border/80 bg-muted/20 px-4 py-4 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: viewQuestion.text }} />
                 </div>
 
                 {/* Options */}
@@ -620,7 +617,7 @@ export default function AdminQuestionsPage() {
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("explanation")}</p>
                     <div className="flex gap-3 rounded-xl border border-amber-200/60 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800/40 px-4 py-4">
                       <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                      <p className="text-sm leading-relaxed text-foreground/80">{viewQuestion.explanation}</p>
+                      <p className="text-sm leading-relaxed text-foreground/80" dangerouslySetInnerHTML={{ __html: viewQuestion.explanation }} />
                     </div>
                   </div>
                 )}

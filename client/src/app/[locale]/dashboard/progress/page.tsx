@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTransition } from "@/components/page-transition";
 import { AccountTypeGate } from "@/components/account-type-gate";
-import { TrendingUp, Target, Clock, BookOpen, Zap } from "lucide-react";
+import { Target, Clock, BookOpen, Zap } from "lucide-react";
 import { analyticsApi } from "@/lib/api/analytics";
 
 const WeeklyChart = dynamic(() => import("./weekly-chart"), { ssr: false });

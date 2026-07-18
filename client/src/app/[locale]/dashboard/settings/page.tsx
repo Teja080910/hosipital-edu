@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { usersApi, uploadApi } from "@/lib/api";
 import { Loader2, Copy, Share2, Gift, Camera } from "lucide-react";
@@ -172,30 +170,6 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <Label>{t("interface_language")}</Label>
               <LanguageSwitcher />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("notifications")}</CardTitle>
-            <CardDescription>{t("notifications_desc")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>{t("study_reminders")}</Label>
-                <p className="text-sm text-muted-foreground">{t("study_reminders_desc")}</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>{t("email_updates")}</Label>
-                <p className="text-sm text-muted-foreground">{t("email_updates_desc")}</p>
-              </div>
-              <Switch />
             </div>
           </CardContent>
         </Card>

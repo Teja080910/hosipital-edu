@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgView,
   uuid,
   text,
   timestamp,
@@ -10,6 +11,7 @@ import {
   uniqueIndex,
   primaryKey,
 } from "drizzle-orm/pg-core";
+import { sql, eq } from "drizzle-orm";
 
 export const userRole = pgTable("user_role", {
   value: text("value").primaryKey(),
@@ -71,7 +73,7 @@ export const users = pgTable("users", {
   googleId: text("google_id").unique(),
   preferredLocale: text("preferred_locale").default("en").notNull(),
   referralCode: text("referral_code").unique(),
-  referredBy: uuid("referred_by").references(() => users.id, { onDelete: "set null" }),
+  referredBy: uuid("referred_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
@@ -94,6 +96,7 @@ export const specialties = pgTable("specialties", {
     .references(() => exams.id, { onDelete: "cascade" }),
   name: jsonb("name").notNull(),
   slug: text("slug").notNull(),
+  type: text("type").notNull().default("question"),
   maxQuestions: integer("max_questions"),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -210,6 +213,7 @@ export const examAttempts = pgTable("exam_attempts", {
   customTitle: text("custom_title"),
   isShowTimeCounter: boolean("is_show_time_counter").default(false),
   questionCount: integer("question_count").notNull().default(0),
+  questionIds: jsonb("question_ids"),
   answeredCount: integer("answered_count").notNull().default(0),
   correctCount: integer("correct_count").notNull().default(0),
   timeLimit: integer("time_limit"),
@@ -279,6 +283,37 @@ export const flashcards = pgTable("flashcards", {
     .references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const flashcardExamAttempts = pgTable("flashcard_exam_attempts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  mode: text("mode").notNull().default("practice"),
+  status: text("status").notNull().default("completed"),
+  customTitle: text("custom_title"),
+  isShowTimeCounter: boolean("is_show_time_counter").default(false),
+  questionCount: integer("question_count").notNull().default(0),
+  answeredCount: integer("answered_count").notNull().default(0),
+  correctCount: integer("correct_count").notNull().default(0),
+  timeLimit: integer("time_limit"),
+  timeSpent: integer("time_spent").default(0).notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const flashcardExamAnswers = pgTable("flashcard_exam_answers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  attemptId: uuid("attempt_id")
+    .notNull()
+    .references(() => flashcardExamAttempts.id, { onDelete: "cascade" }),
+  flashcardId: uuid("flashcard_id")
+    .notNull()
+    .references(() => flashcards.id, { onDelete: "cascade" }),
+  isCorrect: boolean("is_correct").notNull(),
+  answeredAt: timestamp("answered_at").defaultNow().notNull(),
 });
 
 export const userFlashcardReviews = pgTable(
@@ -402,12 +437,24 @@ export const courses = pgTable("courses", {
   certificateInstructions: jsonb("certificate_instructions"),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  deletedAt: timestamp("deleted_at"),
   createdBy: uuid("created_by")
     .notNull()
     .references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const courseExams = pgTable("course_exams", {
+  courseId: uuid("course_id")
+    .notNull()
+    .references(() => courses.id, { onDelete: "cascade" }),
+  examId: uuid("exam_id")
+    .notNull()
+    .references(() => exams.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.courseId, table.examId] }),
+}));
 
 export const courseModules = pgTable("course_modules", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -575,6 +622,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxDays: integer("max_days"),
   maxUses: integer("max_uses"),
   isDefault: boolean("is_default").default(false),
+  isPopular: boolean("is_popular").default(false),
   isCourseOnly: boolean("is_course_only").default(false),
   courseId: uuid("course_id").references(() => courses.id, { onDelete: "set null" }),
   isVisible: boolean("is_visible").default(true).notNull(),
@@ -583,6 +631,17 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const planExams = pgTable("plan_exams", {
+  planId: uuid("plan_id")
+    .notNull()
+    .references(() => subscriptionPlans.id, { onDelete: "cascade" }),
+  examId: uuid("exam_id")
+    .notNull()
+    .references(() => exams.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.planId, table.examId] }),
+}));
 
 export const userSubscriptions = pgTable("user_subscriptions", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -749,6 +808,15 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const leads = pgTable("leads", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull(),
+  name: text("name"),
+  source: text("source").default("landing").notNull(),
+  locale: text("locale").default("en").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const testimonials = pgTable("testimonials", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: jsonb("name").notNull(),
@@ -760,3 +828,124 @@ export const testimonials = pgTable("testimonials", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const userSubscriptionDetails = pgView("user_subscription_details").as(
+  (qb) =>
+    qb
+      .select({
+        id: userSubscriptions.id,
+        userId: userSubscriptions.userId,
+        userEmail: users.email,
+        planId: userSubscriptions.planId,
+        planName: sql<string>`${subscriptionPlans.name}->>'en'`.as("plan_name"),
+        planNameEs: sql<string>`${subscriptionPlans.name}->>'es'`.as("plan_name_es"),
+        price: subscriptionPlans.price,
+        interval: subscriptionPlans.interval,
+        planMaxQuestions: subscriptionPlans.maxQuestions,
+        planMaxFlashcards: subscriptionPlans.maxFlashcards,
+        planMaxUses: subscriptionPlans.maxUses,
+        status: userSubscriptions.status,
+        currentPeriodStart: userSubscriptions.currentPeriodStart,
+        currentPeriodEnd: userSubscriptions.currentPeriodEnd,
+        remainingExamAttempts: userSubscriptions.remainingExamAttempts,
+        remainingFlashcardAttempts: userSubscriptions.remainingFlashcardAttempts,
+        remainingUses: userSubscriptions.remainingUses,
+        stripeSubscriptionId: userSubscriptions.stripeSubscriptionId,
+        createdAt: userSubscriptions.createdAt,
+        updatedAt: userSubscriptions.updatedAt,
+      })
+      .from(userSubscriptions)
+      .innerJoin(users, eq(users.id, userSubscriptions.userId))
+      .innerJoin(subscriptionPlans, eq(subscriptionPlans.id, userSubscriptions.planId)),
+);
+
+export const flashcardExamHistory = pgView("flashcard_exam_history").as(
+  (qb) =>
+    qb
+      .select({
+        id: flashcardExamAttempts.id,
+        userId: flashcardExamAttempts.userId,
+        userEmail: users.email,
+        mode: flashcardExamAttempts.mode,
+        status: flashcardExamAttempts.status,
+        customTitle: flashcardExamAttempts.customTitle,
+        questionCount: flashcardExamAttempts.questionCount,
+        answeredCount: flashcardExamAttempts.answeredCount,
+        correctCount: flashcardExamAttempts.correctCount,
+        scorePercentage: sql<number>`CASE WHEN ${flashcardExamAttempts.questionCount} > 0 THEN ROUND((${flashcardExamAttempts.correctCount}::numeric / ${flashcardExamAttempts.questionCount}) * 100, 1) ELSE 0 END`.as("score_percentage"),
+        timeLimit: flashcardExamAttempts.timeLimit,
+        timeSpent: flashcardExamAttempts.timeSpent,
+        startedAt: flashcardExamAttempts.startedAt,
+        completedAt: flashcardExamAttempts.completedAt,
+        createdAt: flashcardExamAttempts.createdAt,
+      })
+      .from(flashcardExamAttempts)
+      .innerJoin(users, eq(users.id, flashcardExamAttempts.userId)),
+);
+
+export const flashcardExamAnswerDetails = pgView("flashcard_exam_answer_details").as(
+  (qb) =>
+    qb
+      .select({
+        answerId: flashcardExamAnswers.id,
+        attemptId: flashcardExamAnswers.attemptId,
+        flashcardId: flashcardExamAnswers.flashcardId,
+        flashcardFront: flashcards.front,
+        flashcardBack: flashcards.back,
+        isCorrect: flashcardExamAnswers.isCorrect,
+        answeredAt: flashcardExamAnswers.answeredAt,
+      })
+      .from(flashcardExamAnswers)
+      .innerJoin(flashcards, eq(flashcards.id, flashcardExamAnswers.flashcardId)),
+);
+
+export const examHistory = pgView("exam_history").as(
+  (qb) =>
+    qb
+      .select({
+        id: examAttempts.id,
+        userId: examAttempts.userId,
+        userEmail: users.email,
+        examId: examAttempts.examId,
+        examName: sql<string>`${exams.name}->>'en'`.as("exam_name"),
+        examNameEs: sql<string>`${exams.name}->>'es'`.as("exam_name_es"),
+        mode: examAttempts.mode,
+        status: examAttempts.status,
+        customTitle: examAttempts.customTitle,
+        questionCount: examAttempts.questionCount,
+        answeredCount: examAttempts.answeredCount,
+        correctCount: examAttempts.correctCount,
+        scorePercentage: sql<number>`CASE WHEN ${examAttempts.questionCount} > 0 THEN ROUND((${examAttempts.correctCount}::numeric / ${examAttempts.questionCount}) * 100, 1) ELSE 0 END`.as("score_percentage"),
+        timeLimit: examAttempts.timeLimit,
+        timeSpent: examAttempts.timeSpent,
+        startedAt: examAttempts.startedAt,
+        completedAt: examAttempts.completedAt,
+        createdAt: examAttempts.createdAt,
+      })
+      .from(examAttempts)
+      .innerJoin(users, eq(users.id, examAttempts.userId))
+      .innerJoin(exams, eq(exams.id, examAttempts.examId)),
+);
+
+export const userStats = pgView("user_stats").as(
+  (qb) =>
+    qb
+      .select({
+        userId: users.id,
+        email: users.email,
+        totalExamAttempts: sql<number>`COUNT(DISTINCT ${examAttempts.id})`.as("total_exam_attempts"),
+        totalCorrectAnswers: sql<number>`COALESCE(SUM(${examAttempts.correctCount}), 0)`.as("total_correct_answers"),
+        totalQuestionsAttempted: sql<number>`COALESCE(SUM(${examAttempts.questionCount}), 0)`.as("total_questions_attempted"),
+        totalFlashcardExamAttempts: sql<number>`COUNT(DISTINCT ${flashcardExamAttempts.id})`.as("total_flashcard_exam_attempts"),
+        totalFlashcardCorrect: sql<number>`COALESCE(SUM(${flashcardExamAttempts.correctCount}), 0)`.as("total_flashcard_correct"),
+        totalFlashcardsAttempted: sql<number>`COALESCE(SUM(${flashcardExamAttempts.questionCount}), 0)`.as("total_flashcards_attempted"),
+        totalQuestionsPracticed: sql<number>`COUNT(DISTINCT ${userQuestionProgress.id})`.as("total_questions_practiced"),
+        totalFlashcardsReviewed: sql<number>`COUNT(DISTINCT ${userFlashcardReviews.id})`.as("total_flashcards_reviewed"),
+      })
+      .from(users)
+      .leftJoin(examAttempts, eq(examAttempts.userId, users.id))
+      .leftJoin(flashcardExamAttempts, eq(flashcardExamAttempts.userId, users.id))
+      .leftJoin(userQuestionProgress, eq(userQuestionProgress.userId, users.id))
+      .leftJoin(userFlashcardReviews, eq(userFlashcardReviews.userId, users.id))
+      .groupBy(users.id, users.email),
+);

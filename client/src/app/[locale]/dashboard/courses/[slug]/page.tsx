@@ -11,14 +11,24 @@ import { useAuth } from "@/hooks/use-auth";
 import { coursesApi, certificatesApi } from "@/lib/api";
 import { CourseQuiz } from "@/components/courses/course-quiz";
 import { ChevronRight, Clock, DollarSign, FileQuestion, FileText, Loader2, Play, Award, ClipboardCheck, BarChart3 } from "lucide-react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { useRouter } from "@/routing";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { toast } from "sonner";
+import { localizedText } from "@/lib/utils";
 
 export default function CourseDetailPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+      <CourseDetail />
+    </Suspense>
+  );
+}
+
+function CourseDetail() {
   const t = useTranslations("courses");
   const c = useTranslations("common");
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, locale } = useParams<{ slug: string; locale: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -147,7 +157,7 @@ export default function CourseDetailPage() {
     );
   }
 
-  const title = course.title?.en || course.title;
+  const title = course.title?.en || "";
   const description = course.description?.en || "";
   const totalLessons = course.modules?.reduce((acc: number, m: any) => acc + (m.lessons?.length || 0), 0) || 0;
   const contentTypeIcon: Record<string, any> = { video: Play, pdf: FileText, text: FileText, quiz: FileQuestion };
@@ -332,7 +342,7 @@ export default function CourseDetailPage() {
             </div>
             {certificateId ? (
               <Button variant="outline" asChild>
-                <a href={`/dashboard/certificates/${certificateId}`} target="_blank">{t("view_certificate")}</a>
+                <a href={`/${locale}/dashboard/certificates/${certificateId}`} target="_blank">{t("view_certificate")}</a>
               </Button>
             ) : (
               <Button onClick={handleGenerateCertificate} disabled={generatingCert}>
@@ -385,23 +395,23 @@ export default function CourseDetailPage() {
           )}
           <div className="space-y-4">
             {course.modules?.map((mod: any, mi: number) => {
-              const modTitle = mod.title?.en || mod.title;
-              return (
-                <Card key={mod.id}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <span className="text-muted-foreground">{t("module")} {mi + 1}</span>
-                      <Separator orientation="vertical" className="h-4" />
-                      {modTitle}
-                    </CardTitle>
-                    {mod.description && (
-                      <p className="text-sm text-muted-foreground mt-1">{mod.description?.en || mod.description}</p>
-                    )}
+              const modTitle = localizedText(mod.title, locale) || "";
+                      return (
+                        <Card key={mod.id}>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <span className="text-muted-foreground">{t("module")} {mi + 1}</span>
+                              <Separator orientation="vertical" className="h-4" />
+                              {modTitle}
+                            </CardTitle>
+                            {mod.description && (
+                              <p className="text-sm text-muted-foreground mt-1">{localizedText(mod.description, locale) || ""}</p>
+                            )}
                   </CardHeader>
                   <CardContent className="space-y-1">
                     {mod.lessons?.map((lesson: any) => {
                       const Icon = contentTypeIcon[lesson.contentType] || Play;
-                      const lessonTitle = lesson.title?.en || lesson.title;
+                      const lessonTitle = localizedText(lesson.title, locale) || "";
                       const isCompleted = progress?.lessons?.find((l: any) => l.lessonId === lesson.id)?.isCompleted;
                       return (
                         <button

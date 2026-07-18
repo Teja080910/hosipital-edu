@@ -2,8 +2,8 @@ const fs = require("fs");
 const path = require("path");
 
 const API_BASE = process.env.API_URL || "http://localhost:4000/api";
-const EMAIL = "tejasimma033@gmail.com";
-const PASSWORD = "Teja@1234";
+const EMAIL = process.env.API_EMAIL || "admin@example.com";
+const PASSWORD = process.env.API_PASSWORD || "password";
 
 async function getToken() {
   const res = await fetch(`${API_BASE}/auth/login`, {

@@ -31,6 +31,7 @@ const es = {
     "notFound": "Curso no encontrado",
     "deleted": "Curso eliminado",
     "alreadyEnrolled": "Ya estás inscrito en este curso",
+    "notEnrolled": "No estás inscrito en este curso",
     "paymentRequired": "Se requiere pago para este curso",
     "moduleNotFound": "Módulo no encontrado",
     "moduleDeleted": "Módulo eliminado",
@@ -57,7 +58,11 @@ const es = {
     "subscriptionNotIncludeExam": "Tu suscripción no incluye este tipo de examen.",
     "noRemainingAttempts": "No tienes intentos de examen restantes. Mejora tu plan.",
     "usageLimitExceeded": "Has excedido el límite de uso total de tu plan.",
-    "planExpired": "La duración de tu plan ha expirado."
+    "planExpired": "La duración de tu plan ha expirado.",
+    "duplicateActiveAttempt": "Ya tienes un intento activo para este examen",
+    "notSubscribed": "Necesitas una suscripción activa para acceder a esta función",
+    "attemptAlreadyCompleted": "Este intento ya ha sido completado",
+    "invalidOption": "Opción de respuesta inválida"
   },
   "flashcards": {
     "notFound": "Tarjeta de estudio no encontrada",
@@ -67,12 +72,14 @@ const es = {
   "subscriptions": {
     "planNotFound": "Plan no encontrado",
     "noActiveSubscription": "Sin suscripción activa",
-    "descriptionTemplate": "{name} - {interval}"
+    "descriptionTemplate": "{name} - {interval}",
+    "sessionOwnershipMismatch": "La sesión de pago no te pertenece"
   },
   "articles": {
     "notFound": "Artículo no encontrado",
     "deleted": "Artículo eliminado",
-    "slugExists": "Ya existe un artículo con este slug"
+    "slugExists": "Ya existe un artículo con este slug",
+    "subscriptionRequired": "Suscripción requerida para ver este artículo"
   },
   "certificates": {
     "notFound": "Certificado no encontrado o inválido",
@@ -96,7 +103,8 @@ const es = {
   "common": {
     "internalError": "Error interno del servidor",
     "eventDeleted": "Evento eliminado",
-    "mailNotConfigured": "Correo no configurado - omitiendo envío"
+    "mailNotConfigured": "Correo no configurado - omitiendo envío",
+    "eventNotFound": "Evento no encontrado"
   },
   "stream": {
     "failedListVideos": "Error al listar videos",
@@ -108,7 +116,7 @@ const es = {
   "email": {
     "subjects": {
       "verifyEmail": "Verifica tu dirección de correo",
-      "welcome": "¡Bienvenido a MD Exams!",
+      "welcome": "¡Bienvenido a MD Exam!",
       "passwordReset": "Restablece tu contraseña",
       "passwordChanged": "Tu contraseña ha sido cambiada",
       "subscriptionConfirmed": "Suscripción confirmada",
@@ -117,43 +125,43 @@ const es = {
     },
     "verifyEmail": {
       "heading": "Verifica tu dirección de correo",
-      "body": "Hola {name}, gracias por crear tu cuenta de MD Exams. Verifica tu correo para desbloquear el acceso completo a nuestra plataforma de preparación de exámenes médicos.",
+      "body": "Hola {name}, gracias por crear tu cuenta de MD Exam. Verifica tu correo para desbloquear el acceso completo a nuestra plataforma de preparación de exámenes médicos.",
       "button": "Verificar Correo",
-      "footer": "Este enlace expira en 24 horas. Si no creaste una cuenta en MD Exams, puedes ignorar este correo."
+      "footer": "Este enlace expira en 24 horas. Si no creaste una cuenta en MD Exam, puedes ignorar este correo."
     },
     "welcome": {
-      "heading": "¡Bienvenido a MD Exams!",
-      "body1": "Hola {name}, tu correo ha sido verificado exitosamente. Ahora tienes acceso completo a todo lo que MD Exams ofrece.",
+      "heading": "¡Bienvenido a MD Exam!",
+      "body1": "Hola {name}, tu correo ha sido verificado exitosamente. Ahora tienes acceso completo a todo lo que MD Exam ofrece.",
       "body2": "Comienza a explorar cursos médicos, practica con preguntas tipo examen, sigue tu progreso y prepárate con confianza.",
       "button": "Ir al Panel",
-      "footer": "¿Necesitas ayuda? Contacta a nuestro equipo de soporte en support@md-exams.com."
+      "footer": "¿Necesitas ayuda? Contacta a nuestro equipo de soporte en soporte@md-exam.com."
     },
     "passwordReset": {
       "heading": "Restablece tu contraseña",
-      "body": "Hola {name}, recibimos una solicitud para restablecer la contraseña de tu cuenta de MD Exams. Haz clic en el botón para crear una nueva contraseña.",
+      "body": "Hola {name}, recibimos una solicitud para restablecer la contraseña de tu cuenta de MD Exam. Haz clic en el botón para crear una nueva contraseña.",
       "button": "Restablecer Contraseña",
       "footer": "Este enlace expira en 1 hora. Si no solicitaste un restablecimiento, puedes ignorar este correo &mdash; tu contraseña no cambiará."
     },
     "passwordChanged": {
       "heading": "Tu contraseña ha sido cambiada",
-      "body1": "Hola {name}, la contraseña de tu cuenta de MD Exams fue cambiada exitosamente.",
+      "body1": "Hola {name}, la contraseña de tu cuenta de MD Exam fue cambiada exitosamente.",
       "body2": "Si hiciste este cambio, no necesitas hacer nada más. Si no cambiaste tu contraseña, contacta a nuestro equipo de soporte inmediatamente.",
       "button": "Ir al Panel",
-      "footer": "¿Preguntas? Contacta a support@md-exams.com."
+      "footer": "¿Preguntas? Contacta a soporte@md-exam.com."
     },
     "subscriptionConfirmed": {
       "heading": "¡Suscripción confirmada!",
-      "body1": "Hola {name}, gracias por suscribirte a MD Exams. Tu pago fue exitoso y tu cuenta ya está activa.",
+      "body1": "Hola {name}, gracias por suscribirte a MD Exam. Tu pago fue exitoso y tu cuenta ya está activa.",
       "planLabel": "Plan",
       "amountLabel": "Monto",
       "billingLabel": "Facturación",
       "body2": "Ahora tienes acceso ilimitado a todos los cursos, preguntas de práctica, tarjetas de estudio, simuladores de examen y análisis detallados.",
       "button": "Comenzar a Aprender",
-      "footer": "¿Necesitas ayuda? Responde a este correo o contacta a support@md-exams.com."
+      "footer": "¿Necesitas ayuda? Responde a este correo o contacta a soporte@md-exam.com."
     },
     "subscriptionCancelled": {
       "heading": "Suscripción cancelada",
-      "body1": "Hola {name}, tu suscripción de MD Exams ha sido cancelada. Seguirás teniendo acceso hasta el final de tu período de facturación actual.",
+      "body1": "Hola {name}, tu suscripción de MD Exam ha sido cancelada. Seguirás teniendo acceso hasta el final de tu período de facturación actual.",
       "body2": "Nos encantaría tenerte de vuelta cuando estés listo. Tu progreso y datos se conservarán.",
       "button": "Volver a Suscribirse",
       "footer": "Si cancelaste por error, puedes volver a suscribirte en cualquier momento."
@@ -163,7 +171,7 @@ const es = {
       "body1": "Hola {name}, no pudimos procesar tu último pago de suscripción. No te preocupes &mdash; lo intentaremos de nuevo en unos días.",
       "body2": "Para evitar cualquier interrupción en tu acceso, actualiza tu método de pago lo antes posible.",
       "button": "Actualizar Método de Pago",
-      "footer": "Si necesitas ayuda, contacta a support@md-exams.com."
+      "footer": "Si necesitas ayuda, contacta a soporte@md-exam.com."
     }
   }
 } as const;

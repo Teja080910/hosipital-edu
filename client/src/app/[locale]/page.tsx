@@ -22,11 +22,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
-import { subscriptionsApi } from "@/lib/api";
+import { leadsApi } from "@/lib/api/leads";
+import { subscriptionsApi, examsApi, parametersApi } from "@/lib/api";
 import { testimonialsApi } from "@/lib/api/testimonials";
 import { cn } from "@/lib/utils";
-import { Link, usePathname } from "@/routing";
+import { Link } from "@/routing";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -41,12 +43,14 @@ import {
   Instagram,
   Languages,
   Library,
+  Loader2,
+  Mail,
   Menu,
   Moon,
+  Play,
   Sparkles,
   Star,
   Sun,
-  Twitter,
   Video,
   Youtube
 } from "lucide-react";
@@ -75,7 +79,6 @@ const sb = useTranslations("subscribe");
   const n = useTranslations("nav");
   const c = useTranslations("common");
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const currentLocale = useParams().locale as string;
@@ -96,6 +99,8 @@ const sb = useTranslations("subscribe");
     return () => mq.removeEventListener("change", handler);
   }, []);
   const [plans, setPlans] = useState<any[]>([]);
+  const [leadLoading, setLeadLoading] = useState(false);
+  const [leadMsg, setLeadMsg] = useState<string | null>(null);
 
   useEffect(() => {
     subscriptionsApi.plans().then(({ data }) => {
@@ -122,12 +127,60 @@ const sb = useTranslations("subscribe");
   }));
 
   const [testimonialsData, setTestimonialsData] = useState<any[]>([]);
+  const [promoVideoUrl, setPromoVideoUrl] = useState("");
+  const [footer, setFooter] = useState({
+    facebookUrl: "https://www.facebook.com/mdexamedu",
+    instagramUrl: "https://www.instagram.com/md_exam/",
+    youtubeUrl: "https://www.youtube.com/@MD-exam",
+    email: "info@md-exam.com",
+    brandName: "MD Exam",
+    rightsText: `© ${new Date().getFullYear()} MD Exam. All rights reserved.`,
+  });
+
+  const getParamValue = (data: any, locale: string, fallback: string) => {
+    if (!data?.value) return fallback;
+    const val = typeof data.value === "object" ? data.value : { en: String(data.value) };
+    return val[locale] || val.en || fallback;
+  };
 
   useEffect(() => {
     testimonialsApi.getAll().then(({ data }) => {
       if (Array.isArray(data)) setTestimonialsData(data);
     }).catch(() => {});
+    parametersApi.get("promo_video_url").then(({ data }) => {
+      setPromoVideoUrl(getParamValue(data, currentLocale, ""));
+    }).catch(() => {});
+    parametersApi.get("footer_facebook_url").then(({ data }) => {
+      setFooter((f) => ({ ...f, facebookUrl: getParamValue(data, currentLocale, f.facebookUrl) }));
+    }).catch(() => {});
+    parametersApi.get("footer_instagram_url").then(({ data }) => {
+      setFooter((f) => ({ ...f, instagramUrl: getParamValue(data, currentLocale, f.instagramUrl) }));
+    }).catch(() => {});
+    parametersApi.get("footer_youtube_url").then(({ data }) => {
+      setFooter((f) => ({ ...f, youtubeUrl: getParamValue(data, currentLocale, f.youtubeUrl) }));
+    }).catch(() => {});
+    parametersApi.get("footer_email").then(({ data }) => {
+      setFooter((f) => ({ ...f, email: getParamValue(data, currentLocale, f.email) }));
+    }).catch(() => {});
+    parametersApi.get("footer_brand_name").then(({ data }) => {
+      setFooter((f) => ({ ...f, brandName: getParamValue(data, currentLocale, f.brandName) }));
+    }).catch(() => {});
+    parametersApi.get("footer_rights_text").then(({ data }) => {
+      setFooter((f) => ({ ...f, rightsText: getParamValue(data, currentLocale, f.rightsText) }));
+    }).catch(() => {});
   }, []);
+
+  const [examSlugs, setExamSlugs] = useState<string[]>([]);
+
+  useEffect(() => {
+    examsApi.list().then(({ data }) => {
+      const items = data || [];
+      const names = items.map((e: any) => e.name?.[currentLocale] || e.name?.en || e.slug || "");
+      const unique = [...new Set(names.filter(Boolean))] as string[];
+      if (unique.length > 0) setExamSlugs([...unique, "COURSES"]);
+      else setExamSlugs(["ENURM", "ENARM", "MIR", "COURSES"]);
+    }).catch(() => setExamSlugs(["ENURM", "ENARM", "MIR", "COURSES"]));
+  }, [currentLocale]);
 
   const testimonials = testimonialsData.length > 0
     ? testimonialsData.map((item) => ({
@@ -155,7 +208,7 @@ const sb = useTranslations("subscribe");
   }));
 
   const getPlanButton = (plan: any) => {
-    const isPopular = plan.sortOrder === 1;
+    const isPopular = plan.isPopular;
     if (!user) {
       return (
         <Link href="/register" className="w-full">
@@ -399,10 +452,10 @@ const sb = useTranslations("subscribe");
               transition={{ duration: 0.8, delay: 0.5 }}
               className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
             >
-              {["ENURM", "ENARM", "MIR", "CURSOS"].map((exam) => (
+              {(examSlugs.length > 0 ? examSlugs : ["ENURM", "ENARM", "MIR", "CURSOS"]).map((exam) => (
                 <div key={exam} className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-primary" />
-                  <span>{exam}</span>
+                  <span>{exam === "COURSES" ? n("courses") : exam}</span>
                 </div>
               ))}
             </motion.div>
@@ -411,32 +464,6 @@ const sb = useTranslations("subscribe");
 
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </section>
-
-      {/* Platform Showcase */}
-      {/* <section className="relative py-16 lg:py-24 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-primary/[0.01] to-transparent" />
-        <div className="absolute top-40 left-20 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px]" />
-        <div className="absolute bottom-40 right-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px]" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.7, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            whileHover={{ y: -4, scale: 1.005 }}
-            className="group relative mt-8 max-w-3xl mx-auto"
-          >
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <Image
-              src="/hero-3.jpg"
-              alt="MD Exam Study Interface"
-              width={800}
-              height={534}
-              className="w-full h-auto rounded-xl border border-border/50 shadow-lg group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-500 relative"
-            />
-          </motion.div>
-        </div>
-      </section> */}
 
       {/* Features */}
       <section id="features" className="relative py-24 lg:py-32">
@@ -534,9 +561,10 @@ const sb = useTranslations("subscribe");
           <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
             {plans.map((plan, i) => {
               const pName = plan.name?.en || plan.name;
-              const pPopular = plan.sortOrder === 1;
+              const pPopular = plan.isPopular;
               const pPeriod = plan.interval === "year" ? t("period_year") : plan.interval === "quarter" ? t("period_quarter") : t("period_month");
-              const features = planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"];
+              const pDesc = plan.description?.[currentLocale] || plan.description?.en || "";
+              const features = pDesc ? pDesc.split("\n").filter(Boolean) : (planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"]);
               return (
               <motion.div key={plan.id || pName} {...stagger(i)}>
                 <Card className={cn(
@@ -558,7 +586,7 @@ const sb = useTranslations("subscribe");
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-4">
-                    {features.map((f) => (
+                    {features.map((f:any) => (
                       <div key={f} className="flex items-start gap-3">
                         <Check className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -633,6 +661,118 @@ const sb = useTranslations("subscribe");
         </div>
       </section>
 
+      {/* Promotional Video */}
+      <section className="relative py-24 lg:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-primary/[0.02]" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center mb-12">
+            <Badge variant="secondary" className="mb-4">
+              <Play className="h-3.5 w-3.5 mr-1.5 text-primary" />
+              {t("video_title")}
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {t("video_title")}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              {t("video_subtitle")}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, margin: "-50px" }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            className="relative mx-auto max-w-4xl aspect-video rounded-2xl overflow-hidden border border-border/50 shadow-xl group"
+          >
+            <iframe
+              src={promoVideoUrl}
+              title="MD Exam Promotional Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Lead Capture */}
+      <section className="relative py-24 lg:py-32 overflow-hidden bg-muted/30">
+        <div className="absolute top-0 left-0 w-72 h-72 bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full blur-[120px]" />
+        <div className="relative mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div {...fadeUp}>
+            <Badge variant="secondary" className="mb-4">
+              <Mail className="h-3.5 w-3.5 mr-1.5 text-primary" />
+              {t("lead_title")}
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {t("lead_title")}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
+              {t("lead_subtitle")}
+            </p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                const formData = new FormData(form);
+                const email = formData.get("email") as string;
+                const name = formData.get("name") as string;
+                if (!email?.trim()) return;
+                setLeadLoading(true);
+                setLeadMsg(null);
+                try {
+                  await leadsApi.create({ email, name: name || undefined, source: "landing", locale: currentLocale });
+                  setLeadMsg("success");
+                  form.reset();
+                } catch (err: any) {
+                  console.error("Lead capture error:", err?.response?.data || err?.message || err);
+                  if (err?.response?.status === 409) {
+                    setLeadMsg("exists");
+                  } else {
+                    setLeadMsg("error");
+                  }
+                } finally {
+                  setLeadLoading(false);
+                }
+              }}
+              className="mt-10 max-w-md mx-auto space-y-4"
+            >
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 space-y-3">
+                  <Input
+                    type="email"
+                    name="email"
+                    placeholder={t("lead_placeholder")}
+                    required
+                    className="h-12 text-base"
+                  />
+                  <Input
+                    type="text"
+                    name="name"
+                    placeholder={t("lead_name_placeholder")}
+                    className="h-12 text-base"
+                  />
+                </div>
+                <Button type="submit" size="xl" className="h-12 shrink-0" disabled={leadLoading}>
+                  {leadLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("lead_button")}
+                </Button>
+              </div>
+              {leadMsg === "success" && (
+                <p className="text-sm text-green-600 dark:text-green-400 font-medium">{t("lead_success")}</p>
+              )}
+              {leadMsg === "error" && (
+                <p className="text-sm text-destructive font-medium">{t("lead_error")}</p>
+              )}
+              {leadMsg === "exists" && (
+                <p className="text-sm text-muted-foreground font-medium">{t("lead_exists")}</p>
+              )}
+            </form>
+          </motion.div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="relative py-24 lg:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent" />
@@ -668,8 +808,8 @@ const sb = useTranslations("subscribe");
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt={t("brand")} width={36} height={36} className="rounded-lg bg-white p-1" />
-              <span className="font-semibold">{t("brand")}</span>
+              <Image src="/logo.png" alt={footer.brandName} width={36} height={36} className="rounded-lg bg-white p-1" />
+              <span className="font-semibold">{footer.brandName}</span>
             </Link>
             <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground sm:flex-row sm:gap-6">
               <Link href="/blog" className="hover:text-foreground transition-colors">{t("blog")}</Link>
@@ -678,22 +818,22 @@ const sb = useTranslations("subscribe");
               <Link href="/content/faq" className="hover:text-foreground transition-colors">{t("faq_title")}</Link>
             </div>
             <div className="flex items-center gap-4">
-              <a href="https://www.facebook.com/mdexamedu" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href={footer.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="https://www.instagram.com/md_exam/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href={footer.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="https://www.youtube.com/@MD-exam" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href={footer.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 <Youtube className="h-5 w-5" />
               </a>
-              <a href="mailto:info@md-exam.com" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
-                info@md-exam.com
+              <a href={`mailto:${footer.email}`} className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium">
+                {footer.email}
               </a>
             </div>
           </div>
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            {t("all_rights_reserved")}
+            {footer.rightsText}
           </div>
         </div>
       </footer>

@@ -2,7 +2,7 @@ import { Injectable, Inject, HttpException, HttpStatus } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { DRIZZLE } from "../database/database.provider";
 import { videoModules, videoModuleExams, videoLessons } from "../database/schema";
-import { eq, asc, inArray } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()

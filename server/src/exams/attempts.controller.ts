@@ -26,7 +26,7 @@ export class AttemptsController {
   @Post()
   @ApiOperation({ summary: "Start new exam attempt" })
   async create(
-    @Body() data: { examId: string; mode: string; questionCount: number; timeLimit?: number; customTitle?: string },
+    @Body() data: { examId: string; mode: string; questionCount: number; questionIds?: string[]; timeLimit?: number; customTitle?: string },
     @CurrentUser() user: any,
   ) {
     return this.attemptsService.create({ ...data, userId: user.id });
@@ -42,10 +42,16 @@ export class AttemptsController {
     return this.attemptsService.findByUser(user.id, page, limit);
   }
 
+  @Get("active/:examId")
+  @ApiOperation({ summary: "Get active attempt for an exam" })
+  async findActive(@Param("examId") examId: string, @CurrentUser() user: any) {
+    return this.attemptsService.findActiveByExam(user.id, examId);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "Get attempt with answers" })
-  async findOne(@Param("id") id: string) {
-    return this.attemptsService.findById(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.attemptsService.findById(id, user.id);
   }
 
   @Patch(":id/answer")
@@ -53,13 +59,14 @@ export class AttemptsController {
   async answer(
     @Param("id") id: string,
     @Body() data: { questionId: string; selectedOptionId: string; timeSpent: number },
+    @CurrentUser() user: any,
   ) {
-    return this.attemptsService.answerQuestion({ attemptId: id, ...data });
+    return this.attemptsService.answerQuestion({ attemptId: id, ...data }, user.id);
   }
 
   @Patch(":id/complete")
   @ApiOperation({ summary: "Complete attempt" })
-  async complete(@Param("id") id: string) {
-    return this.attemptsService.complete(id);
+  async complete(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.attemptsService.complete(id, user.id);
   }
 }

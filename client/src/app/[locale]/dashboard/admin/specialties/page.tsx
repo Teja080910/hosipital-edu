@@ -175,7 +175,23 @@ export default function AdminSpecialtiesPage() {
             </Select>
           </div>
           {selectedExamId && (
-            <Button onClick={() => openCreate("specialty")}><Plus className="h-4 w-4 mr-2" /> {t("add_specialty")}</Button>
+            <>
+              <Button onClick={() => openCreate("specialty")}><Plus className="h-4 w-4 mr-2" /> {t("add_specialty")}</Button>
+              {["enurm", "enarm"].includes(exams.find((e: any) => e.id === selectedExamId)?.slug) && (() => {
+                const mirExam = exams.find((e: any) => e.slug === "mir");
+                if (!mirExam) return null;
+                return (
+                  <Button variant="outline" onClick={async () => {
+                    try {
+                      const { data } = await examsApi.copyQuestions(mirExam.id, selectedExamId);
+                      toast.success(data.message || `Copied ${data.copied} questions`);
+                    } catch { toast.error("Failed to copy questions"); }
+                  }}>
+                    <Loader2 className="h-4 w-4 mr-2" /> Copy questions from MIR
+                  </Button>
+                );
+              })()}
+            </>
           )}
         </div>
 

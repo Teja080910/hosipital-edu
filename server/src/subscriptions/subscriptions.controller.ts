@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -12,21 +13,200 @@ import {
   UseGuards
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ConfigService } from "@nestjs/config";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Roles } from "../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { SubscriptionsService } from "./subscriptions.service";
+import Stripe from "stripe";
+import { Inject } from "@nestjs/common";
+import { STRIPE } from "./stripe.provider";
+import { IsOptional, IsString, IsNumber, IsBoolean, IsObject, IsUUID, IsArray } from "class-validator";
+
+class CreatePlanDto {
+  @IsObject()
+  name!: object;
+
+  @IsOptional()
+  @IsObject()
+  description?: object;
+
+  @IsNumber()
+  price!: number;
+
+  @IsString()
+  interval!: string;
+
+  @IsOptional()
+  @IsString()
+  stripePriceId?: string;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isVisible?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isPopular?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isCourseOnly?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
+
+  @IsOptional()
+  @IsUUID()
+  courseId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  maxDays?: number;
+
+  @IsOptional()
+  @IsNumber()
+  examAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  flashcardAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxCourses?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxExamAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxFlashcardAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxUses?: number;
+}
+
+class UpdatePlanDto {
+  @IsOptional()
+  @IsObject()
+  name?: object;
+
+  @IsOptional()
+  @IsObject()
+  description?: object;
+
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
+  @IsOptional()
+  @IsString()
+  interval?: string;
+
+  @IsOptional()
+  @IsString()
+  stripePriceId?: string;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isVisible?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isPopular?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isCourseOnly?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
+
+  @IsOptional()
+  @IsUUID()
+  courseId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  maxDays?: number;
+
+  @IsOptional()
+  @IsNumber()
+  examAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  flashcardAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxCourses?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxExamAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxFlashcardAttempts?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxUses?: number;
+}
 
 @ApiTags("subscriptions")
 @Controller()
 export class SubscriptionsController {
-  constructor(private subscriptionsService: SubscriptionsService) {}
+  constructor(
+    private subscriptionsService: SubscriptionsService,
+    @Inject(STRIPE) private stripe: Stripe,
+    private config: ConfigService,
+  ) {}
 
   @Get("subscription-plans")
   @ApiOperation({ summary: "List subscription plans" })
-  async findPlans(@Query("all") all?: string, @Req() req?: any) {
-    const user = req.user;
+  async findPlans(@Query("all") all?: string, @CurrentUser() user?: any) {
     const isAdmin = user?.role === "admin";
     return this.subscriptionsService.findPlans(!(all === "true" && isAdmin));
   }
@@ -36,7 +216,7 @@ export class SubscriptionsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create plan (admin)" })
-  async createPlan(@Body() data: any) {
+  async createPlan(@Body() data: CreatePlanDto) {
     return this.subscriptionsService.createPlan(data);
   }
 
@@ -45,7 +225,7 @@ export class SubscriptionsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update plan (admin)" })
-  async updatePlan(@Param("id") id: string, @Body() data: any) {
+  async updatePlan(@Param("id") id: string, @Body() data: UpdatePlanDto) {
     return this.subscriptionsService.updatePlan(id, data);
   }
 
@@ -108,6 +288,17 @@ export class SubscriptionsController {
   @Post("subscriptions/webhook")
   @ApiOperation({ summary: "Stripe webhook handler" })
   async webhook(@Req() req: any, @Headers("stripe-signature") signature: string) {
-    return this.subscriptionsService.handleWebhook(req.body);
+    const webhookSecret = this.config.get<string>("STRIPE_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      throw new BadRequestException("Webhook secret not configured");
+    }
+    let event: Stripe.Event;
+    try {
+      const rawBody = req.rawBody || JSON.stringify(req.body);
+      event = this.stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    } catch {
+      throw new BadRequestException("Invalid webhook signature");
+    }
+    return this.subscriptionsService.handleWebhook(event);
   }
 }

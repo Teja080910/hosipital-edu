@@ -8,6 +8,7 @@ import {
   courseLessons,
   courseModules,
   userCourseProgress,
+  userCourseEnrollments,
   users,
 } from "../database/schema";
 import { UploadService } from "../upload/upload.service";
@@ -68,6 +69,19 @@ export class CertificatesService {
       .limit(1);
     if (!course) throw new NotFoundException(this.i18n.t("certificates.courseNotFound"));
 
+    const [enrollment] = await this.db
+      .select()
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, courseId),
+          eq(userCourseEnrollments.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (!enrollment) throw new BadRequestException("Not enrolled in this course");
+
     const progressRows = await this.db
       .select()
       .from(userCourseProgress)
@@ -98,9 +112,10 @@ export class CertificatesService {
     if (!template) throw new NotFoundException(this.i18n.t("certificates.noDefaultTemplate"));
 
     const certificateNumber = `CERT-${Date.now()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+    const secret = this.config.get<string>("CERTIFICATE_HMAC_SECRET") || "cert-default-secret";
     const verificationHash = crypto
-      .createHash("sha256")
-      .update(`${userId}-${courseId}-${Date.now()}`)
+      .createHmac("sha256", secret)
+      .update(`${userId}-${courseId}-${certificateNumber}`)
       .digest("hex");
 
     const appUrl = this.config.get<string>("APP_URL") || "http://localhost:4175";

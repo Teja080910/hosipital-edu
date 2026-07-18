@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { streamApi, videosApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface StreamVideoPlayerProps {
   uid?: string | null;
@@ -15,9 +16,8 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const savedRef = useRef<number>(0);
 
-  if (!uid) return null;
-
   useEffect(() => {
+    if (!uid) return;
     let cancelled = false;
 
     (async () => {
@@ -46,7 +46,7 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
           if (++attempts > 10) { clearInterval(id); return; }
           iframeRef.current?.contentWindow?.postMessage(
             { __privateUnstableMessageType: "setProperty", property: "currentTime", value: seek },
-            "*",
+            "https://iframe.cloudflarestream.com",
           );
         }, 1000);
       }
@@ -72,6 +72,8 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
     };
   }, [uid, lessonId]);
 
+  if (!uid) return null;
+
   return (
     <div className={cn("relative aspect-video bg-black rounded-lg overflow-hidden", className)}>
       <iframe
@@ -85,6 +87,3 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
   );
 }
 
-function cn(...classes: (string | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}

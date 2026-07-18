@@ -1,7 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { landingPageConfig } from "../database/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 @Injectable()
 export class LandingService {

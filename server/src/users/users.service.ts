@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { users, userSubscriptions, subscriptionPlans } from "../database/schema";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -14,12 +14,17 @@ export class UsersService {
     private i18n: I18nService,
   ) {}
 
-  async findAll(page = 1, limit = 1000) {
+  async findAll(page = 1, limit = 50) {
     const offset = (page - 1) * limit;
     const items = await this.db
       .select()
       .from(users)
       .where(isNull(users.deletedAt))
+      .orderBy(
+        desc(
+          sql`coalesce((select max(${userSubscriptions.createdAt}) from ${userSubscriptions} where ${userSubscriptions.userId} = ${users.id}), ${users.createdAt})`,
+        ),
+      )
       .limit(limit)
       .offset(offset);
     const [totalResult] = await this.db
@@ -48,7 +53,15 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, data: Partial<typeof users.$inferInsert>) {
+  async update(id: string, data: Partial<typeof users.$inferInsert>, currentUser?: any) {
+    const { emailVerifiedAt, ...rest } = data;
+    if (currentUser && currentUser.role !== "admin" && currentUser.role !== "super_admin") {
+      return this.updateInternal(id, rest);
+    }
+    return this.updateInternal(id, data);
+  }
+
+  private async updateInternal(id: string, data: Partial<typeof users.$inferInsert>) {
     const [user] = await this.db
       .update(users)
       .set({ ...stripTimestamps(data), updatedAt: new Date() })
@@ -117,7 +130,7 @@ export class UsersService {
     return sub || null;
   }
 
-  async updateSubscription(userId: string, data: { planId?: string; status?: string; remainingExamAttempts?: number; remainingFlashcardAttempts?: number; currentPeriodEnd?: string }) {
+  async updateSubscription(userId: string, data: { planId?: string; status?: string; remainingExamAttempts?: number; remainingFlashcardAttempts?: number; remainingUses?: number; currentPeriodEnd?: string }) {
     const [existing] = await this.db
       .select()
       .from(userSubscriptions)
@@ -126,10 +139,28 @@ export class UsersService {
 
     if (existing) {
       const updateData: any = { updatedAt: new Date() };
-      if (data.planId !== undefined) updateData.planId = data.planId;
+      if (data.planId !== undefined) {
+        updateData.planId = data.planId;
+        const [plan] = await this.db
+          .select()
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, data.planId))
+          .limit(1);
+        if (plan) {
+          updateData.remainingExamAttempts = plan.maxExamAttempts ?? null;
+          updateData.remainingFlashcardAttempts = plan.maxFlashcardAttempts ?? null;
+          updateData.remainingUses = plan.maxUses ?? null;
+          const now = new Date();
+          updateData.currentPeriodStart = now;
+          updateData.currentPeriodEnd = plan.maxDays
+            ? new Date(now.getTime() + plan.maxDays * 86400000)
+            : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        }
+      }
       if (data.status !== undefined) updateData.status = data.status;
       if (data.remainingExamAttempts !== undefined) updateData.remainingExamAttempts = data.remainingExamAttempts;
       if (data.remainingFlashcardAttempts !== undefined) updateData.remainingFlashcardAttempts = data.remainingFlashcardAttempts;
+      if (data.remainingUses !== undefined) updateData.remainingUses = data.remainingUses;
       if (data.currentPeriodEnd !== undefined) updateData.currentPeriodEnd = new Date(data.currentPeriodEnd);
       const [updated] = await this.db
         .update(userSubscriptions)
@@ -140,6 +171,11 @@ export class UsersService {
     }
 
     if (data.planId) {
+      const [plan] = await this.db
+        .select()
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, data.planId))
+        .limit(1);
       const now = new Date();
       const periodEnd = data.currentPeriodEnd ? new Date(data.currentPeriodEnd) : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       const [created] = await this.db
@@ -150,8 +186,9 @@ export class UsersService {
           status: data.status || "active",
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
-          remainingExamAttempts: data.remainingExamAttempts,
-          remainingFlashcardAttempts: data.remainingFlashcardAttempts,
+          remainingExamAttempts: data.remainingExamAttempts ?? plan?.maxExamAttempts ?? null,
+          remainingFlashcardAttempts: data.remainingFlashcardAttempts ?? plan?.maxFlashcardAttempts ?? null,
+          remainingUses: data.remainingUses ?? plan?.maxUses ?? null,
         })
         .returning();
       return created;

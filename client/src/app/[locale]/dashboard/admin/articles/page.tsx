@@ -83,7 +83,12 @@ export default function AdminArticlesPage() {
         title: { en: form.title },
         content: { en: form.content },
         excerpt: { en: form.excerpt },
-        slug: form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+        slug: form.title
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, ""),
         isPublished: form.isPublished,
       };
       if (editing) {
@@ -157,7 +162,7 @@ export default function AdminArticlesPage() {
     { key: "isPublished", header: t("status"), render: (row: any) => <Badge variant={row.isPublished ? "default" : "secondary"}>{row.isPublished ? c("published") : c("draft")}</Badge> },
     {
       key: "actions",
-      header: "",
+      header: t("actions"),
       render: (row: any) => (
         <div className="flex gap-1">
           <Button size="sm" variant="ghost" asChild>
@@ -229,7 +234,7 @@ export default function AdminArticlesPage() {
                 value={form.excerpt}
                 onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                placeholder="Brief summary..."
+                placeholder={t("short_description_placeholder")}
               />
             </div>
 
@@ -256,7 +261,7 @@ export default function AdminArticlesPage() {
                     className="h-8 gap-1.5 rounded-lg text-xs"
                   >
                     {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    {preview ? "Edit" : "Preview"}
+                    {preview ? c("edit") : t("preview")}
                   </Button>
                 </div>
               </div>

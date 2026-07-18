@@ -37,7 +37,7 @@ export class UploadService {
     });
 
     const url = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
-    const publicUrl = await getSignedUrl(this.s3, new GetObjectCommand({ Bucket: this.bucket, Key: key }), { expiresIn: 86400 });
+    const publicUrl = await getSignedUrl(this.s3, new GetObjectCommand({ Bucket: this.bucket, Key: key }), { expiresIn: 604800 });
     return { url, key, publicUrl };
   }
 
@@ -49,7 +49,7 @@ export class UploadService {
       ContentType: contentType,
     });
     await this.s3.send(command);
-    const publicUrl = await getSignedUrl(this.s3, new GetObjectCommand({ Bucket: this.bucket, Key: key }), { expiresIn: 86400 });
+    const publicUrl = await getSignedUrl(this.s3, new GetObjectCommand({ Bucket: this.bucket, Key: key }), { expiresIn: 604800 });
     return { url: publicUrl, key };
   }
 
@@ -58,6 +58,6 @@ export class UploadService {
       Bucket: this.bucket,
       Key: key,
     });
-    return getSignedUrl(this.s3, command, { expiresIn: 86400 });
+    return getSignedUrl(this.s3, command, { expiresIn: 604800 });
   }
 }

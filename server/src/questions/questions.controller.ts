@@ -16,6 +16,112 @@ import { RolesGuard } from "../common/guards/roles.guard";
 import { AccountTypeGuard } from "../common/guards/account-type.guard";
 import { Roles, AllowedAccountTypes } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { IsOptional, IsString, IsArray, IsUUID, IsObject, IsNumber } from "class-validator";
+
+class CreateQuestionDto {
+  @IsString()
+  text!: string;
+
+  @IsOptional()
+  @IsString()
+  explanation?: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsString()
+  difficulty?: string;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
+
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  topicId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  subtopicId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  options?: { text: string; isCorrect: boolean; explanation?: string }[];
+
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  images?: { url: string; section?: string; caption?: string; sortOrder?: number }[];
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+}
+
+class UpdateQuestionDto {
+  @IsOptional()
+  @IsString()
+  text?: string;
+
+  @IsOptional()
+  @IsString()
+  explanation?: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsString()
+  difficulty?: string;
+
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  examIds?: string[];
+
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  topicId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  subtopicId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  options?: { text: string; isCorrect: boolean; explanation?: string }[];
+
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  images?: { url: string; section?: string; caption?: string; sortOrder?: number }[];
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+}
 
 @ApiTags("questions")
 @Controller("questions")
@@ -50,6 +156,8 @@ export class QuestionsController {
   }
 
   @Get(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Get question with options" })
   async findOne(@Param("id") id: string, @CurrentUser() user?: any) {
     return this.questionsService.findById(id, user);
@@ -60,7 +168,7 @@ export class QuestionsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create question (admin)" })
-  async create(@Body() data: any, @CurrentUser() user: any) {
+  async create(@Body() data: CreateQuestionDto, @CurrentUser() user: any) {
     return this.questionsService.create({ ...data, createdBy: user.id });
   }
 
@@ -69,7 +177,7 @@ export class QuestionsController {
   @Roles("admin")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update question (admin)" })
-  async update(@Param("id") id: string, @Body() data: any) {
+  async update(@Param("id") id: string, @Body() data: UpdateQuestionDto) {
     return this.questionsService.update(id, data);
   }
 

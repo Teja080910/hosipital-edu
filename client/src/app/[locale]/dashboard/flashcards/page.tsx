@@ -15,7 +15,6 @@ import { Library, RefreshCw } from "lucide-react";
 import { flashcardsApi } from "@/lib/api/flashcards";
 import { Button } from "@/components/ui/button";
 
-const SESSION_KEY = "flashcard_session";
 const PAGE_SIZE = 20;
 
 interface FlashcardData {
@@ -32,34 +31,6 @@ interface FlashcardData {
 interface SpecialtyOption {
   id: string;
   name: { en: string; es?: string };
-}
-
-interface SessionState {
-  cards: FlashcardData[];
-  currentIndex: number;
-  selectedSpecialty: string;
-  totalDue: number;
-}
-
-function saveSession(state: SessionState) {
-  try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
-  } catch {}
-}
-
-function loadSession(): SessionState | null {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function clearSession() {
-  try {
-    sessionStorage.removeItem(SESSION_KEY);
-  } catch {}
 }
 
 function shuffle<T>(array: T[]): T[] {
@@ -106,7 +77,7 @@ export default function FlashcardsPage() {
       let items: FlashcardData[] = [];
       let total = 0;
       try {
-        const dueRes = await flashcardsApi.due(10000);
+        const dueRes = await flashcardsApi.due({ limit: 10000, ...(specialty && specialty !== "all" ? { specialtyId: specialty } : {}) });
         items = dueRes.data ?? dueRes ?? [];
         total = items.length;
       } catch {}
@@ -128,34 +99,18 @@ export default function FlashcardsPage() {
       }
       setIsFlipped(false);
     } catch {
-      setError("Failed to load flashcards");
+      setError(c("error"));
     } finally {
       setLoading(false);
     }
   }, [fetchDueCards]);
 
   useEffect(() => {
-    const saved = loadSession();
-    if (saved && saved.cards.length > 0) {
-      setCards(saved.cards);
-      setCurrentIndex(saved.currentIndex);
-      setSelectedSpecialty(saved.selectedSpecialty);
-      setTotalDue(saved.totalDue);
-      setLoading(false);
-    } else {
-      loadCards();
-    }
+    loadCards();
   }, [loadCards]);
-
-  useEffect(() => {
-    if (cards.length > 0) {
-      saveSession({ cards, currentIndex, selectedSpecialty, totalDue });
-    }
-  }, [cards, currentIndex, selectedSpecialty, totalDue]);
 
   const handleSpecialtyChange = useCallback(async (value: string) => {
     setSelectedSpecialty(value);
-    clearSession();
     await loadCards(value);
   }, [loadCards]);
 
@@ -169,15 +124,20 @@ export default function FlashcardsPage() {
       const items = data.data ?? [];
       if (items.length > 0) {
         pageRef.current = nextPage;
-        setCards((prev) => [...prev, ...items]);
+        setCards((prev) => {
+          const updated = [...prev, ...items];
+          setAllLoaded(updated.length >= (data.total ?? 0));
+          return updated;
+        });
+      } else {
+        setAllLoaded(true);
       }
-      setAllLoaded(cards.length + items.length >= (data.total ?? 0));
     } catch {
     } finally {
       setLoadingMore(false);
       loadingRef.current = false;
     }
-  }, [loadingMore, allLoaded, selectedSpecialty, fetchDueCards, cards.length]);
+  }, [loadingMore, allLoaded, selectedSpecialty, fetchDueCards]);
 
   const currentCard = cards[currentIndex];
 
@@ -187,26 +147,23 @@ export default function FlashcardsPage() {
     const quality = qualityMap[rating] ?? 3;
     try {
       await flashcardsApi.review(currentCard.id, quality as number);
-      const dueRes = await flashcardsApi.due(10000);
-      setTotalDue((dueRes.data ?? dueRes).length ?? 0);
     } catch {
     }
     if (rating === "again") {
       setIsFlipped(false);
       return;
     }
+    setTotalDue((prev) => Math.max(0, prev - 1));
     if (currentIndex < cards.length - 1) {
       setCurrentIndex((i) => i + 1);
       setIsFlipped(false);
     } else if (!allLoaded) {
       await loadNextPage();
-      setCurrentIndex((i) => i + 1);
       setIsFlipped(false);
     } else {
       setCards([]);
       setCurrentIndex(0);
       setIsFlipped(false);
-      clearSession();
     }
   }, [currentCard, currentIndex, cards.length, allLoaded, loadNextPage]);
 
