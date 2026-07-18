@@ -147,26 +147,19 @@ const sb = useTranslations("subscribe");
     testimonialsApi.getAll().then(({ data }) => {
       if (Array.isArray(data)) setTestimonialsData(data);
     }).catch(() => {});
-    parametersApi.get("promo_video_url").then(({ data }) => {
-      setPromoVideoUrl(getParamValue(data, currentLocale, ""));
-    }).catch(() => {});
-    parametersApi.get("footer_facebook_url").then(({ data }) => {
-      setFooter((f) => ({ ...f, facebookUrl: getParamValue(data, currentLocale, f.facebookUrl) }));
-    }).catch(() => {});
-    parametersApi.get("footer_instagram_url").then(({ data }) => {
-      setFooter((f) => ({ ...f, instagramUrl: getParamValue(data, currentLocale, f.instagramUrl) }));
-    }).catch(() => {});
-    parametersApi.get("footer_youtube_url").then(({ data }) => {
-      setFooter((f) => ({ ...f, youtubeUrl: getParamValue(data, currentLocale, f.youtubeUrl) }));
-    }).catch(() => {});
-    parametersApi.get("footer_email").then(({ data }) => {
-      setFooter((f) => ({ ...f, email: getParamValue(data, currentLocale, f.email) }));
-    }).catch(() => {});
-    parametersApi.get("footer_brand_name").then(({ data }) => {
-      setFooter((f) => ({ ...f, brandName: getParamValue(data, currentLocale, f.brandName) }));
-    }).catch(() => {});
-    parametersApi.get("footer_rights_text").then(({ data }) => {
-      setFooter((f) => ({ ...f, rightsText: getParamValue(data, currentLocale, f.rightsText) }));
+    parametersApi.list().then(({ data }) => {
+      if (!Array.isArray(data)) return;
+      const paramMap: Record<string, any> = {};
+      data.forEach((p: any) => { paramMap[p.key] = p; });
+      setPromoVideoUrl(getParamValue(paramMap.promo_video_url, currentLocale, ""));
+      setFooter((f) => ({
+        facebookUrl: getParamValue(paramMap.footer_facebook_url, currentLocale, f.facebookUrl),
+        instagramUrl: getParamValue(paramMap.footer_instagram_url, currentLocale, f.instagramUrl),
+        youtubeUrl: getParamValue(paramMap.footer_youtube_url, currentLocale, f.youtubeUrl),
+        email: getParamValue(paramMap.footer_email, currentLocale, f.email),
+        brandName: getParamValue(paramMap.footer_brand_name, currentLocale, f.brandName),
+        rightsText: getParamValue(paramMap.footer_rights_text, currentLocale, f.rightsText),
+      }));
     }).catch(() => {});
   }, []);
 
