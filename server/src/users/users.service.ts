@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { users, userSubscriptions, subscriptionPlans } from "../database/schema";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -20,6 +20,11 @@ export class UsersService {
       .select()
       .from(users)
       .where(isNull(users.deletedAt))
+      .orderBy(
+        desc(
+          sql`coalesce((select max(${userSubscriptions.createdAt}) from ${userSubscriptions} where ${userSubscriptions.userId} = ${users.id}), ${users.createdAt})`,
+        ),
+      )
       .limit(limit)
       .offset(offset);
     const [totalResult] = await this.db
@@ -145,6 +150,11 @@ export class UsersService {
           updateData.remainingExamAttempts = plan.maxExamAttempts ?? null;
           updateData.remainingFlashcardAttempts = plan.maxFlashcardAttempts ?? null;
           updateData.remainingUses = plan.maxUses ?? null;
+          const now = new Date();
+          updateData.currentPeriodStart = now;
+          updateData.currentPeriodEnd = plan.maxDays
+            ? new Date(now.getTime() + plan.maxDays * 86400000)
+            : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
         }
       }
       if (data.status !== undefined) updateData.status = data.status;

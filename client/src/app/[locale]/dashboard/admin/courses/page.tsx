@@ -109,7 +109,7 @@ export default function AdminCoursesPage() {
         durationDays: form.durationDays,
         hasCertificate: form.hasCertificate,
       };
-      if (examIds.length > 0) payload.examIds = examIds;
+      payload.examIds = examIds;
       if (form.coverImage) payload.coverImage = form.coverImage;
       if (form.introduction) payload.introduction = { en: form.introduction };
       if (form.objectives) payload.objectives = { en: form.objectives };

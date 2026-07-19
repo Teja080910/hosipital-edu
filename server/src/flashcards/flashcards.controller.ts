@@ -125,7 +125,7 @@ export class FlashcardsController {
 
   @Get()
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full", "course_only")
+  @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "List flashcards with filters" })
   async findAll(
@@ -141,7 +141,7 @@ export class FlashcardsController {
 
   @Get("specialties")
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full", "course_only")
+  @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get flashcard specialties" })
   async getSpecialties(@CurrentUser() user: any) {
@@ -150,7 +150,7 @@ export class FlashcardsController {
 
   @Get("due")
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full", "course_only")
+  @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get due flashcards for review" })
   async findDue(@CurrentUser() user: any, @Query("limit") limit?: number, @Query("specialtyId") specialtyId?: string) {
@@ -218,7 +218,7 @@ export class FlashcardsController {
 
   @Post("exam/start")
   @UseGuards(JwtAuthGuard, AccountTypeGuard)
-  @AllowedAccountTypes("full", "course_only")
+  @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Start a flashcard exam" })
   async startExam(@Body() data: StartFlashcardExamDto, @CurrentUser() user: any) {

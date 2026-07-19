@@ -39,11 +39,18 @@ export default function AdminCourseContentPage() {
   const uploadFileToR2 = async (file: File, field: "pdfUrl" | "videoUrl" | "imageUrl") => {
     setUploadingFile(file.name);
     try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1] || "");
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
       const key = `courses/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { data } = await uploadApi.presignedUrl(key, file.type);
-      const { url, publicUrl } = data;
-      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      setLessonForm((p) => ({ ...p, [field]: publicUrl }));
+      const { data } = await uploadApi.uploadFile(key, base64, file.type);
+      setLessonForm((p) => ({ ...p, [field]: data.url }));
       toast.success(`${file.name} uploaded`);
     } catch {
       toast.error(t("upload_failed"));
@@ -339,7 +346,6 @@ export default function AdminCourseContentPage() {
                   <SelectItem value="video">{t("content_type_video")}</SelectItem>
                   <SelectItem value="text">{t("content_type_text")}</SelectItem>
                   <SelectItem value="pdf">{t("content_type_pdf")}</SelectItem>
-                  <SelectItem value="quiz">{t("content_type_quiz")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -352,23 +358,28 @@ export default function AdminCourseContentPage() {
             {lessonForm.contentType === "pdf" && (
               <div>
                 <label className="text-sm font-medium">{t("pdf_file")}</label>
-                <div className="flex items-center gap-2">
-                  <Input
+                <label className="flex h-10 w-full cursor-pointer items-center overflow-hidden rounded-lg border border-input bg-background px-3 py-2 text-sm text-muted-foreground">
+                  <input
                     type="file"
                     accept=".pdf,application/pdf"
                     disabled={uploadingFile !== null}
+                    className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) uploadFileToR2(file, "pdfUrl");
                     }}
                   />
-                  {uploadingFile && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
-                </div>
+                  {uploadingFile ? (
+                    <span className="flex items-center gap-2 min-w-0 w-full"><Loader2 className="h-4 w-4 shrink-0 animate-spin" /><span className="truncate">{uploadingFile}</span></span>
+                  ) : (
+                    <span className="truncate">{"Choose file"}</span>
+                  )}
+                </label>
                 {lessonForm.pdfUrl && (
                   <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    <span className="truncate flex-1">{lessonForm.pdfUrl.split("/").pop()}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setLessonForm((p) => ({ ...p, pdfUrl: "" }))}>
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="truncate flex-1">{lessonForm.pdfUrl.split("/").pop()?.split("?")[0]}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setLessonForm((p) => ({ ...p, pdfUrl: "" }))}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -378,23 +389,28 @@ export default function AdminCourseContentPage() {
             {lessonForm.contentType === "image" && (
               <div>
                 <label className="text-sm font-medium">{t("image_file")}</label>
-                <div className="flex items-center gap-2">
-                  <Input
+                <label className="flex h-10 w-full cursor-pointer items-center overflow-hidden rounded-lg border border-input bg-background px-3 py-2 text-sm text-muted-foreground">
+                  <input
                     type="file"
                     accept="image/*"
                     disabled={uploadingFile !== null}
+                    className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) uploadFileToR2(file, "imageUrl");
                     }}
                   />
-                  {uploadingFile && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
-                </div>
+                  {uploadingFile ? (
+                    <span className="flex items-center gap-2 min-w-0 w-full"><Loader2 className="h-4 w-4 shrink-0 animate-spin" /><span className="truncate">{uploadingFile}</span></span>
+                  ) : (
+                    <span className="truncate">{"Choose file"}</span>
+                  )}
+                </label>
                 {lessonForm.imageUrl && (
                   <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    <span className="truncate flex-1">{lessonForm.imageUrl.split("/").pop()}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setLessonForm((p) => ({ ...p, imageUrl: "" }))}>
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="truncate flex-1">{lessonForm.imageUrl.split("/").pop()?.split("?")[0]}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setLessonForm((p) => ({ ...p, imageUrl: "" }))}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>

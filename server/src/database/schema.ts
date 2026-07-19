@@ -437,6 +437,7 @@ export const courses = pgTable("courses", {
   certificateInstructions: jsonb("certificate_instructions"),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  deletedAt: timestamp("deleted_at"),
   createdBy: uuid("created_by")
     .notNull()
     .references(() => users.id),
@@ -621,6 +622,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxDays: integer("max_days"),
   maxUses: integer("max_uses"),
   isDefault: boolean("is_default").default(false),
+  isPopular: boolean("is_popular").default(false),
   isCourseOnly: boolean("is_course_only").default(false),
   courseId: uuid("course_id").references(() => courses.id, { onDelete: "set null" }),
   isVisible: boolean("is_visible").default(true).notNull(),

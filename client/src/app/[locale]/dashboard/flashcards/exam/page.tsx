@@ -44,7 +44,7 @@ export default function FlashcardExamConfigPage() {
       });
       router.push(`/dashboard/flashcards/exam/${data.id}`);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "Failed to start exam";
+      const msg = err?.response?.data?.message || err?.message || te("start_failed");
       toast.error(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setStarting(false);
@@ -140,7 +140,7 @@ export default function FlashcardExamConfigPage() {
               <div>
                 <label className="text-sm font-medium mb-2 block">{te("time_limit")}</label>
                 <div className="grid grid-cols-5 gap-2">
-                  {[5, 10, 15, 20, 30, 60].map((opt) => (
+                  {[5, 10, 15, 30, 60, 120].map((opt) => (
                     <button
                       key={opt}
                       onClick={() => setTimeLimit(opt)}

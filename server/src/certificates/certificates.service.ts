@@ -112,9 +112,10 @@ export class CertificatesService {
     if (!template) throw new NotFoundException(this.i18n.t("certificates.noDefaultTemplate"));
 
     const certificateNumber = `CERT-${Date.now()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+    const secret = this.config.get<string>("CERTIFICATE_HMAC_SECRET") || "cert-default-secret";
     const verificationHash = crypto
-      .createHash("sha256")
-      .update(`${userId}-${courseId}-${Date.now()}`)
+      .createHmac("sha256", secret)
+      .update(`${userId}-${courseId}-${certificateNumber}`)
       .digest("hex");
 
     const appUrl = this.config.get<string>("APP_URL") || "http://localhost:4175";

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface SpecialtyChartProps {
@@ -8,10 +9,11 @@ interface SpecialtyChartProps {
 }
 
 export default function SpecialtyChart({ data = [], noDataText = "No data yet" }: SpecialtyChartProps) {
+  const t = useTranslations("common");
   const chartData = data
     .filter(d => d.totalAnswered > 0)
     .map(d => ({
-      specialty: d.name?.en || Object.values(d.name || {})[0] || "Unknown",
+      specialty: d.name?.en || Object.values(d.name || {})[0] || t("unknown"),
       accuracy: Math.round((d.totalCorrect / d.totalAnswered) * 100),
     }))
     .sort((a, b) => b.accuracy - a.accuracy);

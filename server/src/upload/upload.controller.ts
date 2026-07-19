@@ -27,9 +27,9 @@ export class UploadController {
   @Put("file/:key")
   @ApiOperation({ summary: "Proxy upload file to R2" })
   async uploadFile(@Param("key") key: string, @Body("base64") base64: string, @Body("contentType") contentType: string) {
-    const allowedImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!contentType || !allowedImageTypes.includes(contentType)) {
-      throw new BadRequestException("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.");
+    const allowedFileTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+    if (!contentType || !allowedFileTypes.includes(contentType)) {
+      throw new BadRequestException("Invalid file type. Only JPEG, PNG, GIF, WebP images, and PDF files are allowed.");
     }
     const buffer = Buffer.from(base64, "base64");
     if (buffer.length > 10 * 1024 * 1024) {

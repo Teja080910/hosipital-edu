@@ -78,7 +78,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
             </CardHeader>
             <CardContent className="space-y-6 p-5 sm:p-6">
               <QuestionPenOverlay questionId={`${attemptId}-${currentAnswer.id || currentIndex}`}>
-              <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words">{question.text.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
+              <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words" dangerouslySetInnerHTML={{ __html: question.text }} />
               {question.images && question.images.filter((img: any) => img.section === "title").length > 0 && (
                 <div className="flex flex-wrap gap-4">
                   {question.images.filter((img: any) => img.section === "title").map((img: any) => (
@@ -114,16 +114,16 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 })}
               </div>
               {currentAnswer.timeSpent > 0 && <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{currentAnswer.timeSpent}s {t("spent")}</span></div>}
-              {question.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden">
+              {question.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden mt-4">
                 <p className="text-sm font-semibold mb-1">{t("explanation")}</p>
                 {(() => {
                   const correctOpt = question.options.find((o: any) => o.isCorrect);
                   return correctOpt ? <p className="text-sm font-medium mb-2">{correctOpt.text}</p> : null;
                 })()}
-                <div className="text-sm leading-6 text-muted-foreground space-y-2 break-words">{question.explanation.split("\n").filter(Boolean).map((p: string, i: number) => <p key={i}>{p}</p>)}</div>
+                <div className="text-sm leading-6 text-muted-foreground space-y-2 break-words" dangerouslySetInnerHTML={{ __html: question.explanation }} />
                 {question.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}
               </div>)}
-              {question.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{question.reference}</p></div>)}
+              {question.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden mt-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{question.reference}</p></div>)}
               <div className="flex items-center justify-between">
                 <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.max(i - 1, 0))} disabled={currentIndex === 0} className="rounded-xl"><ArrowLeft className="h-4 w-4 mr-2" /> {t("previous")}</Button>
                 <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.min(i + 1, answers.length - 1))} disabled={currentIndex >= answers.length - 1} className="rounded-xl">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>

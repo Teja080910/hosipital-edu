@@ -134,7 +134,7 @@ const sb = useTranslations("subscribe");
     youtubeUrl: "https://www.youtube.com/@MD-exam",
     email: "info@md-exam.com",
     brandName: "MD Exam",
-    rightsText: "© 2024 MD Exam. All rights reserved.",
+    rightsText: `© ${new Date().getFullYear()} MD Exam. All rights reserved.`,
   });
 
   const getParamValue = (data: any, locale: string, fallback: string) => {
@@ -147,26 +147,19 @@ const sb = useTranslations("subscribe");
     testimonialsApi.getAll().then(({ data }) => {
       if (Array.isArray(data)) setTestimonialsData(data);
     }).catch(() => {});
-    parametersApi.get("promo_video_url").then(({ data }) => {
-      setPromoVideoUrl(getParamValue(data, currentLocale, ""));
-    }).catch(() => {});
-    parametersApi.get("footer_facebook_url").then(({ data }) => {
-      setFooter((f) => ({ ...f, facebookUrl: getParamValue(data, currentLocale, f.facebookUrl) }));
-    }).catch(() => {});
-    parametersApi.get("footer_instagram_url").then(({ data }) => {
-      setFooter((f) => ({ ...f, instagramUrl: getParamValue(data, currentLocale, f.instagramUrl) }));
-    }).catch(() => {});
-    parametersApi.get("footer_youtube_url").then(({ data }) => {
-      setFooter((f) => ({ ...f, youtubeUrl: getParamValue(data, currentLocale, f.youtubeUrl) }));
-    }).catch(() => {});
-    parametersApi.get("footer_email").then(({ data }) => {
-      setFooter((f) => ({ ...f, email: getParamValue(data, currentLocale, f.email) }));
-    }).catch(() => {});
-    parametersApi.get("footer_brand_name").then(({ data }) => {
-      setFooter((f) => ({ ...f, brandName: getParamValue(data, currentLocale, f.brandName) }));
-    }).catch(() => {});
-    parametersApi.get("footer_rights_text").then(({ data }) => {
-      setFooter((f) => ({ ...f, rightsText: getParamValue(data, currentLocale, f.rightsText) }));
+    parametersApi.list().then(({ data }) => {
+      if (!Array.isArray(data)) return;
+      const paramMap: Record<string, any> = {};
+      data.forEach((p: any) => { paramMap[p.key] = p; });
+      setPromoVideoUrl(getParamValue(paramMap.promo_video_url, currentLocale, ""));
+      setFooter((f) => ({
+        facebookUrl: getParamValue(paramMap.footer_facebook_url, currentLocale, f.facebookUrl),
+        instagramUrl: getParamValue(paramMap.footer_instagram_url, currentLocale, f.instagramUrl),
+        youtubeUrl: getParamValue(paramMap.footer_youtube_url, currentLocale, f.youtubeUrl),
+        email: getParamValue(paramMap.footer_email, currentLocale, f.email),
+        brandName: getParamValue(paramMap.footer_brand_name, currentLocale, f.brandName),
+        rightsText: getParamValue(paramMap.footer_rights_text, currentLocale, f.rightsText),
+      }));
     }).catch(() => {});
   }, []);
 
@@ -208,7 +201,7 @@ const sb = useTranslations("subscribe");
   }));
 
   const getPlanButton = (plan: any) => {
-    const isPopular = plan.sortOrder === 1;
+    const isPopular = plan.isPopular;
     if (!user) {
       return (
         <Link href="/register" className="w-full">
@@ -561,9 +554,10 @@ const sb = useTranslations("subscribe");
           <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
             {plans.map((plan, i) => {
               const pName = plan.name?.en || plan.name;
-              const pPopular = plan.sortOrder === 1;
+              const pPopular = plan.isPopular;
               const pPeriod = plan.interval === "year" ? t("period_year") : plan.interval === "quarter" ? t("period_quarter") : t("period_month");
-              const features = planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"];
+              const pDesc = plan.description?.[currentLocale] || plan.description?.en || "";
+              const features = pDesc ? pDesc.split("\n").filter(Boolean) : (planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"]);
               return (
               <motion.div key={plan.id || pName} {...stagger(i)}>
                 <Card className={cn(
@@ -585,7 +579,7 @@ const sb = useTranslations("subscribe");
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-4">
-                    {features.map((f) => (
+                    {features.map((f:any) => (
                       <div key={f} className="flex items-start gap-3">
                         <Check className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -684,13 +678,19 @@ const sb = useTranslations("subscribe");
             transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="relative mx-auto max-w-4xl aspect-video rounded-2xl overflow-hidden border border-border/50 shadow-xl group"
           >
-            <iframe
-              src={promoVideoUrl}
-              title="MD Exam Promotional Video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full"
-            />
+            {promoVideoUrl ? (
+              <iframe
+                src={promoVideoUrl}
+                title=""
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-muted/30">
+                {t("no_video")}
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
@@ -714,7 +714,8 @@ const sb = useTranslations("subscribe");
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.currentTarget);
+                const form = e.currentTarget;
+                const formData = new FormData(form);
                 const email = formData.get("email") as string;
                 const name = formData.get("name") as string;
                 if (!email?.trim()) return;
@@ -723,8 +724,9 @@ const sb = useTranslations("subscribe");
                 try {
                   await leadsApi.create({ email, name: name || undefined, source: "landing", locale: currentLocale });
                   setLeadMsg("success");
-                  e.currentTarget.reset();
+                  form.reset();
                 } catch (err: any) {
+                  console.error("Lead capture error:", err?.response?.data || err?.message || err);
                   if (err?.response?.status === 409) {
                     setLeadMsg("exists");
                   } else {

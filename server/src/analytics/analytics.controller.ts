@@ -77,4 +77,12 @@ export class AnalyticsController {
   async getExamCompletionStats() {
     return this.analyticsService.getExamCompletionStats();
   }
+
+  @Get("admin/recent-activity")
+  @UseGuards(RolesGuard)
+  @Roles("admin")
+  @ApiOperation({ summary: "Get recent admin activity" })
+  async getRecentActivity(@Query("limit") limit?: number) {
+    return this.analyticsService.getRecentActivity(limit || 10);
+  }
 }

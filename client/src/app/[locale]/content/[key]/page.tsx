@@ -24,7 +24,7 @@ export default function ContentPage({ params }: { params: { key: string; locale:
   const locale = params.locale;
 
   useEffect(() => {
-    parametersApi.get(paramKey)
+    parametersApi.getPublic(paramKey)
       .then(({ data }) => setContent(data))
       .catch(() => setContent(null))
       .finally(() => setLoading(false));

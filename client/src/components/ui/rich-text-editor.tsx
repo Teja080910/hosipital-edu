@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Bold, Italic } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -11,6 +12,7 @@ interface RichTextEditorProps {
 }
 
 export function RichTextEditor({ value, onChange, placeholder, minHeight = 100 }: RichTextEditorProps) {
+  const t = useTranslations("common");
   const ref = useRef<HTMLDivElement>(null);
   const isUpdating = useRef(false);
 
@@ -44,10 +46,10 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = 100 }
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-1 border border-border/80 rounded-t-xl bg-muted/20 px-2 py-1.5">
-        <button type="button" onClick={() => exec("bold")} className="p-1.5 rounded hover:bg-muted transition-colors" title="Bold">
+        <button type="button" onClick={() => exec("bold")} className="p-1.5 rounded hover:bg-muted transition-colors" title={t("bold")}>
           <Bold className="h-4 w-4" />
         </button>
-        <button type="button" onClick={() => exec("italic")} className="p-1.5 rounded hover:bg-muted transition-colors" title="Italic">
+        <button type="button" onClick={() => exec("italic")} className="p-1.5 rounded hover:bg-muted transition-colors" title={t("italic")}>
           <Italic className="h-4 w-4" />
         </button>
       </div>

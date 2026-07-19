@@ -9,4 +9,5 @@ export const analyticsApi = {
   adminRetention: () => api.get("/analytics/admin/retention"),
   adminUserGrowth: (days = 30) => api.get("/analytics/admin/user-growth", { params: { days } }),
   adminExamCompletion: () => api.get("/analytics/admin/exam-completion"),
+  adminRecentActivity: (limit = 10) => api.get("/analytics/admin/recent-activity", { params: { limit } }),
 };
