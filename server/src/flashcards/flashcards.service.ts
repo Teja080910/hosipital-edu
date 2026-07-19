@@ -395,7 +395,7 @@ export class FlashcardsService {
       })
       .from(specialties)
       .innerJoin(flashcards, eq(flashcards.specialtyId, specialties.id))
-      .where(eq(flashcards.isActive, true));
+      .where(and(eq(flashcards.isActive, true), eq(specialties.type, "flashcard")));
 
     const rows = await query;
 
