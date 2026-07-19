@@ -14,6 +14,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { CoursesService } from "./courses.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { OptionalJwtAuthGuard } from "../common/guards/optional-jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -243,7 +244,7 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
     const enrollment = await this.coursesService.getEnrollment(user.id, courseId);
     return { enrolled: !!enrollment };
   }
@@ -256,7 +257,7 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
     return this.coursesService.checkAccess(user.id, courseId);
   }
 
@@ -270,7 +271,7 @@ export class CoursesController {
     @Body("stripePaymentId") stripePaymentId?: string,
     @Body("locale") locale?: string,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
     return this.coursesService.enroll(user.id, courseId, stripePaymentId, locale);
   }
 
@@ -282,7 +283,7 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
     return this.coursesService.getProgress(user.id, courseId);
   }
 
@@ -361,7 +362,7 @@ export class CoursesController {
     @Param("lessonId", ParseUUIDPipe) lessonId: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
     return this.coursesService.completeLesson(user.id, courseId, lessonId);
   }
 
@@ -374,14 +375,14 @@ export class CoursesController {
     @Param("lessonId", ParseUUIDPipe) lessonId: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
     return this.coursesService.incompleteLesson(user.id, courseId, lessonId);
   }
 
   @Get(":slug/comments")
   @ApiOperation({ summary: "Get comments for a course" })
-  async getComments(@Param("slug") slug: string) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+  async getComments(@Param("slug") slug: string, @CurrentUser() user?: any) {
+    const courseId = await this.coursesService.findIdBySlug(slug, user?.id);
     return this.coursesService.getComments(courseId);
   }
 
@@ -394,7 +395,7 @@ export class CoursesController {
     @Body() data: { body: string; lessonId?: string; parentId?: string },
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
     return this.coursesService.addComment(user.id, courseId, data);
   }
 
@@ -419,8 +420,8 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get pre-test quiz for a course" })
-  async getPreTest(@Param("slug") slug: string) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+  async getPreTest(@Param("slug") slug: string, @CurrentUser() user?: any) {
+    const courseId = await this.coursesService.findIdBySlug(slug, user?.id);
     return this.coursesService.getCourseQuiz(courseId, "pre_test");
   }
 
@@ -428,8 +429,8 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get post-test quiz for a course" })
-  async getPostTest(@Param("slug") slug: string) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+  async getPostTest(@Param("slug") slug: string, @CurrentUser() user?: any) {
+    const courseId = await this.coursesService.findIdBySlug(slug, user?.id);
     return this.coursesService.getCourseQuiz(courseId, "post_test");
   }
 
@@ -441,11 +442,12 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug);
+    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
     return this.coursesService.getTestResults(user.id, courseId);
   }
 
   @Get(":slug")
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: "Get course with modules and lessons" })
   async findOne(@Param("slug") slug: string, @CurrentUser() user?: any) {
     return this.coursesService.findBySlug(slug, user?.id);
