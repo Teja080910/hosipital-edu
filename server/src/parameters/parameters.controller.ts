@@ -20,6 +20,18 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 export class ParametersController {
   constructor(private parametersService: ParametersService) {}
 
+  @Get("public/parameters")
+  @ApiOperation({ summary: "List all system parameters (public)" })
+  async findAllPublic() {
+    return this.parametersService.findAll();
+  }
+
+  @Get("public/parameters/:key")
+  @ApiOperation({ summary: "Get parameter by key (public)" })
+  async findOnePublic(@Param("key") key: string) {
+    return this.parametersService.findByKey(key);
+  }
+
   @Get("parameters")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("admin")
@@ -33,7 +45,7 @@ export class ParametersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("admin")
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get parameter by key" })
+  @ApiOperation({ summary: "Get parameter by key (admin)" })
   async findOne(@Param("key") key: string) {
     return this.parametersService.findByKey(key);
   }

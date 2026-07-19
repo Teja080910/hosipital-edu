@@ -68,7 +68,7 @@ export default function CertificatePage() {
             <svg width="36" height="36" viewBox="0 0 24 24" fill="#22c55e" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
           </div>
 
-          <img src="${window.location.origin}/logo.png" style="width:50px;height:50px;border-radius:8px;object-fit:cover;border:2px solid #e2e8f0;margin-bottom:6px;" crossorigin="anonymous" />
+           <img src="${window.location.origin}/logo.png" style="width:auto;height:80px;object-fit:contain;border:2px solid #e2e8f0;border-radius:8px;margin-bottom:8px;" crossorigin="anonymous" />
 
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.3em;color:#64748b;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #e2e8f0;">${t("certificate_of_completion")}</div>
 
@@ -95,7 +95,7 @@ export default function CertificatePage() {
             <div style="height:32px;width:1px;background:#cbd5e1;"></div>
             <div style="text-align:center;">
               <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;margin:0 0 3px 0;">${t("verification_label")}</p>
-              <p style="font-family:monospace;font-size:12px;color:#334155;margin:0;">${cert.verificationHash.slice(0, 16)}...</p>
+              <p style="font-family:monospace;font-size:12px;color:#334155;margin:0;">${cert.verificationHash.slice(0, 12)}...</p>
             </div>
           </div>
         </div>`;
@@ -165,7 +165,7 @@ export default function CertificatePage() {
             <div className="absolute top-4 left-4 right-4 bottom-4 rounded-lg pointer-events-none" style={{ border: "2px solid rgba(59,130,246,0.1)" }} />
 
             <div className="flex flex-col items-center relative z-10">
-              <img src="/logo.png" alt="MD Exam" className="w-[50px] h-[50px] rounded-lg object-cover mb-1" />
+              <img src="/logo.png" alt="" className="w-auto h-[80px] object-contain mb-2 rounded-lg" />
               <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gray-500">{t("certificate_of_completion")}</div>
             </div>
 
@@ -189,8 +189,8 @@ export default function CertificatePage() {
               </div>
               <div className="h-8 w-px bg-gray-300" />
               <div>
-                <p className="text-xs">Verification</p>
-                <p className="font-mono text-xs">{cert.verificationHash.slice(0, 16)}...</p>
+                <p className="text-xs">{t("verification_label")}</p>
+                <p className="font-mono text-xs">{cert.verificationHash.slice(0, 12)}...</p>
               </div>
             </div>
 
