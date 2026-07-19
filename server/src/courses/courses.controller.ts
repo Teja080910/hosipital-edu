@@ -218,7 +218,7 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "List courses" })
   async findAll(@Query("all") all?: string, @CurrentUser() user?: any) {
-    return this.coursesService.findAll(all !== "true");
+    return this.coursesService.findAll(all !== "true", user?.id);
   }
 
   @Post()
@@ -447,8 +447,8 @@ export class CoursesController {
 
   @Get(":slug")
   @ApiOperation({ summary: "Get course with modules and lessons" })
-  async findOne(@Param("slug") slug: string) {
-    return this.coursesService.findBySlug(slug);
+  async findOne(@Param("slug") slug: string, @CurrentUser() user?: any) {
+    return this.coursesService.findBySlug(slug, user?.id);
   }
 
   @Patch(":id")

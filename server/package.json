@@ -16,9 +16,10 @@
     "create:admin": "node scripts/create-admin.js",
     "db:firebase-migrate": "ts-node -r dotenv/config scripts/firebase-migrate.ts dotenv_config_path=.env",
     "db:cleanup-stream": "ts-node -r dotenv/config scripts/cleanup-stream.ts dotenv_config_path=.env",
+    "export:rest": "ts-node scripts/export-rest.ts",
+    "db:seed": "ts-node -r dotenv/config scripts/seed-all.ts dotenv_config_path=.env",
     "db:link-cf-videos": "ts-node -r dotenv/config scripts/link-cf-videos.ts dotenv_config_path=.env",
-    "db:cleanup-plans": "ts-node -r dotenv/config scripts/cleanup-plans.ts dotenv_config_path=.env",
-    "export:rest": "ts-node scripts/export-rest.ts"
+    "db:cleanup-plans": "ts-node -r dotenv/config scripts/cleanup-plans.ts dotenv_config_path=.env"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",

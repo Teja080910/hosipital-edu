@@ -30,9 +30,22 @@ export class CoursesService {
     @Inject(STRIPE) private stripe: Stripe,
   ) {}
 
-  async findAll(onlyActive = true) {
+  async findAll(onlyActive = true, userId?: string) {
     const conditions: SQL[] = [isNull(courses.deletedAt)];
-    if (onlyActive) conditions.push(eq(courses.isActive, true));
+    if (onlyActive) {
+      if (userId) {
+        const [userRecord] = await this.db
+          .select({ role: users.role })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (!userRecord || (userRecord.role !== "admin" && userRecord.role !== "super_admin")) {
+          conditions.push(eq(courses.isActive, true));
+        }
+      } else {
+        conditions.push(eq(courses.isActive, true));
+      }
+    }
 
     const rows = await this.db
       .select({
@@ -76,11 +89,26 @@ export class CoursesService {
     return rows.map((r: any) => ({ ...r, examIds: examIdsByCourse.get(r.id) || [] }));
   }
 
-  async findBySlug(slug: string) {
+  async findBySlug(slug: string, userId?: string) {
+    const conditions: SQL[] = [eq(courses.slug, slug), isNull(courses.deletedAt)];
+
+    if (userId) {
+      const [userRecord] = await this.db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (!userRecord || (userRecord.role !== "admin" && userRecord.role !== "super_admin")) {
+        conditions.push(eq(courses.isActive, true));
+      }
+    } else {
+      conditions.push(eq(courses.isActive, true));
+    }
+
     const [course] = await this.db
       .select()
       .from(courses)
-      .where(and(eq(courses.slug, slug), eq(courses.isActive, true), isNull(courses.deletedAt)))
+      .where(and(...conditions))
       .limit(1);
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
 
@@ -122,11 +150,26 @@ export class CoursesService {
     return { ...course, modules: modulesWithLessons, examIds };
   }
 
-  async findIdBySlug(slug: string) {
+  async findIdBySlug(slug: string, userId?: string) {
+    const conditions: SQL[] = [eq(courses.slug, slug), isNull(courses.deletedAt)];
+
+    if (userId) {
+      const [userRecord] = await this.db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (!userRecord || (userRecord.role !== "admin" && userRecord.role !== "super_admin")) {
+        conditions.push(eq(courses.isActive, true));
+      }
+    } else {
+      conditions.push(eq(courses.isActive, true));
+    }
+
     const [course] = await this.db
       .select({ id: courses.id })
       .from(courses)
-      .where(and(eq(courses.slug, slug), eq(courses.isActive, true), isNull(courses.deletedAt)))
+      .where(and(...conditions))
       .limit(1);
     if (!course) throw new NotFoundException(this.i18n.t("courses.notFound"));
     return course.id;
