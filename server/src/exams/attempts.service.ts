@@ -47,12 +47,12 @@ export class AttemptsService {
       if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
 
       const [existingActive] = await tx
-        .select({ id: examAttempts.id })
+        .select({ id: examAttempts.id, mode: examAttempts.mode })
         .from(examAttempts)
         .where(and(eq(examAttempts.userId, data.userId), eq(examAttempts.examId, data.examId), eq(examAttempts.status, "in_progress")))
         .for("update")
         .limit(1);
-      if (existingActive) throw new HttpException(this.i18n.t("exams.duplicateActiveAttempt"), HttpStatus.BAD_REQUEST);
+      if (existingActive && existingActive.mode === data.mode) throw new HttpException(this.i18n.t("exams.duplicateActiveAttempt"), HttpStatus.BAD_REQUEST);
 
       const [user] = await tx
         .select({ role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
@@ -71,7 +71,7 @@ export class AttemptsService {
           .where(
             and(
               eq(userSubscriptions.userId, data.userId),
-              eq(userSubscriptions.status, "active"),
+              inArray(userSubscriptions.status, ["active", "cancelling"]),
             ),
           )
           .limit(1);

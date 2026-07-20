@@ -244,9 +244,8 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     const enrollment = await this.coursesService.getEnrollment(user.id, courseId);
-    return { enrolled: !!enrollment };
   }
 
   @Get("check-access/:slug")
@@ -257,8 +256,8 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
-    return this.coursesService.checkAccess(user.id, courseId);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
+    return this.coursesService.checkAccess(user.id, user.role, courseId);
   }
 
   @Post(":slug/enroll")
@@ -271,7 +270,7 @@ export class CoursesController {
     @Body("stripePaymentId") stripePaymentId?: string,
     @Body("locale") locale?: string,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.enroll(user.id, courseId, stripePaymentId, locale);
   }
 
@@ -283,7 +282,7 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.getProgress(user.id, courseId);
   }
 
@@ -362,7 +361,7 @@ export class CoursesController {
     @Param("lessonId", ParseUUIDPipe) lessonId: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.completeLesson(user.id, courseId, lessonId);
   }
 
@@ -375,7 +374,7 @@ export class CoursesController {
     @Param("lessonId", ParseUUIDPipe) lessonId: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.incompleteLesson(user.id, courseId, lessonId);
   }
 
@@ -395,7 +394,7 @@ export class CoursesController {
     @Body() data: { body: string; lessonId?: string; parentId?: string },
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.addComment(user.id, courseId, data);
   }
 
@@ -442,7 +441,7 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.getTestResults(user.id, courseId);
   }
 

@@ -45,7 +45,7 @@ export class QuestionsService {
         const [activeSub] = await this.db
           .select({ planId: userSubscriptions.planId })
           .from(userSubscriptions)
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"])))
           .limit(1);
         if (activeSub) {
           const [plan] = await this.db
@@ -72,7 +72,7 @@ export class QuestionsService {
         const [sub] = await this.db
           .select({ planId: userSubscriptions.planId })
           .from(userSubscriptions)
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"])))
           .limit(1);
         if (sub) {
           const [plan] = await this.db
@@ -105,7 +105,7 @@ export class QuestionsService {
         const [sub] = await this.db
           .select()
           .from(userSubscriptions)
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"])))
           .limit(1);
         if (!sub) {
           const [u] = await this.db

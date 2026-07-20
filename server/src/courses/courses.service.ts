@@ -150,16 +150,11 @@ export class CoursesService {
     return { ...course, modules: modulesWithLessons, examIds };
   }
 
-  async findIdBySlug(slug: string, userId?: string) {
+  async findIdBySlug(slug: string, user?: any) {
     const conditions: SQL[] = [eq(courses.slug, slug), isNull(courses.deletedAt)];
 
-    if (userId) {
-      const [userRecord] = await this.db
-        .select({ role: users.role })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      if (!userRecord || (userRecord.role !== "admin" && userRecord.role !== "super_admin")) {
+    if (user) {
+      if (user.role !== "admin" && user.role !== "super_admin") {
         conditions.push(eq(courses.isActive, true));
       }
     } else {
@@ -265,7 +260,7 @@ export class CoursesService {
       .where(
         and(
           eq(userSubscriptions.userId, userId),
-          eq(userSubscriptions.status, "active"),
+          inArray(userSubscriptions.status, ["active", "cancelling"]),
         ),
       )
       .limit(1);
@@ -320,13 +315,8 @@ export class CoursesService {
     throw new BadRequestException(this.i18n.t("courses.paymentRequired"));
   }
 
-  async checkAccess(userId: string, courseId: string) {
-    const [userRecord] = await this.db
-      .select({ role: users.role })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    if (userRecord && (userRecord.role === "admin" || userRecord.role === "super_admin")) {
+  async checkAccess(userId: string, userRole: string, courseId: string) {
+    if (userRole === "admin" || userRole === "super_admin") {
       return { hasAccess: true };
     }
 
@@ -355,7 +345,7 @@ export class CoursesService {
       .where(
         and(
           eq(userSubscriptions.userId, userId),
-          eq(userSubscriptions.status, "active"),
+          inArray(userSubscriptions.status, ["active", "cancelling"]),
         ),
       )
       .limit(1);

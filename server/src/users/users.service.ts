@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { users, userSubscriptions, subscriptionPlans } from "../database/schema";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql, inArray } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -123,7 +123,7 @@ export class UsersService {
       .where(
         and(
           eq(userSubscriptions.userId, userId),
-          eq(userSubscriptions.status, "active"),
+          inArray(userSubscriptions.status, ["active", "cancelling"]),
         ),
       )
       .limit(1);
