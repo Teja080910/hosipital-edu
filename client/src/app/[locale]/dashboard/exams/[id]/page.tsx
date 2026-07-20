@@ -96,6 +96,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   const confirmSubmitRef = useRef<() => Promise<void>>();
   const isSubmittingRef = useRef(false);
   const submittedRef = useRef(false);
+  const pendingFullscreenRef = useRef(false);
   const [activeAttempt, setActiveAttempt] = useState<any>(null);
   const [checkingActive, setCheckingActive] = useState(true);
   const specialtiesRef = useRef<HTMLDivElement>(null);
@@ -222,6 +223,12 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }, [pageState, mode, reviewMode, t]);
 
   useEffect(() => {
+    if (pageState === "taking" && mode === "exam" && !reviewMode && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }, [pageState, mode, reviewMode]);
+
+  useEffect(() => {
     confirmSubmitRef.current = handleConfirmSubmit;
   });
 
@@ -300,7 +307,6 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         const params = new URLSearchParams(window.location.search);
         params.set("mode", "exam");
         window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
-        document.documentElement.requestFullscreen().catch(() => {});
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || t("start_failed");
@@ -310,8 +316,13 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
   const handleResume = async () => {
     if (!activeAttempt) return;
+    const attempt = activeAttempt;
+    if (attempt.mode === "exam") {
+      const params = new URLSearchParams(window.location.search);
+      params.set("mode", "exam");
+      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+    }
     try {
-      const attempt = activeAttempt;
       const qIds = attempt.questionIds ? (typeof attempt.questionIds === "string" ? JSON.parse(attempt.questionIds) : attempt.questionIds) : [];
       let questions: Question[];
       if (qIds.length > 0) {
@@ -329,26 +340,23 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       setTimeRemaining(attempt.timeLimit ? attempt.timeLimit * 60 - (attempt.timeSpent || 0) : 0);
       setTotalTimeSpent(attempt.timeSpent || 0);
       setCurrentIndex(0);
-      setShowAnswer(false);
       setQuestionEntryTime(Date.now());
       setPerQuestionTime({});
       const restoredAnswers: Record<string, { optionId: string | null; isCorrect: boolean | null; flagged: boolean }> = {};
+      let allAnswered = true;
       for (const a of attempt.answers || []) {
         restoredAnswers[a.questionId] = {
           optionId: a.selectedOptionId,
-          isCorrect: a.isCorrect,
+          isCorrect: attempt.mode === "exam" ? null : a.isCorrect,
           flagged: a.isFlagged || false,
         };
+        if (!a.selectedOptionId) allAnswered = false;
       }
       setAnswers(restoredAnswers);
+      setSelectedOption(questions[0] && restoredAnswers[questions[0].id]?.optionId || null);
+      setShowAnswer(false);
       setPageState("taking");
       useExamStore.getState().startExam(id, questions.map(q => q.id), attempt.timeLimit || 0);
-      if (attempt.mode === "exam") {
-        const params = new URLSearchParams(window.location.search);
-        params.set("mode", "exam");
-        window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
       setActiveAttempt(null);
     } catch (err: any) {
       toast.error(t("start_failed"));
@@ -385,7 +393,9 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     const existing = q ? answers[q.id]?.optionId : null;
     setCurrentIndex(targetIndex);
     setSelectedOption(existing);
-    if (!reviewMode && mode !== "exam") setShowAnswer(false);
+    if (!reviewMode && mode !== "exam") {
+      setShowAnswer(!!existing);
+    }
     setQuestionEntryTime(Date.now());
   };
   const handleNext = () => navigateTo(currentIndex + 1);
@@ -476,7 +486,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
       <PageTransition>
         <div className="max-w-2xl mx-auto space-y-6">
           <ExamResults score={results.score} totalQuestions={results.totalQuestions} correctAnswers={results.correctAnswers} incorrectAnswers={results.incorrectAnswers} timeSpent={results.timeSpent}
-            onReview={() => { setReviewMode(true); setPageState("taking"); setShowAnswer(true); setCurrentIndex(0); }}
+            onReview={() => router.push(`/dashboard/exams/${id}/review/${attemptId}`)}
             onRetry={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); window.history.replaceState({}, "", window.location.pathname); useExamStore.getState().endExam(); setPageState("config"); setResults(null); setAttemptId(null); setActiveAttempt(null); setExamQuestions([]); setFilteredQuestions(allQuestions); setSelectedSpecialties([]); setSelectedTopic(""); setSelectedSubtopic(""); setSelectedOption(null); setQuestionLimit(10); setCurrentIndex(0); setAnswers({}); setTimeLimit(20); setCustomTitle(""); setCombinedExamIds([]); setCombinedExams([]); setMode("exam"); setShowSpecialties(false); setShowTopics(false); setShowSubtopics(false); setPerQuestionTime({}); setTotalTimeSpent(0); setTimeRemaining(0); setQuestionEntryTime(Date.now()); setSubmitting(false); setReviewMode(false); setAllAttemptIds([]); setShowSubmitDialog(false); setShowTimeWarning(false); setLightboxImage(null); tabWarningsRef.current = 0; setTabWarnings(0); submittedRef.current = false; isSubmittingRef.current = false; }}
             onGoHome={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); useExamStore.getState().endExam(); setActiveAttempt(null); router.push("/dashboard/exams"); }} />
           {results.topicBreakdown.length > 1 && (
@@ -573,7 +583,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent className="space-y-6 p-5 sm:p-6">
                 <QuestionPenOverlay questionId={currentQuestion.id}>
-                  <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words" dangerouslySetInnerHTML={{ __html: currentQuestion.text }} />
+                  <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words [&_p]:mb-2 last:[&_p]:mb-0" dangerouslySetInnerHTML={{ __html: currentQuestion.text }} />
                 {currentQuestion.images && currentQuestion.images.filter((img: any) => img.section === "title").length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.filter((img: any) => img.section === "title").map((img: any) => (
@@ -590,8 +600,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                       const isCorrectOption = option.isCorrect;
                       let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
                       if (showAnswer) {
-                        if (isCorrectOption) optionClass = "border-green-500 bg-green-50 text-green-950 shadow-subtle dark:bg-green-950/20 dark:text-green-100";
-                        else if (isSelected && !isCorrectOption) optionClass = "border-destructive bg-red-50 text-red-950 shadow-subtle dark:bg-red-950/20 dark:text-red-100";
+                        if (isCorrectOption) optionClass = "border-blue-400 bg-blue-50 shadow-subtle dark:bg-blue-950/20";
+                        else if (isSelected && !isCorrectOption) optionClass = "border-blue-300 bg-blue-50/50 shadow-subtle dark:bg-blue-950/10";
                         else if (isSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
                       } else if (mode === "exam") {
                         if (isSelected || isOptionSelected) optionClass = "border-primary bg-primary/10 shadow-subtle";
@@ -602,8 +612,8 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                         <button key={option.id} onClick={() => setSelectedOption(option.id)} disabled={showAnswer || answers[currentQuestion.id]?.optionId != null} className={`group w-full rounded-2xl border p-4 text-left transition-all duration-200 ${optionClass}`}>
                         <div className="flex items-start gap-4">
                           <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-semibold transition-colors ${
-                            showAnswer && isCorrectOption ? "border-green-500 bg-green-500 text-white" :
-                            showAnswer && isSelected && !isCorrectOption ? "border-destructive bg-destructive text-white" :
+                            showAnswer && isCorrectOption ? "border-blue-400 bg-blue-500 text-white" :
+                            showAnswer && isSelected && !isCorrectOption ? "border-blue-300 bg-blue-400 text-white" :
                             isSelected || isOptionSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
                           }`}>
                             {showAnswer && isCorrectOption ? <CheckCircle2 className="h-4 w-4" /> :
@@ -616,16 +626,19 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                     );
                   })}
                 </div>
-                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border bg-muted/50 p-4 overflow-hidden mt-4">
-                  <p className="text-sm font-semibold mb-1">{t("explanation")}</p>
+                {showAnswer && currentQuestion.explanation && (<div className="rounded-2xl border border-blue-100 bg-blue-50/50 dark:bg-blue-950/10 dark:border-blue-900 p-5 overflow-hidden mt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/10"><span className="text-xs text-blue-600 dark:text-blue-400 font-bold">i</span></div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">{t("explanation")}</p>
+                  </div>
                   {(() => {
                     const correctOpt = currentQuestion.options.find((o: any) => o.isCorrect);
-                    return correctOpt ? <p className="text-sm font-medium mb-2">{correctOpt.text}</p> : null;
+                    return correctOpt ? <p className="text-sm font-semibold text-green-700 dark:text-green-400 mb-3 bg-green-50 dark:bg-green-950/20 rounded-xl px-3 py-2 border border-green-200 dark:border-green-900">{t("correct_answer")}: {correctOpt.text}</p> : null;
                   })()}
-                  <div className="text-sm leading-6 text-muted-foreground space-y-2 break-words" dangerouslySetInnerHTML={{ __html: currentQuestion.explanation }} />
-                  {currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />))}
+                  <div className="text-sm leading-7 text-foreground/85 break-words [&_p]:mb-3 [&_p:last-child]:mb-0" dangerouslySetInnerHTML={{ __html: currentQuestion.explanation }} />
+                  {currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-4 max-w-full rounded-xl border shadow-subtle" style={{ maxHeight: 300 }} />))}
                 </div>)}
-                {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden mt-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words">{currentQuestion.reference}</p></div>)}
+                {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden mt-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words [&_p]:mb-2 last:[&_p]:mb-0" dangerouslySetInnerHTML={{ __html: currentQuestion.reference }} /></div>)}
                 </QuestionPenOverlay>
                 {!showAnswer && selectedOption && !answers[currentQuestion.id]?.optionId && (
                   <Button onClick={handleSubmitAnswer} className="w-full" size="lg">{t("submit")}</Button>
@@ -649,7 +662,10 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                       const isCurrent = i === currentIndex;
                       let stateClass = "border-border bg-muted text-muted-foreground hover:border-primary/50 hover:text-primary";
                       if (a?.flagged) stateClass = "border-destructive bg-destructive text-destructive-foreground";
-                      else if (a?.optionId) stateClass = "border-primary bg-primary text-primary-foreground";
+                      else if (showAnswer && a?.optionId) {
+                        const isCorrect = displayQuestions[i]?.options?.find((o: any) => o.id === a.optionId)?.isCorrect;
+                        stateClass = isCorrect ? "border-blue-500 bg-blue-500 text-white" : "border-blue-200 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-800";
+                      } else if (a?.optionId) stateClass = "border-primary bg-primary text-primary-foreground";
                       return (
                         <button key={i} onClick={() => navigateTo(i)}
                           className={`h-10 rounded-xl border text-sm font-semibold transition-all ${stateClass} ${isCurrent ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}>{i + 1}</button>
@@ -665,7 +681,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
               <div className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-3 shadow-card">
                 {reviewMode ? (
-                  <div className="flex w-full gap-3">
+                  <div className="flex w-full gap-4">
                     <Button variant="outline" onClick={handlePrevious} disabled={currentIndex === 0} className="flex-1"><ArrowLeft className="h-4 w-4 mr-2" /> {t("previous")}</Button>
                     <Button variant="outline" onClick={handleNext} disabled={currentIndex >= totalQ - 1} className="flex-1">{t("next")} <ArrowRight className="h-4 w-4 ml-2" /></Button>
                   </div>
@@ -734,7 +750,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                       {activeAttempt.answeredCount || 0}/{activeAttempt.questionCount || 0} {t("answered")} &middot; {activeAttempt.mode === "exam" ? t("exam_mode") : t("study_mode")}
                     </p>
                   </div>
-                  <Button onClick={handleResume} variant="default" className="shrink-0">
+                  <Button onClick={() => { handleResume(); }} variant="default" className="shrink-0">
                     <Play className="h-4 w-4 mr-2" /> {t("resume")}
                   </Button>
                 </div>

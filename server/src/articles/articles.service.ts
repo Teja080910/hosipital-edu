@@ -8,7 +8,7 @@ import {
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
 import { articles, userSubscriptions, subscriptionPlans } from "../database/schema";
-import { eq, and, isNull, desc, asc } from "drizzle-orm";
+import { eq, and, isNull, desc, asc, inArray } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -50,7 +50,7 @@ export class ArticlesService {
           .select()
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .where(            and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"])))
           .limit(1);
         if (!sub) throw new ForbiddenException(this.i18n.t("articles.subscriptionRequired"));
       }

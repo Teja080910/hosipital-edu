@@ -244,7 +244,7 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     const enrollment = await this.coursesService.getEnrollment(user.id, courseId);
     return { enrolled: !!enrollment };
   }
@@ -257,8 +257,8 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
-    return this.coursesService.checkAccess(user.id, courseId);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
+    return this.coursesService.checkAccess(user.id, user.role, courseId);
   }
 
   @Post(":slug/enroll")
@@ -271,7 +271,7 @@ export class CoursesController {
     @Body("stripePaymentId") stripePaymentId?: string,
     @Body("locale") locale?: string,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.enroll(user.id, courseId, stripePaymentId, locale);
   }
 
@@ -283,7 +283,7 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.getProgress(user.id, courseId);
   }
 
@@ -362,7 +362,7 @@ export class CoursesController {
     @Param("lessonId", ParseUUIDPipe) lessonId: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.completeLesson(user.id, courseId, lessonId);
   }
 
@@ -375,7 +375,7 @@ export class CoursesController {
     @Param("lessonId", ParseUUIDPipe) lessonId: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.incompleteLesson(user.id, courseId, lessonId);
   }
 
@@ -395,7 +395,7 @@ export class CoursesController {
     @Body() data: { body: string; lessonId?: string; parentId?: string },
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.addComment(user.id, courseId, data);
   }
 
@@ -414,6 +414,24 @@ export class CoursesController {
   @ApiOperation({ summary: "Get quiz for a lesson" })
   async getLessonQuiz(@Param("lessonId", ParseUUIDPipe) lessonId: string) {
     return this.coursesService.getLessonQuiz(lessonId);
+  }
+
+  @Get(":id/quiz/:type")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get course quiz with correct answers (admin)" })
+  async getQuizAdmin(@Param("id", ParseUUIDPipe) id: string, @Param("type") type: string) {
+    return this.coursesService.getCourseQuizAdmin(id, type as "pre_test" | "post_test");
+  }
+
+  @Delete(":id/quiz/:type")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete course quiz (admin)" })
+  async deleteQuiz(@Param("id", ParseUUIDPipe) id: string, @Param("type") type: string) {
+    return this.coursesService.deleteQuiz(id, type as "pre_test" | "post_test");
   }
 
   @Get(":slug/pre-test")
@@ -442,8 +460,20 @@ export class CoursesController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    const courseId = await this.coursesService.findIdBySlug(slug, user.id);
+    const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.getTestResults(user.id, courseId);
+  }
+
+  @Post(":id/quiz")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Create or update course quiz (post-test/pre-test)" })
+  async saveQuiz(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() data: { type: "pre_test" | "post_test"; title: any; passingScore?: number; questions: any[] },
+  ) {
+    return this.coursesService.saveQuiz(id, data);
   }
 
   @Get(":slug")

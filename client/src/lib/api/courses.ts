@@ -38,4 +38,7 @@ export const coursesApi = {
   getPreTest: (slug: string) => api.get(`/courses/${slug}/pre-test`),
   getPostTest: (slug: string) => api.get(`/courses/${slug}/post-test`),
   getTestResults: (slug: string) => api.get(`/courses/${slug}/test-results`),
+  adminGetQuiz: (courseId: string, type: string) => api.get(`/courses/${courseId}/quiz/${type}`),
+  adminSaveQuiz: (courseId: string, data: { type: string; title: any; passingScore?: number; questions: any[] }) => api.post(`/courses/${courseId}/quiz`, data),
+  adminDeleteQuiz: (courseId: string, type: string) => api.delete(`/courses/${courseId}/quiz/${type}`),
 };
