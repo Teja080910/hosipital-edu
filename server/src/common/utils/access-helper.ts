@@ -13,7 +13,7 @@ export async function getAccessibleExamId(
     .select({ planId: subscriptionPlans.id, examId: subscriptionPlans.examId })
     .from(userSubscriptions)
     .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-    .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active"), gt(userSubscriptions.currentPeriodEnd, now)))
+    .where(and(eq(userSubscriptions.userId, userId), inArray(userSubscriptions.status, ["active", "cancelling"]), gt(userSubscriptions.currentPeriodEnd, now)))
     .limit(1);
 
   if (sub) {

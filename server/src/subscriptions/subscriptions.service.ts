@@ -149,7 +149,7 @@ export class SubscriptionsService {
       .where(
         and(
           eq(userSubscriptions.userId, userId),
-          eq(userSubscriptions.status, "active"),
+          inArray(userSubscriptions.status, ["active", "cancelling"]),
         ),
       )
       .limit(1);
@@ -310,7 +310,7 @@ export class SubscriptionsService {
         .where(
           and(
             eq(userSubscriptions.userId, data.userId),
-            eq(userSubscriptions.status, "active"),
+            inArray(userSubscriptions.status, ["active", "cancelling"]),
           ),
         );
 
@@ -489,7 +489,7 @@ export class SubscriptionsService {
       .where(
         and(
           eq(userSubscriptions.userId, userId),
-          eq(userSubscriptions.status, "active"),
+          inArray(userSubscriptions.status, ["active", "cancelling"]),
           gt(userSubscriptions.currentPeriodEnd, new Date()),
         ),
       )

@@ -11,7 +11,7 @@ export class VideosService {
   async findAll(user?: any) {
     if (user) {
       const [u] = await this.db
-        .select({ accountType: users.accountType, role: users.role })
+        .select({ accountType: users.accountType, role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
         .from(users)
         .where(eq(users.id, user.id))
         .limit(1);
@@ -19,7 +19,7 @@ export class VideosService {
         const [activeSub] = await this.db
           .select({ planId: userSubscriptions.planId })
           .from(userSubscriptions)
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+          .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"])))
           .limit(1);
         if (activeSub) {
           const [plan] = await this.db
@@ -43,20 +43,29 @@ export class VideosService {
           .where(
             and(
               eq(userSubscriptions.userId, user.id),
-              eq(userSubscriptions.status, "active"),
+              inArray(userSubscriptions.status, ["active", "cancelling"]),
             ),
           )
           .limit(1);
         if (!sub) {
-          return [];
-        }
-        const [plan] = await this.db
-          .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts, price: subscriptionPlans.price })
-          .from(subscriptionPlans)
-          .where(eq(subscriptionPlans.id, sub.planId))
-          .limit(1);
-        if (plan && plan.maxExamAttempts == null && parseFloat(plan.price || "0") === 0) {
-          return [];
+          // check 24-hour free trial before denying access
+          const { targetExamId, createdAt } = u;
+          if (!targetExamId) return [];
+          const hoursSinceRegistration = (Date.now() - new Date(createdAt).getTime()) / 3600000;
+          if (hoursSinceRegistration <= 24) {
+            // trial active — continue to filter by exam below
+          } else {
+            return [];
+          }
+        } else {
+          const [plan] = await this.db
+            .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts, price: subscriptionPlans.price })
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, sub.planId))
+            .limit(1);
+          if (plan && parseFloat(plan.price || "0") === 0) {
+            return [];
+          }
         }
       }
     }

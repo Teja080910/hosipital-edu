@@ -13,22 +13,14 @@ export class ExamsService {
 
   async findAll(user?: any) {
     let sub: any = null;
-    let isAdmin = false;
-    if (user) {
-      const [u] = await this.db
-        .select({ role: users.role })
-        .from(users)
-        .where(eq(users.id, user.id))
+    let isAdmin = user && (user.role === "admin" || user.role === "super_admin");
+    if (user && !isAdmin) {
+      [sub] = await this.db
+        .select({ planId: subscriptionPlans.id, examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
+        .from(userSubscriptions)
+        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+        .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"]), gt(userSubscriptions.currentPeriodEnd, new Date())))
         .limit(1);
-      isAdmin = u && (u.role === "admin" || u.role === "super_admin");
-      if (!isAdmin) {
-        [sub] = await this.db
-          .select({ planId: subscriptionPlans.id, examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
-          .from(userSubscriptions)
-          .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), gt(userSubscriptions.currentPeriodEnd, new Date())))
-          .limit(1);
-      }
     }
 
     const rows = await this.db
@@ -84,18 +76,13 @@ export class ExamsService {
     if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
 
     if (user) {
-      const [u] = await this.db
-        .select({ role: users.role })
-        .from(users)
-        .where(eq(users.id, user.id))
-        .limit(1);
-      const isAdmin = u && (u.role === "admin" || u.role === "super_admin");
+      const isAdmin = user.role === "admin" || user.role === "super_admin";
       if (!isAdmin) {
         const [sub] = await this.db
           .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-          .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active"), gt(userSubscriptions.currentPeriodEnd, new Date())))
+          .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"]), gt(userSubscriptions.currentPeriodEnd, new Date())))
           .limit(1);
 
         if (!sub) {

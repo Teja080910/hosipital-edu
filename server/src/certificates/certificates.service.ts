@@ -10,9 +10,11 @@ import {
   userCourseProgress,
   userCourseEnrollments,
   users,
+  courseQuizzes,
+  courseQuizAttempts,
 } from "../database/schema";
 import { UploadService } from "../upload/upload.service";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import * as crypto from "crypto";
 import * as PDFDocument from "pdfkit";
 import * as QRCode from "qrcode";
@@ -101,6 +103,37 @@ export class CertificatesService {
 
     if (totalLessons === 0 || completedCount < totalLessons) {
       throw new BadRequestException("Course not yet completed");
+    }
+
+    if (course.hasPostTest) {
+      const [postQuiz] = await this.db
+        .select()
+        .from(courseQuizzes)
+        .where(
+          and(
+            eq(courseQuizzes.courseId, courseId),
+            eq(courseQuizzes.type, "post_test"),
+          ),
+        )
+        .limit(1);
+
+      if (postQuiz) {
+        const [best] = await this.db
+          .select()
+          .from(courseQuizAttempts)
+          .where(
+            and(
+              eq(courseQuizAttempts.quizId, postQuiz.id),
+              eq(courseQuizAttempts.userId, userId),
+              eq(courseQuizAttempts.passed, true),
+            ),
+          )
+          .orderBy(desc(courseQuizAttempts.score))
+          .limit(1);
+        if (!best) {
+          throw new BadRequestException(this.i18n.t("courses.postTestNotPassed"));
+        }
+      }
     }
 
     const [template] = await this.db

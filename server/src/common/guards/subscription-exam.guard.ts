@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Inject } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { DRIZZLE } from "../../database/database.provider";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, inArray } from "drizzle-orm";
 import { userSubscriptions, subscriptionPlans } from "../../database/schema";
 import { I18nService } from "../i18n/i18n.service";
 
@@ -27,7 +27,7 @@ export class SubscriptionExamGuard implements CanActivate {
       .select({ examId: subscriptionPlans.examId, currentPeriodEnd: userSubscriptions.currentPeriodEnd })
       .from(userSubscriptions)
       .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-      .where(and(eq(userSubscriptions.userId, user.id), eq(userSubscriptions.status, "active")))
+      .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"])))
       .limit(1);
 
     if (!sub) return false;
