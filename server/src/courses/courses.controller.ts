@@ -246,6 +246,7 @@ export class CoursesController {
   ) {
     const courseId = await this.coursesService.findIdBySlug(slug, user);
     const enrollment = await this.coursesService.getEnrollment(user.id, courseId);
+    return { enrolled: !!enrollment };
   }
 
   @Get("check-access/:slug")
@@ -415,6 +416,24 @@ export class CoursesController {
     return this.coursesService.getLessonQuiz(lessonId);
   }
 
+  @Get(":id/quiz/:type")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get course quiz with correct answers (admin)" })
+  async getQuizAdmin(@Param("id", ParseUUIDPipe) id: string, @Param("type") type: string) {
+    return this.coursesService.getCourseQuizAdmin(id, type as "pre_test" | "post_test");
+  }
+
+  @Delete(":id/quiz/:type")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete course quiz (admin)" })
+  async deleteQuiz(@Param("id", ParseUUIDPipe) id: string, @Param("type") type: string) {
+    return this.coursesService.deleteQuiz(id, type as "pre_test" | "post_test");
+  }
+
   @Get(":slug/pre-test")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -443,6 +462,18 @@ export class CoursesController {
   ) {
     const courseId = await this.coursesService.findIdBySlug(slug, user);
     return this.coursesService.getTestResults(user.id, courseId);
+  }
+
+  @Post(":id/quiz")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Create or update course quiz (post-test/pre-test)" })
+  async saveQuiz(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() data: { type: "pre_test" | "post_test"; title: any; passingScore?: number; questions: any[] },
+  ) {
+    return this.coursesService.saveQuiz(id, data);
   }
 
   @Get(":slug")

@@ -631,6 +631,48 @@ export class CoursesService {
     return quiz;
   }
 
+  async saveQuiz(courseId: string, data: { type: "pre_test" | "post_test"; title: any; passingScore?: number; questions: any[] }) {
+    const [existing] = await this.db
+      .select()
+      .from(courseQuizzes)
+      .where(
+        and(
+          eq(courseQuizzes.courseId, courseId),
+          eq(courseQuizzes.type, data.type),
+        ),
+      )
+      .limit(1);
+
+    if (data.type === "post_test") {
+      await this.db.update(courses).set({ hasPostTest: true }).where(eq(courses.id, courseId));
+    }
+
+    if (existing) {
+      const [updated] = await this.db
+        .update(courseQuizzes)
+        .set({
+          title: data.title,
+          passingScore: data.passingScore ?? 70,
+          questions: data.questions,
+        })
+        .where(eq(courseQuizzes.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await this.db
+      .insert(courseQuizzes)
+      .values({
+        courseId,
+        type: data.type,
+        title: data.title,
+        passingScore: data.passingScore ?? 70,
+        questions: data.questions,
+      })
+      .returning();
+    return created;
+  }
+
   async getCourseQuiz(courseId: string, type: "pre_test" | "post_test") {
     const [quiz] = await this.db
       .select()
@@ -684,6 +726,35 @@ export class CoursesService {
     }
 
     return results;
+  }
+
+  async getCourseQuizAdmin(courseId: string, type: "pre_test" | "post_test") {
+    const [quiz] = await this.db
+      .select()
+      .from(courseQuizzes)
+      .where(
+        and(
+          eq(courseQuizzes.courseId, courseId),
+          eq(courseQuizzes.type, type),
+        ),
+      )
+      .limit(1);
+    return quiz;
+  }
+
+  async deleteQuiz(courseId: string, type: "pre_test" | "post_test") {
+    await this.db
+      .delete(courseQuizzes)
+      .where(
+        and(
+          eq(courseQuizzes.courseId, courseId),
+          eq(courseQuizzes.type, type),
+        ),
+      );
+    if (type === "post_test") {
+      await this.db.update(courses).set({ hasPostTest: false }).where(eq(courses.id, courseId));
+    }
+    return { message: this.i18n.t("courses.quizDeleted") };
   }
 
   async getProgress(userId: string, courseId: string) {

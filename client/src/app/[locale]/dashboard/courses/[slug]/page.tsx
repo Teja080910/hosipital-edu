@@ -109,8 +109,8 @@ function CourseDetail() {
       const { data } = await certificatesApi.generate(course.id);
       setCertificateId(data.id);
       toast.success(t("certificate_generated"));
-    } catch {
-      toast.error(t("certificate_failed"));
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t("certificate_failed"));
     } finally {
       setGeneratingCert(false);
     }
@@ -131,8 +131,8 @@ function CourseDetail() {
       coursesApi.getPreTest(slug).then(({ data }) => setPreTest(data)).catch(() => {});
       coursesApi.getPostTest(slug).then(({ data }) => setPostTest(data)).catch(() => {});
       coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
-    } catch {
-      toast.error(t("enroll_failed"));
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message?.[0] || err?.response?.data?.message || t("enroll_failed"));
     } finally {
       setEnrolling(false);
     }

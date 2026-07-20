@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { coursesApi, uploadApi } from "@/lib/api";
-import { ChevronLeft, FileText, Film, FolderOpen, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronLeft, FileText, Film, FolderOpen, Loader2, Pencil, Plus, Trash2, Upload, ClipboardCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -61,6 +61,15 @@ export default function AdminCourseContentPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [deleteType, setDeleteType] = useState<"module" | "lesson">("module");
+
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [quizData, setQuizData] = useState<any>(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizForm, setQuizForm] = useState<{ title: string; passingScore: number; questions: { question: string; options: string[]; correctIndex: number }[] }>({
+    title: "",
+    passingScore: 70,
+    questions: [{ question: "", options: ["", ""], correctIndex: 0 }],
+  });
 
   const fetchCourse = async () => {
     try {
@@ -228,6 +237,35 @@ export default function AdminCourseContentPage() {
           </div>
           <Button onClick={openCreateModule}>
             <Plus className="mr-2 h-4 w-4" /> {t("new_module")}
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => {
+            setQuizLoading(true);
+            setQuizOpen(true);
+            coursesApi.adminGetQuiz(id, "post_test").then(({ data }) => {
+              if (data) {
+                setQuizForm({
+                  title: data.title?.en || "",
+                  passingScore: data.passingScore || 70,
+                  questions: Array.isArray(data.questions) ? data.questions.map((q: any) => ({
+                    question: q.question || "",
+                    options: Array.isArray(q.options) ? q.options : ["", ""],
+                    correctIndex: q.correctIndex ?? 0,
+                  })) : [{ question: "", options: ["", ""], correctIndex: 0 }],
+                });
+                setQuizData(data);
+              } else {
+                setQuizForm({ title: "", passingScore: 70, questions: [{ question: "", options: ["", ""], correctIndex: 0 }] });
+                setQuizData(null);
+              }
+            }).catch(() => {
+              setQuizForm({ title: "", passingScore: 70, questions: [{ question: "", options: ["", ""], correctIndex: 0 }] });
+              setQuizData(null);
+            }).finally(() => setQuizLoading(false));
+          }}>
+            <ClipboardCheck className="mr-2 h-4 w-4" /> {t("post_test")}
           </Button>
         </div>
 
@@ -433,6 +471,110 @@ export default function AdminCourseContentPage() {
             <Button onClick={saveLesson} disabled={savingLesson || !lessonForm.title}>
               {savingLesson && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingLesson ? c("save") : c("create")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={quizOpen} onOpenChange={setQuizOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{t("post_test")}</DialogTitle></DialogHeader>
+          {quizLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin" /></div>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium">{t("title_english")}</label>
+                <Input value={quizForm.title} onChange={(e) => setQuizForm((p) => ({ ...p, title: e.target.value }))} placeholder="Course Post-Test" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">{t("passing_score")}</label>
+                <Input type="number" value={quizForm.passingScore} onChange={(e) => setQuizForm((p) => ({ ...p, passingScore: parseInt(e.target.value) || 70 }))} />
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">{t("questions")}</label>
+                  <Button size="sm" variant="outline" onClick={() => setQuizForm((p) => ({ ...p, questions: [...p.questions, { question: "", options: ["", ""], correctIndex: 0 }] }))}>
+                    <Plus className="mr-1 h-4 w-4" /> {t("add_question")}
+                  </Button>
+                </div>
+                {quizForm.questions.map((q, qi) => (
+                  <div key={qi} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-medium text-muted-foreground shrink-0 mt-2">{t("question_number", { n: qi + 1 })}</span>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 shrink-0 text-destructive" onClick={() => setQuizForm((p) => ({ ...p, questions: p.questions.filter((_, i) => i !== qi) }))}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <Input value={q.question} onChange={(e) => {
+                      const updated = [...quizForm.questions];
+                      updated[qi] = { ...updated[qi], question: e.target.value };
+                      setQuizForm((p) => ({ ...p, questions: updated }));
+                    }} placeholder={t("question_placeholder")} />
+                    {q.options.map((opt, oi) => (
+                      <div key={oi} className="flex items-center gap-2">
+                        <input type="radio" name={`correct-${qi}`} checked={q.correctIndex === oi} onChange={() => {
+                          const updated = [...quizForm.questions];
+                          updated[qi] = { ...updated[qi], correctIndex: oi };
+                          setQuizForm((p) => ({ ...p, questions: updated }));
+                        }} className="h-4 w-4" />
+                        <Input value={opt} onChange={(e) => {
+                          const updated = [...quizForm.questions];
+                          const opts = [...updated[qi].options];
+                          opts[oi] = e.target.value;
+                          updated[qi] = { ...updated[qi], options: opts };
+                          setQuizForm((p) => ({ ...p, questions: updated }));
+                        }} placeholder={`${t("option")} ${oi + 1}`} className="flex-1" />
+                        {q.options.length > 2 && (
+                          <Button size="sm" variant="ghost" className="h-6 w-6 shrink-0 text-destructive" onClick={() => {
+                            const updated = [...quizForm.questions];
+                            const opts = updated[qi].options.filter((_, i) => i !== oi);
+                            let ci = updated[qi].correctIndex;
+                            if (oi === ci) ci = 0;
+                            else if (oi < ci) ci--;
+                            updated[qi] = { ...updated[qi], options: opts, correctIndex: ci };
+                            setQuizForm((p) => ({ ...p, questions: updated }));
+                          }}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      const updated = [...quizForm.questions];
+                      updated[qi] = { ...updated[qi], options: [...updated[qi].options, ""] };
+                      setQuizForm((p) => ({ ...p, questions: updated }));
+                    }}>
+                      <Plus className="mr-1 h-3 w-3" /> {t("add_option")}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuizOpen(false)}>{c("cancel")}</Button>
+            {quizData && <Button variant="destructive" onClick={async () => {
+              try { await coursesApi.adminDeleteQuiz(id, "post_test"); setQuizOpen(false); toast.success(t("quiz_deleted")); fetchCourse(); } catch { toast.error(t("save_failed")); }
+            }}>{c("delete")}</Button>}
+            <Button onClick={async () => {
+              try {
+                await coursesApi.adminSaveQuiz(id, {
+                  type: "post_test",
+                  title: { en: quizForm.title },
+                  passingScore: quizForm.passingScore,
+                  questions: quizForm.questions.map((q) => ({
+                    question: q.question,
+                    options: q.options.filter(Boolean),
+                    correctIndex: q.correctIndex,
+                  })),
+                });
+                setQuizOpen(false);
+                toast.success(t("quiz_saved"));
+                fetchCourse();
+              } catch { toast.error(t("save_failed")); }
+            }} disabled={!quizForm.title || quizForm.questions.some((q) => !q.question)}>
+              {c("save")}
             </Button>
           </DialogFooter>
         </DialogContent>
