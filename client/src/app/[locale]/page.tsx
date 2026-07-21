@@ -518,15 +518,15 @@ const sb = useTranslations("subscribe");
                       ))}
                     </div>
                     <p className="text-muted-foreground leading-relaxed mb-6 italic">
-                      &ldquo;{item.text}&rdquo;
+                      &ldquo;{typeof item.text === "string" ? item.text : (item.text?.[currentLocale] || item.text?.en || "")}&rdquo;
                     </p>
                     <div className="flex items-center gap-3 pt-2 border-t border-border/50">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
-                        {item.name.split(" ").map((n: string) => n[0]).join("")}
+                        {typeof item.name === "string" ? item.name.split(" ").map((n: string) => n[0]).join("") : (item.name?.en || item.name?.es || "?")[0] || "?"}
                       </div>
                       <div>
-                        <p className="font-semibold text-sm">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">{item.role}</p>
+                        <p className="font-semibold text-sm">{typeof item.name === "string" ? item.name : (item.name?.[currentLocale] || item.name?.en || "")}</p>
+                        <p className="text-xs text-muted-foreground">{typeof item.role === "string" ? item.role : (item.role?.[currentLocale] || item.role?.en || "")}</p>
                       </div>
                     </div>
                   </CardContent>
