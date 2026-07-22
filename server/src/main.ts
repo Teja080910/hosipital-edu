@@ -14,7 +14,7 @@ import { LanguageInterceptor } from "./common/interceptors/language.interceptor"
 async function bootstrap() {
   const fastifyAdapter = new FastifyAdapter({
     logger: true,
-    bodyLimit: 10485760,
+    bodyLimit: 73400320,
   });
 
   const instance = fastifyAdapter.getInstance() as any;
@@ -26,7 +26,7 @@ async function bootstrap() {
   fastifyAdapter.useBodyParser(
     "application/json",
     true,
-    { bodyLimit: 10485760 },
+    { bodyLimit: 73400320 },
     (req: any, body: Buffer, done: any) => {
       defaultJsonParser(req, body, done);
     },
