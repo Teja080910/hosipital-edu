@@ -13,6 +13,7 @@ interface QuizQuestion {
   question: string;
   options: string[];
   correctIndex: number;
+  imageUrl?: string;
 }
 
 interface CourseQuizProps {
@@ -123,6 +124,7 @@ export function CourseQuiz({ quiz, onComplete }: CourseQuizProps) {
             if (!q) return null;
             return (
               <div key={i} className={`p-3 rounded-lg border ${a.isCorrect ? "border-green-200 bg-green-50 dark:bg-green-950/20" : "border-red-200 bg-red-50 dark:bg-red-950/20"}`}>
+                {q.imageUrl && <img src={q.imageUrl} alt="" className="max-w-full max-h-40 rounded-lg object-contain mb-2" />}
                 <p className="text-sm font-medium">{q.question}</p>
                 <p className="text-xs mt-1 text-muted-foreground">
                   Your answer: {q.options[a.selectedOptionIndex] || "N/A"}
@@ -151,6 +153,11 @@ export function CourseQuiz({ quiz, onComplete }: CourseQuizProps) {
           <span>{answers.length} {t("answered")}</span>
         </div>
         <Progress value={progress} className="h-1" />
+        {question.imageUrl && (
+          <div className="mt-4 flex justify-center">
+            <img src={question.imageUrl} alt="" className="max-w-full max-h-80 rounded-xl border object-contain" />
+          </div>
+        )}
         <CardTitle className="text-lg mt-4">{question.question}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">

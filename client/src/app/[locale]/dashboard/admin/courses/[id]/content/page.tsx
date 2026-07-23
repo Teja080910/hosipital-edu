@@ -65,7 +65,7 @@ export default function AdminCourseContentPage() {
   const [quizOpen, setQuizOpen] = useState(false);
   const [quizData, setQuizData] = useState<any>(null);
   const [quizLoading, setQuizLoading] = useState(false);
-  const [quizForm, setQuizForm] = useState<{ title: string; passingScore: number; questions: { question: string; options: string[]; correctIndex: number }[] }>({
+  const [quizForm, setQuizForm] = useState<{ title: string; passingScore: number; questions: { question: string; options: string[]; correctIndex: number; imageUrl?: string }[] }>({
     title: "",
     passingScore: 70,
     questions: [{ question: "", options: ["", ""], correctIndex: 0 }],
@@ -414,9 +414,9 @@ export default function AdminCourseContentPage() {
                   )}
                 </label>
                 {lessonForm.pdfUrl && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground overflow-hidden">
                     <FileText className="h-4 w-4 shrink-0" />
-                    <span className="truncate flex-1">{lessonForm.pdfUrl.split("/").pop()?.split("?")[0]}</span>
+                    <span className="truncate max-w-[180px]" title={lessonForm.pdfUrl.split("/").pop()?.split("?")[0]}>{lessonForm.pdfUrl.split("/").pop()?.split("?")[0]}</span>
                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setLessonForm((p) => ({ ...p, pdfUrl: "" }))}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -445,9 +445,9 @@ export default function AdminCourseContentPage() {
                   )}
                 </label>
                 {lessonForm.imageUrl && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground overflow-hidden">
                     <FileText className="h-4 w-4 shrink-0" />
-                    <span className="truncate flex-1">{lessonForm.imageUrl.split("/").pop()?.split("?")[0]}</span>
+                    <span className="truncate max-w-[180px]" title={lessonForm.imageUrl.split("/").pop()?.split("?")[0]}>{lessonForm.imageUrl.split("/").pop()?.split("?")[0]}</span>
                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setLessonForm((p) => ({ ...p, imageUrl: "" }))}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -494,7 +494,7 @@ export default function AdminCourseContentPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium">{t("questions")}</label>
-                  <Button size="sm" variant="outline" onClick={() => setQuizForm((p) => ({ ...p, questions: [...p.questions, { question: "", options: ["", ""], correctIndex: 0 }] }))}>
+                  <Button size="sm" variant="outline" onClick={() => setQuizForm((p) => ({ ...p, questions: [...p.questions, { question: "", options: ["", ""], correctIndex: 0, imageUrl: undefined }] }))}>
                     <Plus className="mr-1 h-4 w-4" /> {t("add_question")}
                   </Button>
                 </div>
@@ -511,6 +511,36 @@ export default function AdminCourseContentPage() {
                       updated[qi] = { ...updated[qi], question: e.target.value };
                       setQuizForm((p) => ({ ...p, questions: updated }));
                     }} placeholder={t("question_placeholder")} />
+                    <div className="flex items-center gap-2">
+                      <label className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed px-2.5 text-xs text-muted-foreground hover:bg-accent/50">
+                        <Upload className="h-3 w-3" />
+                        {q.imageUrl ? t("change_image") : t("add_image")}
+                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          const base64 = await new Promise<string>((resolve) => { reader.onload = () => resolve((reader.result as string).split(",")[1] || ""); reader.readAsDataURL(file); });
+                          const key = `courses/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+                          const { data } = await uploadApi.uploadFile(key, base64, file.type);
+                          const updated = [...quizForm.questions];
+                          updated[qi] = { ...updated[qi], imageUrl: data.url };
+                          setQuizForm((p) => ({ ...p, questions: updated }));
+                        }} />
+                      </label>
+                      {q.imageUrl && (
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <img src={q.imageUrl} alt="" className="h-8 w-8 rounded object-cover" />
+                          <span className="truncate text-xs text-muted-foreground" title={q.imageUrl.split("/").pop()?.split("?")[0]}>{q.imageUrl.split("/").pop()?.split("?")[0]}</span>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => {
+                            const updated = [...quizForm.questions];
+                            updated[qi] = { ...updated[qi], imageUrl: undefined };
+                            setQuizForm((p) => ({ ...p, questions: updated }));
+                          }}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     {q.options.map((opt, oi) => (
                       <div key={oi} className="flex items-center gap-2">
                         <input type="radio" name={`correct-${qi}`} checked={q.correctIndex === oi} onChange={() => {
@@ -567,6 +597,7 @@ export default function AdminCourseContentPage() {
                     question: q.question,
                     options: q.options.filter(Boolean),
                     correctIndex: q.correctIndex,
+                    ...(q.imageUrl ? { imageUrl: q.imageUrl } : {}),
                   })),
                 });
                 setQuizOpen(false);
