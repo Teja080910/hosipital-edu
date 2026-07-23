@@ -31,7 +31,8 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = 100 }
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const text = e.clipboardData.getData("text/plain");
-    document.execCommand("insertText", false, text);
+    const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+    document.execCommand("insertHTML", false, escaped);
   };
 
   useEffect(() => {

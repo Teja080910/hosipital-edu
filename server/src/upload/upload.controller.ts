@@ -32,8 +32,8 @@ export class UploadController {
       throw new BadRequestException("Invalid file type. Only JPEG, PNG, GIF, WebP images, and PDF files are allowed.");
     }
     const buffer = Buffer.from(base64, "base64");
-    if (buffer.length > 10 * 1024 * 1024) {
-      throw new HttpException("File too large. Maximum size is 10MB.", HttpStatus.PAYLOAD_TOO_LARGE);
+    if (buffer.length > 50 * 1024 * 1024) {
+      throw new HttpException("File too large. Maximum size is 50MB.", HttpStatus.PAYLOAD_TOO_LARGE);
     }
     return this.uploadService.uploadFile(key, contentType, buffer);
   }
