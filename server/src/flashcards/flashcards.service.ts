@@ -27,10 +27,11 @@ export class FlashcardsService {
     examId?: string;
     specialtyId?: string;
     topicId?: string;
+    search?: string;
     page?: number;
     limit?: number;
   }, user?: any) {
-    const { examId, specialtyId, topicId, page = 1, limit = 20 } = filters;
+    const { examId, specialtyId, topicId, search, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
     const conditions = [eq(flashcards.isActive, true)];
 
@@ -76,6 +77,11 @@ export class FlashcardsService {
 
     if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
     if (topicId) conditions.push(eq(flashcards.topicId, topicId));
+    if (search) {
+      conditions.push(
+        sql`(${flashcards.front}->>'en' ILIKE ${"%" + search + "%"} OR ${flashcards.front}->>'es' ILIKE ${"%" + search + "%"} OR ${flashcards.back}->>'en' ILIKE ${"%" + search + "%"} OR ${flashcards.back}->>'es' ILIKE ${"%" + search + "%"})`,
+      );
+    }
 
     const where = and(...conditions);
 
