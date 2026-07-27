@@ -49,7 +49,11 @@ export function DataTable<T extends Record<string, any>>({
     if (!search || !searchKeys) return data;
     const q = search.toLowerCase();
     return data.filter((item) =>
-      searchKeys.some((key) => String(item[key]).toLowerCase().includes(q))
+      searchKeys.some((key) => {
+        const val = item[key];
+        const str = typeof val === "object" && val !== null ? (val.en || val.es || "") : String(val ?? "");
+        return str.toLowerCase().includes(q);
+      })
     );
   }, [data, search, searchKeys]);
 
