@@ -130,11 +130,12 @@ export class FlashcardsController {
     @Query("examId") examId?: string,
     @Query("specialtyId") specialtyId?: string,
     @Query("topicId") topicId?: string,
+    @Query("search") search?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
     @CurrentUser() user?: any,
   ) {
-    return this.flashcardsService.findAll({ examId, specialtyId, topicId, page, limit }, user);
+    return this.flashcardsService.findAll({ examId, specialtyId, topicId, search, page, limit }, user);
   }
 
   @Get("specialties")
