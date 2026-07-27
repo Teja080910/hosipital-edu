@@ -19,12 +19,10 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { IsOptional, IsString, IsArray, IsUUID, IsObject, IsNumber } from "class-validator";
 
 class CreateQuestionDto {
-  @IsString()
-  text!: string;
+  text!: any;
 
   @IsOptional()
-  @IsString()
-  explanation?: string;
+  explanation?: any;
 
   @IsOptional()
   @IsString()
@@ -72,12 +70,10 @@ class CreateQuestionDto {
 
 class UpdateQuestionDto {
   @IsOptional()
-  @IsString()
-  text?: string;
+  text?: any;
 
   @IsOptional()
-  @IsString()
-  explanation?: string;
+  explanation?: any;
 
   @IsOptional()
   @IsString()

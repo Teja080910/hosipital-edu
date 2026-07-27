@@ -111,7 +111,7 @@ export default function AdminSubscriptionsPage() {
         interval: form.interval,
         currency: form.currency,
         isVisible: form.isVisible,
-        examIds: form.examIds.length > 0 ? form.examIds : null,
+        examIds: form.examIds,
         isCourseOnly: form.isCourseOnly,
         maxDays: form.maxDays || null,
         maxExamAttempts: form.maxExamAttempts ? Number(form.maxExamAttempts) : null,
@@ -279,26 +279,45 @@ export default function AdminSubscriptionsPage() {
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("exam")}</label>
-              <div className="space-y-2 max-h-40 overflow-y-auto p-3 bg-muted/20 rounded-xl border border-border/80">
-                {exams.map((exam: any) => (
-                  <label key={exam.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                    <input
-                      type="checkbox"
-                      checked={form.examIds.includes(exam.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setForm({ ...form, examIds: [...form.examIds, exam.id] });
-                        } else {
-                          setForm({ ...form, examIds: form.examIds.filter((id) => id !== exam.id) });
-                        }
-                      }}
-                      className="h-4 w-4 rounded border-border"
-                    />
-                    {exam.name?.en || exam.slug}
-                  </label>
-                ))}
-                {exams.length === 0 && <p className="text-xs text-muted-foreground">{t("no_exams")}</p>}
-              </div>
+              {parseFloat(form.price) === 0 ? (
+                <Select
+                  value={form.examIds[0] || "__none__"}
+                  onValueChange={(v) => setForm({ ...form, examIds: v === "__none__" ? [] : [v] })}
+                >
+                  <SelectTrigger className="bg-muted/20 border-border/80 rounded-xl h-11 px-4">
+                    <SelectValue placeholder={t("select_exam_placeholder")} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="__none__">{t("use_target_exam")}</SelectItem>
+                    {exams.map((exam: any) => (
+                      <SelectItem key={exam.id} value={exam.id}>
+                        {exam.name?.en || exam.slug}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto p-3 bg-muted/20 rounded-xl border border-border/80">
+                  {exams.map((exam: any) => (
+                    <label key={exam.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.examIds.includes(exam.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setForm({ ...form, examIds: [...form.examIds, exam.id] });
+                          } else {
+                            setForm({ ...form, examIds: form.examIds.filter((id) => id !== exam.id) });
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-border"
+                      />
+                      {exam.name?.en || exam.slug}
+                    </label>
+                  ))}
+                  {exams.length === 0 && <p className="text-xs text-muted-foreground">{t("no_exams")}</p>}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">{t("exam_select_desc")}</p>
             </div>
 

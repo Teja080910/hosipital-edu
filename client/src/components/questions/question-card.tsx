@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import type { Question } from "@/types";
+import { pickLocale } from "@/lib/utils/localized-text";
 
 interface QuestionCardProps {
   question: Question;
@@ -17,6 +19,7 @@ interface QuestionCardProps {
 
 export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: QuestionCardProps) {
   const t = useTranslations("questions");
+  const locale = useParams().locale as string || "en";
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
 
   const handleSelect = (optionId: string) => {
@@ -51,7 +54,7 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h3 className="text-lg font-medium break-words" dangerouslySetInnerHTML={{ __html: question.text }} />
+          <h3 className="text-lg font-medium break-words" dangerouslySetInnerHTML={{ __html: pickLocale(question.text, locale) }} />
         </div>
 
         {question.images && question.images.filter((img) => img.section === "title" || !img.section).length > 0 && (
@@ -92,7 +95,7 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
                     {(showAnswer && option.isCorrect) && <div className="h-2 w-2 rounded-full bg-white" />}
                     {showWrong && <div className="h-2 w-2 rounded-full bg-white" />}
                   </div>
-                   <span className={`${showWrong ? "line-through text-muted-foreground" : ""} break-words`}>{option.text}</span>
+                   <span className={`${showWrong ? "line-through text-muted-foreground" : ""} break-words`}>{pickLocale(option.text, locale)}</span>
                   {showWrong && <span className="text-xs text-muted-foreground ml-auto">{t("incorrect")}</span>}
                   {showAnswer && option.isCorrect && !isSelected && <span className="text-xs text-green-600 ml-auto">{t("correct_answer")}</span>}
                 </div>
@@ -114,7 +117,7 @@ export function QuestionCard({ question, showAnswer, onToggleAnswer, onBack }: Q
         {showAnswer && question.explanation && (
           <div className="rounded-lg bg-muted p-4">
             <p className="text-sm font-medium mb-1">{t("explanation")}:</p>
-            <div className="text-sm text-muted-foreground space-y-1" dangerouslySetInnerHTML={{ __html: question.explanation }} />
+            <div className="text-sm text-muted-foreground space-y-1" dangerouslySetInnerHTML={{ __html: pickLocale(question.explanation, locale) }} />
             {question.images?.filter((img) => img.section === "explanation").map((img) => (
               <img key={img.id} src={img.url} alt={img.caption || ""} className="mt-3 max-w-full rounded-lg border" style={{ maxHeight: 300 }} />
             ))}

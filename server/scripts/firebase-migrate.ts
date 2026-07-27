@@ -720,8 +720,8 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
   const questionByText: Record<string, string> = {};
   const questionByPrefix: Record<string, string> = {};
   for (const q of questions) {
-    if (!questionByText[q.text]) questionByText[q.text] = q.id;
-    const prefix = q.text.slice(0, 60);
+    if (!questionByText[(q.text as any)?.en || String(q.text)]) questionByText[(q.text as any)?.en || String(q.text)] = q.id;
+    const prefix = ((q.text as any)?.en || String(q.text)).slice(0, 60);
     if (!questionByPrefix[prefix]) questionByPrefix[prefix] = q.id;
   }
 
@@ -735,7 +735,7 @@ async function migrateExamHistory(docs: any[], adminId: string, examSlugToId: Re
   const optionByQText: Record<string, Record<string, string>> = {};
   for (const o of options) {
     if (!optionByQText[o.questionId]) optionByQText[o.questionId] = {};
-    if (!optionByQText[o.questionId][o.text]) optionByQText[o.questionId][o.text] = o.id;
+    if (!optionByQText[o.questionId][(o.text as any)?.en || String(o.text)]) optionByQText[o.questionId][(o.text as any)?.en || String(o.text)] = o.id;
   }
 
   for (const doc of docs) {
@@ -873,7 +873,7 @@ async function migrateFlashcardReviews(docs: any[]) {
     .from(schema.flashcards);
   const flashcardByFront: Record<string, string> = {};
   for (const f of flashcards) {
-    if (!flashcardByFront[f.front]) flashcardByFront[f.front] = f.id;
+    if (!flashcardByFront[(f.front as any)?.en || String(f.front)]) flashcardByFront[(f.front as any)?.en || String(f.front)] = f.id;
   }
 
   for (const doc of docs) {
@@ -938,8 +938,8 @@ async function migrateFlashcardExamHistory(docs: any[]) {
   const flashcardByFront: Record<string, string> = {};
   const flashcardByPrefix: Record<string, string> = {};
   for (const f of flashcards) {
-    if (!flashcardByFront[f.front]) flashcardByFront[f.front] = f.id;
-    const prefix = f.front.slice(0, 60);
+    if (!flashcardByFront[(f.front as any)?.en || String(f.front)]) flashcardByFront[(f.front as any)?.en || String(f.front)] = f.id;
+    const prefix = ((f.front as any)?.en || String(f.front)).slice(0, 60);
     if (!flashcardByPrefix[prefix]) flashcardByPrefix[prefix] = f.id;
   }
 

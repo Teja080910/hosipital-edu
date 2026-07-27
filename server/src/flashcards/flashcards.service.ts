@@ -195,7 +195,11 @@ export class FlashcardsService {
 
   async create(data: any) {
     const { examIds, ...cardData } = data;
-    const [card] = await this.db.insert(flashcards).values(stripTimestamps(cardData)).returning();
+    const [card] = await this.db.insert(flashcards).values({
+      ...stripTimestamps(cardData),
+      front: typeof cardData.front === "string" ? { en: cardData.front, es: cardData.front } : cardData.front,
+      back: typeof cardData.back === "string" ? { en: cardData.back, es: cardData.back } : cardData.back,
+    }).returning();
     if (examIds?.length) {
       await this.db
         .insert(flashcardExams)
@@ -208,7 +212,12 @@ export class FlashcardsService {
     const { examIds, ...cardData } = data;
     const [card] = await this.db
       .update(flashcards)
-      .set({ ...stripTimestamps(cardData), updatedAt: new Date() })
+      .set({
+        ...stripTimestamps(cardData),
+        ...(cardData.front !== undefined ? { front: typeof cardData.front === "string" ? { en: cardData.front, es: cardData.front } : cardData.front } : {}),
+        ...(cardData.back !== undefined ? { back: typeof cardData.back === "string" ? { en: cardData.back, es: cardData.back } : cardData.back } : {}),
+        updatedAt: new Date(),
+      })
       .where(eq(flashcards.id, id))
       .returning();
     if (!card) throw new NotFoundException(this.i18n.t("flashcards.notFound"));

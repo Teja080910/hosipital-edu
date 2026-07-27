@@ -664,8 +664,8 @@ async function main() {
       await db.insert(schema.flashcards).values({
         examId: exam.id,
         specialtyId: specialty.id,
-        front: fc.front,
-        back: fc.back,
+        front: { en: fc.front, es: fc.front },
+        back: { en: fc.back, es: fc.back },
         reference: fc.reference,
         isActive: true,
         createdBy: userId,
