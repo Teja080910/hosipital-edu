@@ -20,8 +20,10 @@ import { IsOptional, IsString, IsUUID, IsInt, IsBoolean, IsArray, Min } from "cl
 import { Type } from "class-transformer";
 
 class CreateFlashcardDto {
+  @IsOptional()
   front!: any;
 
+  @IsOptional()
   back!: any;
 
   @IsOptional()
