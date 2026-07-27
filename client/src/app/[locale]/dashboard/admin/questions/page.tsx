@@ -29,13 +29,14 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, Check, Eye, BookOpen, Lightbulb, CheckCircle2, XCircle, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { pickLocale } from "@/lib/utils/localized-text";
 
 const EMPTY_OPTIONS = [
-  { text: "", isCorrect: false },
-  { text: "", isCorrect: false },
-  { text: "", isCorrect: false },
-  { text: "", isCorrect: false },
-  { text: "", isCorrect: false },
+  { text: { en: "" as string, es: "" as string }, isCorrect: false },
+  { text: { en: "" as string, es: "" as string }, isCorrect: false },
+  { text: { en: "" as string, es: "" as string }, isCorrect: false },
+  { text: { en: "" as string, es: "" as string }, isCorrect: false },
+  { text: { en: "" as string, es: "" as string }, isCorrect: false },
 ];
 
 export default function AdminQuestionsPage() {
@@ -53,9 +54,19 @@ export default function AdminQuestionsPage() {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [exams, setExams] = useState<any[]>([]);
   const [specialties, setSpecialties] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    text: "",
-    explanation: "",
+  const [form, setForm] = useState<{
+    text: { en: string; es: string };
+    explanation: { en: string; es: string };
+    reference: string;
+    difficulty: string;
+    specialtyId: string;
+    examId: string;
+    examIds: string[];
+    options: { text: { en: string; es: string }; isCorrect: boolean }[];
+    images: { url: string; section: string; caption?: string; sortOrder: number }[];
+  }>({
+    text: { en: "", es: "" },
+    explanation: { en: "", es: "" },
     reference: "",
     difficulty: "medium",
     specialtyId: "",
@@ -99,7 +110,7 @@ export default function AdminQuestionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ text: "", explanation: "", reference: "", difficulty: "medium", specialtyId: "", examId: "", examIds: [], options: EMPTY_OPTIONS, images: [] });
+    setForm({ text: { en: "", es: "" }, explanation: { en: "", es: "" }, reference: "", difficulty: "medium", specialtyId: "", examId: "", examIds: [], options: EMPTY_OPTIONS, images: [] });
     setDialogOpen(true);
   };
 
@@ -108,11 +119,14 @@ export default function AdminQuestionsPage() {
     try {
       const { data } = await questionsApi.get(q.id);
       setEditing(data);
-      const opts = (data.options || []).map((o: any) => ({ text: o.text, isCorrect: o.isCorrect }));
-      while (opts.length < 5) opts.push({ text: "", isCorrect: false });
+      const opts = (data.options || []).map((o: any) => ({
+        text: typeof o.text === "string" ? { en: o.text, es: o.text } : (o.text || { en: "", es: "" }),
+        isCorrect: o.isCorrect,
+      }));
+      while (opts.length < 5) opts.push({ text: { en: "", es: "" }, isCorrect: false });
       setForm({
-        text: data.text || "",
-        explanation: data.explanation || "",
+        text: typeof data.text === "string" ? { en: data.text, es: data.text } : (data.text || { en: "", es: "" }),
+        explanation: typeof data.explanation === "string" ? { en: data.explanation, es: data.explanation } : (data.explanation || { en: "", es: "" }),
         reference: data.reference || "",
         difficulty: data.difficulty || "medium",
         specialtyId: data.specialtyId || "",
@@ -145,10 +159,10 @@ export default function AdminQuestionsPage() {
   };
 
   const handleSave = async () => {
-    if (!form.text.trim()) return;
+    if (!form.text.en.trim() && !form.text.es.trim()) return;
     setSaving(true);
     try {
-      const opts = form.options.filter((o) => o.text.trim());
+      const opts = form.options.filter((o) => o.text.en.trim() || o.text.es.trim());
       const payload: any = {
         text: form.text,
         explanation: form.explanation,
@@ -217,7 +231,7 @@ export default function AdminQuestionsPage() {
 
   const setOption = (i: number, field: string, value: any) => {
     setForm((f) => {
-      const opts = [...f.options];
+      const opts = [...f.options] as any[];
       opts[i] = { ...opts[i], [field]: value };
       return { ...f, options: opts };
     });
@@ -229,7 +243,9 @@ export default function AdminQuestionsPage() {
     : "text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800";
 
   const columns = [
-    { key: "text", header: t("question_col"), sortable: true },
+    { key: "text", header: t("question_col"), sortable: true, render: (row: any) => (
+      <span className="block truncate max-w-[300px]">{pickLocale(row.text)}</span>
+    ) },
     {
       key: "difficulty",
       header: t("difficulty"),
@@ -312,20 +328,46 @@ export default function AdminQuestionsPage() {
           <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("question_text")}</label>
-              <RichTextEditor
-                value={form.text}
-                onChange={(v) => setForm({ ...form, text: v })}
-                placeholder={t("question_placeholder")}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">EN</label>
+                  <RichTextEditor
+                    value={form.text.en}
+                    onChange={(v) => setForm({ ...form, text: { ...form.text, en: v } })}
+                    placeholder="Question in English"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">ES</label>
+                  <RichTextEditor
+                    value={form.text.es}
+                    onChange={(v) => setForm({ ...form, text: { ...form.text, es: v } })}
+                    placeholder="Pregunta en Español"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("explanation")}</label>
-              <RichTextEditor
-                value={form.explanation}
-                onChange={(v) => setForm({ ...form, explanation: v })}
-                placeholder={t("explanation_placeholder")}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">EN</label>
+                  <RichTextEditor
+                    value={form.explanation.en}
+                    onChange={(v) => setForm({ ...form, explanation: { ...form.explanation, en: v } })}
+                    placeholder="Explanation in English"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">ES</label>
+                  <RichTextEditor
+                    value={form.explanation.es}
+                    onChange={(v) => setForm({ ...form, explanation: { ...form.explanation, es: v } })}
+                    placeholder="Explicación en Español"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -501,12 +543,21 @@ export default function AdminQuestionsPage() {
                         )}
                       </button>
                       <Input
-                        value={opt.text}
-                        onChange={(e) => setOption(i, "text", e.target.value)}
-                        placeholder={`${t("option")} ${i + 1}`}
+                        value={opt.text.en}
+                        onChange={(e) => setOption(i, "text", { ...opt.text, en: e.target.value })}
+                        placeholder={`${t("option")} ${i + 1} (EN)`}
                         className={cn(
-                          "flex-1 bg-muted/10 hover:bg-muted/20 border border-border/60 focus:border-primary/50 transition-all duration-300 rounded-lg px-4 h-10 text-sm outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.10)] shadow-none",
-                          isCorrect && "bg-background focus:border-emerald-500/60 focus:shadow-[0_0_0_3px_rgb(16_185_129_/_0.12)] border-emerald-500/20"
+                          "flex-1 bg-muted/10 hover:bg-muted/20 border border-border/60 focus:border-primary/50 transition-all duration-300 rounded-lg px-4 h-9 text-sm outline-none",
+                          isCorrect && "bg-background focus:border-emerald-500/60 border-emerald-500/20"
+                        )}
+                      />
+                      <Input
+                        value={opt.text.es}
+                        onChange={(e) => setOption(i, "text", { ...opt.text, es: e.target.value })}
+                        placeholder={`${t("option")} ${i + 1} (ES)`}
+                        className={cn(
+                          "flex-1 bg-muted/10 hover:bg-muted/20 border border-border/60 focus:border-primary/50 transition-all duration-300 rounded-lg px-4 h-9 text-sm outline-none",
+                          isCorrect && "bg-background focus:border-emerald-500/60 border-emerald-500/20"
                         )}
                       />
                     </div>
@@ -514,7 +565,7 @@ export default function AdminQuestionsPage() {
                 })}
               </div>
               <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, options: [...form.options, { text: "", isCorrect: false }] })}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, options: [...form.options, { text: { en: "", es: "" }, isCorrect: false }] })}>
                   + {t("add_option")}
                 </Button>
                 {form.options.length > 2 && (
@@ -528,7 +579,7 @@ export default function AdminQuestionsPage() {
 
           <DialogFooter className="p-6 bg-muted/20 border-t border-border/60 gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl border border-border/80 hover:bg-muted/50 h-11 px-6 transition-all duration-200">{c("cancel")}</Button>
-            <Button onClick={handleSave} disabled={saving || !form.text.trim()} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35 h-11 px-6 transition-all duration-300">
+            <Button onClick={handleSave} disabled={saving || (!form.text.en.trim() && !form.text.es.trim())} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35 h-11 px-6 transition-all duration-300">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {editing ? c("save") : c("create")}
             </Button>
@@ -571,7 +622,7 @@ export default function AdminQuestionsPage() {
                 {/* Question text */}
                 <div className="space-y-2">
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("question_label")}</p>
-                  <div className="rounded-xl border border-border/80 bg-muted/20 px-4 py-4 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: viewQuestion.text }} />
+                   <div className="rounded-xl border border-border/80 bg-muted/20 px-4 py-4 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: pickLocale(viewQuestion.text) }} />
                 </div>
 
                 {/* Options */}
@@ -598,7 +649,7 @@ export default function AdminQuestionsPage() {
                             {opt.isCorrect ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : String.fromCharCode(65 + i)}
                           </div>
                           <span className={cn("flex-1", opt.isCorrect && "font-medium text-emerald-700 dark:text-emerald-400")}>
-                            {opt.text}
+                            {pickLocale(opt.text)}
                           </span>
                           {opt.isCorrect ? (
                             <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -617,7 +668,7 @@ export default function AdminQuestionsPage() {
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t("explanation")}</p>
                     <div className="flex gap-3 rounded-xl border border-amber-200/60 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800/40 px-4 py-4">
                       <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                      <p className="text-sm leading-relaxed text-foreground/80" dangerouslySetInnerHTML={{ __html: viewQuestion.explanation }} />
+                      <p className="text-sm leading-relaxed text-foreground/80" dangerouslySetInnerHTML={{ __html: pickLocale(viewQuestion.explanation) }} />
                     </div>
                   </div>
                 )}

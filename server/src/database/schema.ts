@@ -136,8 +136,8 @@ export const questions = pgTable("questions", {
   subtopicId: uuid("subtopic_id").references(() => subtopics.id, {
     onDelete: "set null",
   }),
-  text: text("text").notNull(),
-  explanation: text("explanation").notNull(),
+  text: jsonb("text").notNull(),
+  explanation: jsonb("explanation").notNull(),
   reference: text("reference"),
   difficulty: text("difficulty").notNull().default("medium"),
   isActive: boolean("is_active").default(true).notNull(),
@@ -183,7 +183,7 @@ export const questionOptions = pgTable("question_options", {
   questionId: uuid("question_id")
     .notNull()
     .references(() => questions.id, { onDelete: "cascade" }),
-  text: text("text").notNull(),
+  text: jsonb("text").notNull(),
   isCorrect: boolean("is_correct").default(false).notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -274,8 +274,8 @@ export const flashcards = pgTable("flashcards", {
   topicId: uuid("topic_id").references(() => topics.id, {
     onDelete: "set null",
   }),
-  front: text("front").notNull(),
-  back: text("back").notNull(),
+  front: jsonb("front").notNull(),
+  back: jsonb("back").notNull(),
   reference: text("reference"),
   isActive: boolean("is_active").default(true).notNull(),
   createdBy: uuid("created_by")

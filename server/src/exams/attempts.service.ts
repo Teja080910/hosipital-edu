@@ -12,6 +12,7 @@ import {
   examAnswers,
   examAttempts,
   exams,
+  planExams,
   questionOptions,
   questions,
   subscriptionPlans,
@@ -109,6 +110,16 @@ export class AttemptsService {
 
         if (plan.examId && plan.examId !== data.examId) {
           throw new HttpException(this.i18n.t("exams.subscriptionNotIncludeExam"), HttpStatus.FORBIDDEN);
+        }
+
+        if (!plan.examId) {
+          const peRows = await tx
+            .select({ examId: planExams.examId })
+            .from(planExams)
+            .where(eq(planExams.planId, plan.id));
+          if (peRows.length > 0 && !peRows.some((r: any) => r.examId === data.examId)) {
+            throw new HttpException(this.i18n.t("exams.subscriptionNotIncludeExam"), HttpStatus.FORBIDDEN);
+          }
         }
 
         if (sub.user_subscriptions.remainingExamAttempts != null && sub.user_subscriptions.remainingExamAttempts < 1) {
