@@ -12,9 +12,11 @@ import { QuestionPenOverlay } from "@/components/exams/question-pen-overlay";
 import { attemptsApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, XCircle, Clock, HelpCircle } from "lucide-react";
+import { pickLocale } from "@/lib/utils/localized-text";
+import { useParams } from "next/navigation";
 
-export default function ReviewPage({ params }: { params: { id: string; attemptId: string } }) {
-  const { attemptId } = params;
+export default function ReviewPage({ params }: { params: { id: string; attemptId: string; locale: string } }) {
+  const { attemptId, locale } = params;
   const t = useTranslations("exams");
   const router = useRouter();
   const [attempt, setAttempt] = useState<any>(null);
@@ -78,7 +80,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
             </CardHeader>
             <CardContent className="space-y-6 p-5 sm:p-6">
               <QuestionPenOverlay questionId={`${attemptId}-${currentAnswer.id || currentIndex}`}>
-              <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words [&_p]:mb-2 [&_div]:block [&_div]:mb-2 [&_br]:mb-2 last:[&_p]:mb-0 last:[&_div]:mb-0" dangerouslySetInnerHTML={{ __html: question.text.replace(/\n/g, "<br/>") }} />
+              <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words [&_p]:mb-2 [&_div]:block [&_div]:mb-2 [&_br]:mb-2 last:[&_p]:mb-0 last:[&_div]:mb-0" dangerouslySetInnerHTML={{ __html: pickLocale(question.text, locale).replace(/\n/g, "<br/>") }} />
               {question.images && question.images.filter((img: any) => img.section === "title").length > 0 && (
                 <div className="flex flex-wrap gap-4">
                   {question.images.filter((img: any) => img.section === "title").map((img: any) => (
@@ -106,7 +108,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                             isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
                             String.fromCharCode(65 + optionIndex)}
                         </div>
-                        <span className="pt-1.5 leading-6 break-words">{option.text}</span>
+                        <span className="pt-1.5 leading-6 break-words">{pickLocale(option.text, locale)}</span>
                         {isSelected && <span className="text-xs text-muted-foreground ml-auto mt-2">{t("your_answer")}</span>}
                       </div>
                     </div>
@@ -122,9 +124,9 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 {/* <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 pb-2 border-b border-border">{t("explanation")}</p> */}
                 {(() => {
                   const correctOpt = question.options.find((o: any) => o.isCorrect);
-                  return correctOpt ? <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/20"><p className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 mb-1">✓ {t("correct_answer")}</p><p className="text-sm font-medium text-green-800 dark:text-green-200 leading-6">{correctOpt.text}</p></div> : null;
+                  return correctOpt ? <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/20"><p className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 mb-1"> {t("correct_answer")}</p><p className="text-sm font-medium text-green-800 dark:text-green-200 leading-6">{pickLocale(correctOpt.text, locale)}</p></div> : null;
                 })()}
-                <div className="text-sm leading-7 text-foreground text-justify [&_p]:leading-7 [&_p]:text-foreground [&_p]:text-justify [&_p]:mb-3 [&_p:last-child]:mb-0 [&_div]:block [&_div]:mb-3 [&_div:last-child]:mb-0 [&_br]:block [&_br]:mb-3 [&_b]:font-semibold [&_i]:italic [&_ul]:pl-5 [&_ul]:space-y-3 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:space-y-3 [&_ol]:list-decimal [&_li]:leading-7" dangerouslySetInnerHTML={{ __html: question.explanation.replace(/\n/g, "<br/>") }} />
+                <div className="text-sm leading-7 text-foreground text-justify [&_p]:leading-7 [&_p]:text-foreground [&_p]:text-justify [&_p]:mb-3 [&_p:last-child]:mb-0 [&_div]:block [&_div]:mb-3 [&_div:last-child]:mb-0 [&_br]:block [&_br]:mb-3 [&_b]:font-semibold [&_i]:italic [&_ul]:pl-5 [&_ul]:space-y-3 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:space-y-3 [&_ol]:list-decimal [&_li]:leading-7" dangerouslySetInnerHTML={{ __html: pickLocale(question.explanation, locale).replace(/\n/g, "<br/>") }} />
                 {question.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-6 max-w-full rounded-xl border shadow-subtle" style={{ maxHeight: 300 }} />))}
               </div>)}
               {question.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden mt-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words [&_p]:mb-2 [&_div]:block [&_div]:mb-2 [&_br]:mb-2 last:[&_p]:mb-0 last:[&_div]:mb-0" dangerouslySetInnerHTML={{ __html: question.reference.replace(/\n/g, "<br/>") }} /></div>)}

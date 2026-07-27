@@ -28,6 +28,7 @@ import { flashcardsApi, examsApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, Upload, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { pickLocale } from "@/lib/utils/localized-text";
 
 export default function AdminFlashcardsPage() {
   const t = useTranslations("admin");
@@ -45,8 +46,8 @@ export default function AdminFlashcardsPage() {
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
   const [form, setForm] = useState({
-    front: "",
-    back: "",
+    front: { en: "", es: "" },
+    back: { en: "", es: "" },
     reference: "",
     examId: "",
     examIds: [] as string[],
@@ -102,15 +103,15 @@ export default function AdminFlashcardsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ front: "", back: "", reference: "", examId: "", examIds: [], specialtyId: "", topicId: "", quantity: 1 });
+    setForm({ front: { en: "", es: "" }, back: { en: "", es: "" }, reference: "", examId: "", examIds: [], specialtyId: "", topicId: "", quantity: 1 });
     setDialogOpen(true);
   };
 
   const openEdit = (f: any) => {
     setEditing(f);
     setForm({
-      front: f.front || "",
-      back: f.back || "",
+      front: typeof f.front === "string" ? { en: f.front, es: f.front } : (f.front || { en: "", es: "" }),
+      back: typeof f.back === "string" ? { en: f.back, es: f.back } : (f.back || { en: "", es: "" }),
       reference: f.reference || "",
       examId: f.examId || "",
       examIds: f.examIds || [],
@@ -122,7 +123,8 @@ export default function AdminFlashcardsPage() {
   };
 
   const handleSave = async () => {
-    if (!form.front.trim() || !form.back.trim()) return;
+    if (!form.front.en.trim() && !form.front.es.trim()) return;
+    if (!form.back.en.trim() && !form.back.es.trim()) return;
     setSaving(true);
     try {
       if (editing) {
@@ -193,8 +195,8 @@ export default function AdminFlashcardsPage() {
 
       const promises = cards.map((c: any) =>
         flashcardsApi.create({
-          front: c.front,
-          back: c.back,
+          front: { en: c.front, es: c.front },
+          back: { en: c.back, es: c.back },
           reference: "",
           examId: null,
           specialtyId: null,
@@ -214,8 +216,8 @@ export default function AdminFlashcardsPage() {
   };
 
   const columns = [
-    { key: "front", header: t("col_front"), sortable: true, render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.front}</span> },
-    { key: "back", header: t("col_back"), render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{row.back}</span> },
+    { key: "front", header: t("col_front"), sortable: true, render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{pickLocale(row.front)}</span> },
+    { key: "back", header: t("col_back"), render: (row: any) => <span className="line-clamp-2 max-w-[250px]">{pickLocale(row.back)}</span> },
     {
       key: "specialty",
       header: t("specialty"),
@@ -289,25 +291,55 @@ export default function AdminFlashcardsPage() {
           <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("col_front")}</label>
-              <Textarea
-                autoFocus
-                value={form.front}
-                onChange={(e) => setForm({ ...form, front: e.target.value })}
-                rows={3}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
-                placeholder={t("placeholder_front")}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">EN</label>
+                  <Textarea
+                    autoFocus
+                    value={form.front.en}
+                    onChange={(e) => setForm({ ...form, front: { ...form.front, en: e.target.value } })}
+                    rows={3}
+                    className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm min-h-[80px]"
+                    placeholder="Front (English)"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">ES</label>
+                  <Textarea
+                    value={form.front.es}
+                    onChange={(e) => setForm({ ...form, front: { ...form.front, es: e.target.value } })}
+                    rows={3}
+                    className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm min-h-[80px]"
+                    placeholder="Frente (Español)"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("col_back")}</label>
-              <Textarea
-                value={form.back}
-                onChange={(e) => setForm({ ...form, back: e.target.value })}
-                rows={3}
-                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[80px] resize-none outline-none"
-                placeholder={t("placeholder_back")}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">EN</label>
+                  <Textarea
+                    value={form.back.en}
+                    onChange={(e) => setForm({ ...form, back: { ...form.back, en: e.target.value } })}
+                    rows={3}
+                    className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm min-h-[80px]"
+                    placeholder="Back (English)"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">ES</label>
+                  <Textarea
+                    value={form.back.es}
+                    onChange={(e) => setForm({ ...form, back: { ...form.back, es: e.target.value } })}
+                    rows={3}
+                    className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm min-h-[80px]"
+                    placeholder="Reverso (Español)"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -419,7 +451,7 @@ export default function AdminFlashcardsPage() {
 
           <DialogFooter className="p-6 pt-4 border-t border-border/60 flex justify-end gap-3">
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl px-6 h-10 text-sm font-medium">{c("cancel")}</Button>
-            <Button onClick={handleSave} disabled={saving || !form.front.trim() || !form.back.trim()} className="rounded-xl px-6 h-10 text-sm font-medium shadow-md">
+            <Button onClick={handleSave} disabled={saving || (!form.front.en.trim() && !form.front.es.trim())} className="rounded-xl px-6 h-10 text-sm font-medium shadow-md">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {editing ? c("save") : t("create_flashcard")}
             </Button>
