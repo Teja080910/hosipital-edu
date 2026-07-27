@@ -79,7 +79,7 @@ export class ExamsService {
       const isAdmin = user.role === "admin" || user.role === "super_admin";
       if (!isAdmin) {
         const [sub] = await this.db
-          .select({ examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
+          .select({ planId: subscriptionPlans.id, examId: subscriptionPlans.examId, isCourseOnly: subscriptionPlans.isCourseOnly })
           .from(userSubscriptions)
           .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
           .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"]), gt(userSubscriptions.currentPeriodEnd, new Date())))
@@ -94,8 +94,17 @@ export class ExamsService {
           } else {
             throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
           }
-        } else if (sub.examId && sub.examId !== id) {
-          throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
+        } else {
+          if (sub.examId && sub.examId !== id) {
+            const peRows = await this.db
+              .select({ examId: planExams.examId })
+              .from(planExams)
+              .where(eq(planExams.planId, sub.planId));
+            const planExamIds = peRows.map((r: any) => r.examId);
+            if (!planExamIds.includes(id)) {
+              throw new ForbiddenException(this.i18n.t("exams.subscriptionNotIncludeExam"));
+            }
+          }
         }
         // sub exists, not courseOnly, no examId (general plan) -> allowed
       }

@@ -193,6 +193,9 @@ export class CoursesService {
         await this.db.insert(courseExams).values(
           examIds.map((eId: string) => ({ courseId: id, examId: eId }))
         );
+        await this.db.update(courses).set({ examId: null as any, updatedAt: new Date() }).where(eq(courses.id, id));
+      } else {
+        await this.db.update(courses).set({ examId: null, updatedAt: new Date() }).where(eq(courses.id, id));
       }
     }
     return course;

@@ -2,15 +2,18 @@
 
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { pickLocale } from "@/lib/utils/localized-text";
+import { useParams } from "next/navigation";
 
 interface FlashcardCardProps {
-  front: string;
-  back: string;
+  front: any;
+  back: any;
   isFlipped: boolean;
   onFlip: () => void;
 }
 
 export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardProps) {
+  const locale = useParams().locale as string || "en";
   return (
     <div
       className="perspective-[1000px] cursor-pointer h-64"
@@ -28,7 +31,7 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
             "shadow-medium"
           )}
         >
-          <p className="text-lg font-medium">{front}</p>
+          <p className="text-lg font-medium">{pickLocale(front, locale)}</p>
         </div>
         <div
           className={cn(
@@ -37,7 +40,7 @@ export function FlashcardCard({ front, back, isFlipped, onFlip }: FlashcardCardP
           )}
           style={{ transform: "rotateY(180deg)" }}
         >
-          <p className="text-lg text-primary font-medium">{back}</p>
+          <p className="text-lg text-primary font-medium">{pickLocale(back, locale)}</p>
         </div>
       </motion.div>
     </div>

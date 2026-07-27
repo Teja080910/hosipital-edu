@@ -19,6 +19,7 @@ import { Progress } from "@/components/ui/progress";
 
 import { attemptsApi, examsApi, questionsApi } from "@/lib/api";
 import { cn, localizedText as localized } from "@/lib/utils";
+import { pickLocale } from "@/lib/utils/localized-text";
 import { useRouter } from "@/routing";
 import type { Question } from "@/types";
 import { useExamStore } from "@/store/exam-store";
@@ -583,7 +584,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent className="space-y-6 p-5 sm:p-6">
                 <QuestionPenOverlay questionId={currentQuestion.id}>
-                  <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words [&_p]:mb-2 [&_div]:block [&_div]:mb-2 [&_br]:mb-2 last:[&_p]:mb-0 last:[&_div]:mb-0" dangerouslySetInnerHTML={{ __html: currentQuestion.text.replace(/\n/g, "<br/>") }} />
+                  <div className="text-lg font-semibold leading-8 text-foreground sm:text-xl space-y-2 overflow-hidden break-words [&_p]:mb-2 [&_div]:block [&_div]:mb-2 [&_br]:mb-2 last:[&_p]:mb-0 last:[&_div]:mb-0" dangerouslySetInnerHTML={{ __html: pickLocale(currentQuestion.text, locale).replace(/\n/g, "<br/>") }} />
                 {currentQuestion.images && currentQuestion.images.filter((img: any) => img.section === "title").length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {currentQuestion.images.filter((img: any) => img.section === "title").map((img: any) => (
@@ -620,7 +621,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                               showAnswer && isSelected && !isCorrectOption ? <XCircle className="h-4 w-4" /> :
                               String.fromCharCode(65 + optionIndex)}
                           </div>
-                            <span className="pt-1.5 leading-6 break-words">{option.text}</span>
+                            <span className="pt-1.5 leading-6 break-words">{pickLocale(option.text, locale)}</span>
                         </div>
                       </button>
                     );
@@ -636,7 +637,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                     const correctOpt = currentQuestion.options.find((o: any) => o.isCorrect);
                     return correctOpt ? <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/20"><p className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 mb-1">✓ {t("correct_answer")}</p><p className="text-sm font-medium text-green-800 dark:text-green-200 leading-6">{correctOpt.text}</p></div> : null;
                   })()}
-                  <div className="text-sm leading-7 text-foreground text-justify [&_p]:leading-7 [&_p]:text-foreground [&_p]:text-justify [&_p]:mb-3 [&_p:last-child]:mb-0 [&_div]:block [&_div]:mb-3 [&_div:last-child]:mb-0 [&_br]:block [&_br]:mb-3 [&_b]:font-semibold [&_i]:italic [&_ul]:pl-5 [&_ul]:space-y-3 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:space-y-3 [&_ol]:list-decimal [&_li]:leading-7" dangerouslySetInnerHTML={{ __html: currentQuestion.explanation.replace(/\n/g, "<br/>") }} />
+                  <div className="text-sm leading-7 text-foreground text-justify [&_p]:leading-7 [&_p]:text-foreground [&_p]:text-justify [&_p]:mb-3 [&_p:last-child]:mb-0 [&_div]:block [&_div]:mb-3 [&_div:last-child]:mb-0 [&_br]:block [&_br]:mb-3 [&_b]:font-semibold [&_i]:italic [&_ul]:pl-5 [&_ul]:space-y-3 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:space-y-3 [&_ol]:list-decimal [&_li]:leading-7" dangerouslySetInnerHTML={{ __html: pickLocale(currentQuestion.explanation, locale).replace(/\n/g, "<br/>") }} />
                   {currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-6 max-w-full rounded-xl border shadow-subtle" style={{ maxHeight: 300 }} />))}
                 </div>)}
                 {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden mt-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words [&_p]:mb-2 [&_div]:block [&_div]:mb-2 [&_br]:mb-2 last:[&_p]:mb-0 last:[&_div]:mb-0" dangerouslySetInnerHTML={{ __html: currentQuestion.reference.replace(/\n/g, "<br/>") }} /></div>)}
