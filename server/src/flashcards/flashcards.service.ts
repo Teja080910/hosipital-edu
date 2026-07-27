@@ -13,7 +13,7 @@ import {
   specialties,
   topics,
 } from "../database/schema";
-import { eq, and, inArray, notInArray, isNull, count, sql, lte, ne, type SQL } from "drizzle-orm";
+import { eq, and, inArray, notInArray, isNull, count, sql, lte, ne, desc, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -105,7 +105,8 @@ export class FlashcardsService {
       .leftJoin(topics, eq(flashcards.topicId, topics.id))
       .where(where)
       .limit(limit)
-      .offset(offset);
+      .offset(offset)
+      .orderBy(desc(flashcards.createdAt));
 
     const fIds = rows.map((r: any) => r.id);
     const allExamLinks = fIds.length
