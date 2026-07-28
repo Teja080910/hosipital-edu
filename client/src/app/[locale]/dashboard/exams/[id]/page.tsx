@@ -366,7 +366,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
 
   const handleSubmitAnswer = async () => {
     if (!attemptId || !currentQuestion || !selectedOption) return;
-    const isCorrect = currentQuestion.options.find((o) => o.id === selectedOption)?.isCorrect ?? false;
+    const isCorrect = (currentQuestion.options || []).find((o: any) => o.id === selectedOption)?.isCorrect ?? false;
     const elapsed = Math.floor((Date.now() - questionEntryTime) / 1000);
     setPerQuestionTime((prev) => ({ ...prev, [currentQuestion.id]: elapsed }));
     setAnswers((prev) => ({
@@ -423,7 +423,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
     setSubmitting(true); setShowSubmitDialog(false); setShowTimeWarning(false);
     try {
       if (currentQuestion && selectedOption && mode === "exam") {
-        const isCorrect = currentQuestion.options.find((o) => o.id === selectedOption)?.isCorrect ?? false;
+    const isCorrect = (currentQuestion.options || []).find((o: any) => o.id === selectedOption)?.isCorrect ?? false;
         const elapsed = Math.floor((Date.now() - questionEntryTime) / 1000);
         setAnswers((prev) => ({
           ...prev,
@@ -510,7 +510,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
   }
 
   if (pageState === "taking") {
-    if (!currentQuestion) return <PageTransition><div className="text-center py-12 text-muted-foreground">{t("no_questions")}</div></PageTransition>;
+    if (!currentQuestion || !currentQuestion.options) return <PageTransition><div className="text-center py-12 text-muted-foreground">{t("no_questions")}</div></PageTransition>;
     const answered = answers[currentQuestion.id]?.optionId ?? null;
     const flagged = answers[currentQuestion.id]?.flagged ?? false;
     const currentAnsweredCount = Object.values(answers).filter((a) => a.optionId !== null).length;
@@ -595,7 +595,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                   </div>
                 )}
                   <div className="space-y-3">
-                    {currentQuestion.options.map((option, optionIndex) => {
+                    {(currentQuestion.options || []).map((option, optionIndex) => {
                       const isSelected = answered === option.id;
                       const isOptionSelected = selectedOption === option.id;
                       const isCorrectOption = option.isCorrect;
@@ -634,11 +634,11 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
                   </div>
                   {/* <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 pb-2 border-b border-border">{t("explanation")}</p> */}
                   {(() => {
-                    const correctOpt = currentQuestion.options.find((o: any) => o.isCorrect);
+                    const correctOpt = (currentQuestion.options || []).find((o: any) => o.isCorrect);
                     return correctOpt ? <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/20"><p className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 mb-1">✓ {t("correct_answer")}</p><p className="text-sm font-medium text-green-800 dark:text-green-200 leading-6">{correctOpt.text}</p></div> : null;
                   })()}
                   <div className="text-sm leading-7 text-foreground text-justify [&_p]:leading-7 [&_p]:text-foreground [&_p]:text-justify [&_p]:mb-3 [&_p:last-child]:mb-0 [&_div]:block [&_div]:mb-3 [&_div:last-child]:mb-0 [&_br]:block [&_br]:mb-3 [&_b]:font-semibold [&_i]:italic [&_ul]:pl-5 [&_ul]:space-y-3 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:space-y-3 [&_ol]:list-decimal [&_li]:leading-7" dangerouslySetInnerHTML={{ __html: pickLocale(currentQuestion.explanation, locale).replace(/\n/g, "<br/>") }} />
-                  {currentQuestion.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-6 max-w-full rounded-xl border shadow-subtle" style={{ maxHeight: 300 }} />))}
+                  {(currentQuestion.images || []).filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-6 max-w-full rounded-xl border shadow-subtle" style={{ maxHeight: 300 }} />))}
                 </div>)}
                 {showAnswer && currentQuestion.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden mt-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words [&_p]:mb-2 [&_div]:block [&_div]:mb-2 [&_br]:mb-2 last:[&_p]:mb-0 last:[&_div]:mb-0" dangerouslySetInnerHTML={{ __html: currentQuestion.reference.replace(/\n/g, "<br/>") }} /></div>)}
                 </QuestionPenOverlay>
