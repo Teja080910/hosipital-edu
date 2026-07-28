@@ -19,6 +19,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { IsOptional, IsString, IsArray, IsUUID, IsObject, IsNumber } from "class-validator";
 
 class CreateQuestionDto {
+  @IsObject()
   text!: any;
 
   @IsOptional()
