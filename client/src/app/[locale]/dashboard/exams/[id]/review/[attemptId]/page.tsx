@@ -89,7 +89,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 </div>
               )}
               <div className="space-y-3">
-                {question.options.map((option: any, optionIndex: number) => {
+                {(question.options || []).map((option: any, optionIndex: number) => {
                   const isSelected = currentAnswer.selectedOptionId === option.id;
                   const isCorrectOption = option.isCorrect;
                   let optionClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 hover:shadow-subtle";
@@ -123,11 +123,11 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
                 </div>
                 {/* <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 pb-2 border-b border-border">{t("explanation")}</p> */}
                 {(() => {
-                  const correctOpt = question.options.find((o: any) => o.isCorrect);
+                  const correctOpt = (question.options || []).find((o: any) => o.isCorrect);
                   return correctOpt ? <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/20"><p className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 mb-1"> {t("correct_answer")}</p><p className="text-sm font-medium text-green-800 dark:text-green-200 leading-6">{pickLocale(correctOpt.text, locale)}</p></div> : null;
                 })()}
                 <div className="text-sm leading-7 text-foreground text-justify [&_p]:leading-7 [&_p]:text-foreground [&_p]:text-justify [&_p]:mb-3 [&_p:last-child]:mb-0 [&_div]:block [&_div]:mb-3 [&_div:last-child]:mb-0 [&_br]:block [&_br]:mb-3 [&_b]:font-semibold [&_i]:italic [&_ul]:pl-5 [&_ul]:space-y-3 [&_ul]:list-disc [&_ol]:pl-5 [&_ol]:space-y-3 [&_ol]:list-decimal [&_li]:leading-7" dangerouslySetInnerHTML={{ __html: pickLocale(question.explanation, locale).replace(/\n/g, "<br/>") }} />
-                {question.images?.filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-6 max-w-full rounded-xl border shadow-subtle" style={{ maxHeight: 300 }} />))}
+                {(question.images || []).filter((img: any) => img.section === "explanation").map((img: any) => (<img key={img.id} src={img.url} alt={img.caption || ""} className="mt-6 max-w-full rounded-xl border shadow-subtle" style={{ maxHeight: 300 }} />))}
               </div>)}
               {question.reference && (<div className="rounded-2xl border bg-blue-50 dark:bg-blue-950/20 p-4 overflow-hidden mt-4"><p className="text-sm font-semibold mb-1">{t("reference")}</p><p className="text-sm leading-6 text-muted-foreground break-words [&_p]:mb-2 [&_div]:block [&_div]:mb-2 [&_br]:mb-2 last:[&_p]:mb-0 last:[&_div]:mb-0" dangerouslySetInnerHTML={{ __html: question.reference.replace(/\n/g, "<br/>") }} /></div>)}
               <div className="flex items-center justify-between gap-4 mt-6">
