@@ -16,7 +16,8 @@ import {
 import { UploadService } from "../upload/upload.service";
 import { eq, and, sql, desc } from "drizzle-orm";
 import * as crypto from "crypto";
-import PDFDocument from "pdfkit";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const PDFDocument = require("pdfkit");
 import * as QRCode from "qrcode";
 import { I18nService } from "../common/i18n/i18n.service";
 
