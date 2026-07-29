@@ -14,6 +14,7 @@ const userGuides = [
   { key: "flashcards", steps: 6 },
   { key: "video_classes", steps: 5 },
   { key: "courses", steps: 7 },
+  { key: "certificate", steps: 5 },
   { key: "progress", steps: 5 },
   { key: "subscription", steps: 9 },
 ];
