@@ -1084,6 +1084,15 @@
       "step_5": "Termina todos los módulos y pasa el examen final para obtener un certificado",
       "step_6": "Ve tu certificado en el panel"
     },
+    "certificate": {
+      "title": "Verificación de Certificado",
+      "description": "Al completar un curso, obtén un certificado con un número único. Cualquier persona puede verificar su autenticidad en línea.",
+      "step_0": "Completa todos los módulos del curso y aprueba el examen final para desbloquear tu certificado",
+      "step_1": "Ve a la página del curso y haz clic en 'Obtener Certificado' para generarlo",
+      "step_2": "Ve tu certificado en el panel bajo Certificados",
+      "step_3": "Comparte el número de certificado (ej. CERT-XXXXXXXXXXXX-XXXXXXXX) con quien quieras",
+      "step_4": "Pueden verificarlo en md-exam.com/verify-certificate ingresando el número"
+    },
     "progress": {
       "title": "Progreso y Estadísticas",
       "description": "Sigue tu rendimiento con gráficos detallados y estadísticas.",

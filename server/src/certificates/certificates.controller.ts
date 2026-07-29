@@ -17,6 +17,18 @@ export class CertificatesController {
     return this.certificatesService.findByUser(user.id);
   }
 
+  @Get("number/:certificateNumber")
+  @ApiOperation({ summary: "Public certificate lookup by certificate number" })
+  async findByNumber(@Param("certificateNumber") certificateNumber: string) {
+    return this.certificatesService.findByCertificateNumber(certificateNumber);
+  }
+
+  @Get("verify/:hash")
+  @ApiOperation({ summary: "Public certificate verification by hash" })
+  async verify(@Param("hash") hash: string) {
+    return this.certificatesService.verifyByHash(hash);
+  }
+
   @Get(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -38,11 +50,5 @@ export class CertificatesController {
     @Body("courseId") courseId: string,
   ) {
     return this.certificatesService.generate(user.id, courseId);
-  }
-
-  @Get("verify/:hash")
-  @ApiOperation({ summary: "Public certificate verification" })
-  async verify(@Param("hash") hash: string) {
-    return this.certificatesService.verifyByHash(hash);
   }
 }

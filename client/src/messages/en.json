@@ -1089,6 +1089,15 @@
       "step_5": "Finish all modules and pass the final quiz to earn a certificate",
       "step_6": "View your certificate in the dashboard"
     },
+    "certificate": {
+      "title": "Certificate Verification",
+      "description": "After completing a course, earn a certificate with a unique number. Anyone can verify its authenticity online.",
+      "step_0": "Complete all course modules and pass the final quiz to unlock your certificate",
+      "step_1": "Go to the course page and click 'Get Certificate' to generate it",
+      "step_2": "View your certificate in the dashboard under Certificates",
+      "step_3": "Share the certificate number (e.g. CERT-XXXXXXXXXXXX-XXXXXXXX) with anyone",
+      "step_4": "They can verify it at md-exam.com/verify-certificate by entering the number"
+    },
     "progress": {
       "title": "Progress & Analytics",
       "description": "Track your performance across all study activities with detailed charts and statistics.",

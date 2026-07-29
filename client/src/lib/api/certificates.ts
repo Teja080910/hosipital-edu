@@ -5,4 +5,5 @@ export const certificatesApi = {
   get: (id: string) => api.get(`/certificates/${id}`),
   generate: (courseId: string) => api.post("/certificates/generate", { courseId }),
   verify: (hash: string) => api.get(`/certificates/verify/${hash}`),
+  findByNumber: (certificateNumber: string) => api.get(`/certificates/number/${certificateNumber}`),
 };

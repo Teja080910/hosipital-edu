@@ -16,7 +16,7 @@ import {
 import { UploadService } from "../upload/upload.service";
 import { eq, and, sql, desc } from "drizzle-orm";
 import * as crypto from "crypto";
-import * as PDFDocument from "pdfkit";
+import PDFDocument from "pdfkit";
 import * as QRCode from "qrcode";
 import { I18nService } from "../common/i18n/i18n.service";
 
@@ -51,6 +51,16 @@ export class CertificatesService {
       .select()
       .from(certificates)
       .where(eq(certificates.verificationHash, hash))
+      .limit(1);
+    if (!cert) throw new NotFoundException(this.i18n.t("certificates.notFound"));
+    return cert;
+  }
+
+  async findByCertificateNumber(certificateNumber: string) {
+    const [cert] = await this.db
+      .select()
+      .from(certificates)
+      .where(eq(certificates.certificateNumber, certificateNumber))
       .limit(1);
     if (!cert) throw new NotFoundException(this.i18n.t("certificates.notFound"));
     return cert;
@@ -152,7 +162,7 @@ export class CertificatesService {
       .digest("hex");
 
     const appUrl = this.config.get<string>("APP_URL") || "http://localhost:4175";
-    const verificationUrl = `${appUrl}/certificates/verify/${verificationHash}`;
+    const verificationUrl = `${appUrl}/api/certificates/verify/${verificationHash}`;
 
     const qrBuffer = await QRCode.toBuffer(verificationUrl, {
       type: "png",
