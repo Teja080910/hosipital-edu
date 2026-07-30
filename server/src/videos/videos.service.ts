@@ -1,7 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { videoModules, videoModuleExams, videoLessons, userVideoProgress, userSubscriptions, subscriptionPlans, users } from "../database/schema";
-import { eq, asc, and, inArray } from "drizzle-orm";
+import { eq, asc, and, inArray, gt } from "drizzle-orm";
 import { getAccessibleExamId } from "../common/utils/access-helper";
 
 @Injectable()
@@ -9,9 +9,10 @@ export class VideosService {
   constructor(@Inject(DRIZZLE) private db: any) {}
 
   async findAll(user?: any) {
+    let subExamIds: string | null = null;
     if (user) {
       const [u] = await this.db
-        .select({ accountType: users.accountType, role: users.role, targetExamId: users.targetExamId, createdAt: users.createdAt })
+        .select({ accountType: users.accountType, role: users.role })
         .from(users)
         .where(eq(users.id, user.id))
         .limit(1);
@@ -27,11 +28,7 @@ export class VideosService {
             .from(subscriptionPlans)
             .where(eq(subscriptionPlans.id, activeSub.planId))
             .limit(1);
-          if (plan && parseFloat(plan.price || "0") > 0) {
-            // has paid plan, allow access
-          } else {
-            return [];
-          }
+          if (plan && parseFloat(plan.price || "0") <= 0) return [];
         } else {
           return [];
         }
@@ -40,38 +37,25 @@ export class VideosService {
         const [sub] = await this.db
           .select()
           .from(userSubscriptions)
-          .where(
-            and(
-              eq(userSubscriptions.userId, user.id),
-              inArray(userSubscriptions.status, ["active", "cancelling"]),
-            ),
-          )
+          .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"]), gt(userSubscriptions.currentPeriodEnd, new Date())))
           .limit(1);
         if (!sub) {
-          // check 24-hour free trial before denying access
-          const { targetExamId, createdAt } = u;
-          if (!targetExamId) return [];
-          const hoursSinceRegistration = (Date.now() - new Date(createdAt).getTime()) / 3600000;
-          if (hoursSinceRegistration <= 24) {
-            // trial active — continue to filter by exam below
-          } else {
-            return [];
-          }
+          const accessId = await getAccessibleExamId(this.db, user.id);
+          if (!accessId) return [];
+          subExamIds = accessId;
         } else {
           const [plan] = await this.db
-            .select({ maxExamAttempts: subscriptionPlans.maxExamAttempts, price: subscriptionPlans.price })
+            .select({ price: subscriptionPlans.price })
             .from(subscriptionPlans)
             .where(eq(subscriptionPlans.id, sub.planId))
             .limit(1);
           if (plan && parseFloat(plan.price || "0") === 0) {
-            return [];
+            subExamIds = "__all__";
+          } else {
+            subExamIds = await getAccessibleExamId(this.db, user.id);
           }
         }
       }
-    }
-    let subExamIds: string | null = null;
-    if (user) {
-      subExamIds = await getAccessibleExamId(this.db, user.id);
     }
 
     const modules = await this.db

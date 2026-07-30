@@ -4,11 +4,13 @@ import { PageTransition } from "@/components/page-transition";
 import { AccountTypeGate } from "@/components/account-type-gate";
 import { StreamVideoPlayer } from "@/components/stream/stream-video-player";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { videosApi } from "@/lib/api";
-import { BookOpen, Clock, Loader2, Play } from "lucide-react";
+import { BookOpen, Clock, Crown, Loader2, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { localizedText as localized } from "@/lib/utils";
+import { useRouter } from "@/routing";
 
 export default function VideosPage() {
   const t = useTranslations("videos");
@@ -16,6 +18,7 @@ export default function VideosPage() {
   const [loading, setLoading] = useState(true);
   const [selectedModule, setSelectedModule] = useState<any | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     videosApi.list().then(({ data }) => {
@@ -44,8 +47,11 @@ export default function VideosPage() {
       <PageTransition>
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <BookOpen className="h-12 w-12 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">{t("noVideos")}</h2>
-          <p className="text-muted-foreground">{t("noVideosDesc")}</p>
+          <h2 className="text-xl font-semibold">{t("noAccess")}</h2>
+          <p className="text-muted-foreground text-center max-w-md">{t("noAccessDesc")}</p>
+          <Button onClick={() => router.push("/dashboard/subscribe")}>
+            {t("subscribe")}
+          </Button>
         </div>
       </PageTransition>
     );
