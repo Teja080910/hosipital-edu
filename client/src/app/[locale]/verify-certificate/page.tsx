@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { certificatesApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -24,8 +25,8 @@ function localizedText(obj: Record<string, string> | string | null | undefined, 
   return obj[locale] || Object.values(obj)[0] || "";
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+function formatDate(dateStr: string, locale = "en") {
+  return new Date(dateStr).toLocaleDateString(locale === "es" ? "es-ES" : "en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -33,6 +34,8 @@ function formatDate(dateStr: string) {
 }
 
 export default function VerifyCertificatePage() {
+  const { locale } = useParams();
+  const currentLocale = (locale as string) || "en";
   const t = useTranslations("certificates");
   const [certNumber, setCertNumber] = useState("");
   const [cert, setCert] = useState<Certificate | null>(null);
@@ -75,9 +78,9 @@ export default function VerifyCertificatePage() {
         <Card className="p-6 md:p-10">
           <div className="text-center mb-8">
             <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h1 className="text-2xl font-bold tracking-tight">Verify Certificate</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t("verify_title")}</h1>
             <p className="text-muted-foreground mt-2">
-              Enter your certificate number to verify its authenticity
+              {t("verify_subtitle")}
             </p>
           </div>
 
@@ -85,12 +88,12 @@ export default function VerifyCertificatePage() {
             <Input
               value={certNumber}
               onChange={(e) => setCertNumber(e.target.value)}
-              placeholder="e.g. CERT-1784491289871-BDDDF354"
+              placeholder={t("verify_placeholder")}
               className="h-12 flex-1 font-mono text-sm"
             />
             <Button type="submit" size="lg" className="h-12 shrink-0" disabled={loading || !certNumber.trim()}>
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
-              Verify
+              {t("verify_button")}
             </Button>
           </form>
 
@@ -103,9 +106,9 @@ export default function VerifyCertificatePage() {
           {error && searched && !loading && (
             <div className="text-center py-8">
               <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <p className="text-lg font-medium text-destructive">Certificate Not Found</p>
+              <p className="text-lg font-medium text-destructive">{t("verify_not_found")}</p>
               <p className="text-muted-foreground mt-1">
-                No certificate matches the number you entered. Please check and try again.
+                {t("verify_not_found_desc")}
               </p>
             </div>
           )}
@@ -114,21 +117,21 @@ export default function VerifyCertificatePage() {
             <div className="border rounded-xl p-6 md:p-8 text-center bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background">
               <div className="inline-flex items-center gap-2 text-green-600 dark:text-green-400 mb-4">
                 <CheckCircle2 className="h-6 w-6" />
-                <span className="font-semibold">Verified Certificate</span>
+                <span className="font-semibold">{t("verify_success")}</span>
               </div>
 
               <h2 className="text-3xl font-bold text-foreground mb-1">{cert.studentName}</h2>
-              <p className="text-muted-foreground mb-4">has successfully completed</p>
+              <p className="text-muted-foreground mb-4">{t("verify_success_desc")}</p>
               <h3 className="text-xl font-semibold text-primary mb-6">{localizedText(cert.courseName)}</h3>
 
               <div className="flex justify-center gap-8 text-sm text-muted-foreground mb-6">
                 <div>
-                  <p className="text-xs uppercase tracking-wider mb-1">Date of Completion</p>
-                  <p className="font-medium text-foreground">{formatDate(cert.completionDate)}</p>
+                  <p className="text-xs uppercase tracking-wider mb-1">{t("verify_date")}</p>
+                  <p className="font-medium text-foreground">{formatDate(cert.completionDate, currentLocale)}</p>
                 </div>
                 <div className="w-px bg-border" />
                 <div>
-                  <p className="text-xs uppercase tracking-wider mb-1">Certificate No.</p>
+                  <p className="text-xs uppercase tracking-wider mb-1">{t("verify_cert_no")}</p>
                   <p className="font-mono font-medium text-foreground">{cert.certificateNumber}</p>
                 </div>
               </div>
@@ -137,15 +140,15 @@ export default function VerifyCertificatePage() {
         </Card>
 
         <Card className="p-6 md:p-10 mt-6">
-          <h2 className="text-lg font-bold tracking-tight mb-4">How Certificates Work</h2>
+          <h2 className="text-lg font-bold tracking-tight mb-4">{t("how_it_works")}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <GraduationCap className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-medium">Complete a Course</p>
-                <p className="text-xs text-muted-foreground">Finish all modules and pass the final quiz to unlock your certificate</p>
+                <p className="text-sm font-medium">{t("how_step1_title")}</p>
+                <p className="text-xs text-muted-foreground">{t("how_step1_desc")}</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -153,8 +156,8 @@ export default function VerifyCertificatePage() {
                 <BookOpen className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-medium">Generate Certificate</p>
-                <p className="text-xs text-muted-foreground">Go to the course page and click "Get Certificate"</p>
+                <p className="text-sm font-medium">{t("how_step2_title")}</p>
+                <p className="text-xs text-muted-foreground">{t("how_step2_desc")}</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -162,8 +165,8 @@ export default function VerifyCertificatePage() {
                 <Share2 className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-medium">Share the Number</p>
-                <p className="text-xs text-muted-foreground">Share your certificate number (e.g. CERT-XXXXXXXX-XXXXXXXX) with anyone</p>
+                <p className="text-sm font-medium">{t("how_step3_title")}</p>
+                <p className="text-xs text-muted-foreground">{t("how_step3_desc")}</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -171,8 +174,8 @@ export default function VerifyCertificatePage() {
                 <Globe className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-medium">Verify Online</p>
-                <p className="text-xs text-muted-foreground">Anyone can verify authenticity at this page by entering the certificate number</p>
+                <p className="text-sm font-medium">{t("how_step4_title")}</p>
+                <p className="text-xs text-muted-foreground">{t("how_step4_desc")}</p>
               </div>
             </div>
           </div>

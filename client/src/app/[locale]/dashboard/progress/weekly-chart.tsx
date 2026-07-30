@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface WeeklyChartProps {
@@ -8,7 +9,11 @@ interface WeeklyChartProps {
   noDataText?: string;
 }
 
-export default function WeeklyChart({ data = [], dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], noDataText = "No data yet" }: WeeklyChartProps) {
+export default function WeeklyChart({ data = [], dayNames: propDayNames, noDataText: propNoDataText }: WeeklyChartProps) {
+  const t = useTranslations("admin");
+  const tp = useTranslations("progress");
+  const dayNames = propDayNames || [t("day_sun"), t("day_mon"), t("day_tue"), t("day_wed"), t("day_thu"), t("day_fri"), t("day_sat")];
+  const noDataText = propNoDataText || tp("no_data_yet");
   const chartData = data.map(d => {
     const day = new Date(d.date).getDay();
     return { day: dayNames[day], minutes: d.count * 2 };

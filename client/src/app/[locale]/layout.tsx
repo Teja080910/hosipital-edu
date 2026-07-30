@@ -10,7 +10,7 @@ import "../globals.css";
 export async function generateMetadata({ params: { locale } }: { params: { locale: string } }) {
   const t = await getTranslations({ locale, namespace: "landing" });
   return {
-    title: "MD Exam",
+    title: t("brand_name"),
     description: t("hero_subtitle"),
     icons: {
       icon: "/favicon.ico",

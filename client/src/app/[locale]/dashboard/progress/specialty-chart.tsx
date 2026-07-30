@@ -8,8 +8,10 @@ interface SpecialtyChartProps {
   noDataText?: string;
 }
 
-export default function SpecialtyChart({ data = [], noDataText = "No data yet" }: SpecialtyChartProps) {
+export default function SpecialtyChart({ data = [], noDataText }: SpecialtyChartProps) {
   const t = useTranslations("common");
+  const tp = useTranslations("progress");
+  const displayNoData = noDataText || tp("no_data_yet");
   const chartData = data
     .filter(d => d.totalAnswered > 0)
     .map(d => ({
@@ -19,7 +21,7 @@ export default function SpecialtyChart({ data = [], noDataText = "No data yet" }
     .sort((a, b) => b.accuracy - a.accuracy);
 
   if (!chartData.length) {
-    return <div className="flex items-center justify-center h-full text-muted-foreground">{noDataText}</div>;
+    return <div className="flex items-center justify-center h-full text-muted-foreground">{displayNoData}</div>;
   }
   return (
     <ResponsiveContainer width="100%" height="100%">

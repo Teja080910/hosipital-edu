@@ -140,14 +140,14 @@ export default function AdminAnalyticsPage() {
                   <thead>
                     <tr className="text-muted-foreground">
                       <th className="text-left p-1">{t("cohort_col")}</th>
-                      <th className="p-1">Users</th>
-                      <th className="p-1">M0</th>
-                      <th className="p-1">M1</th>
-                      <th className="p-1">M2</th>
-                      <th className="p-1">M3</th>
-                      <th className="p-1">M4</th>
-                      <th className="p-1">M5</th>
-                      <th className="p-1">M6</th>
+                      <th className="p-1">{t("retention_users")}</th>
+                      <th className="p-1">{t("retention_m0")}</th>
+                      <th className="p-1">{t("retention_m1")}</th>
+                      <th className="p-1">{t("retention_m2")}</th>
+                      <th className="p-1">{t("retention_m3")}</th>
+                      <th className="p-1">{t("retention_m4")}</th>
+                      <th className="p-1">{t("retention_m5")}</th>
+                      <th className="p-1">{t("retention_m6")}</th>
                     </tr>
                   </thead>
                   <tbody>

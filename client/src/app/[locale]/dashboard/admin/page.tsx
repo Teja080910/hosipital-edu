@@ -9,15 +9,15 @@ import { StatsCard } from "@/components/admin/stats-card";
 import { Loader2, Users, FileQuestion, GraduationCap, DollarSign, BookOpen, UserPlus, CreditCard, FileEdit } from "lucide-react";
 import { analyticsApi } from "@/lib/api";
 
-function timeAgo(date: string): string {
+function timeAgo(date: string, t: (key: string, params?: any) => string): string {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins} min ago`;
+  if (mins < 1) return t("just_now");
+  if (mins < 60) return t("min_ago", { mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
+  if (hrs < 24) return t("hours_ago", { hrs });
   const days = Math.floor(hrs / 24);
-  return `${days} day${days > 1 ? "s" : ""} ago`;
+  return t("days_ago", { days });
 }
 
 function formatCurrency(val: string): string {
@@ -83,7 +83,7 @@ export default function AdminPage() {
                 </CardHeader>
                 <CardContent>
                   {activity.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">{t("recent_activity_empty")}</p>
                   ) : (
                     <div className="space-y-4">
                       {activity.map((item: any) => {
@@ -96,7 +96,7 @@ export default function AdminPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{actionText}</p>
-                              <p className="text-xs text-muted-foreground">{timeAgo(item.createdAt)}</p>
+                              <p className="text-xs text-muted-foreground">{timeAgo(item.createdAt, t)}</p>
                             </div>
                           </div>
                         );

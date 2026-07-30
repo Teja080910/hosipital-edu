@@ -115,7 +115,7 @@ export default function AdminTranslationsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "translations.json";
+      a.download = t("translations_filename");
       a.click();
       URL.revokeObjectURL(url);
       toast.success(t("exported"));

@@ -334,7 +334,7 @@ export default function AdminQuestionsPage() {
                   <RichTextEditor
                     value={form.text.en}
                     onChange={(v) => setForm({ ...form, text: { ...form.text, en: v } })}
-                    placeholder="Question in English"
+                    placeholder={t("question_en_placeholder")}
                   />
                 </div>
                 <div>
@@ -342,7 +342,7 @@ export default function AdminQuestionsPage() {
                   <RichTextEditor
                     value={form.text.es}
                     onChange={(v) => setForm({ ...form, text: { ...form.text, es: v } })}
-                    placeholder="Pregunta en Español"
+                    placeholder={t("question_es_placeholder")}
                   />
                 </div>
               </div>
@@ -356,7 +356,7 @@ export default function AdminQuestionsPage() {
                   <RichTextEditor
                     value={form.explanation.en}
                     onChange={(v) => setForm({ ...form, explanation: { ...form.explanation, en: v } })}
-                    placeholder="Explanation in English"
+                    placeholder={t("explanation_en_placeholder")}
                   />
                 </div>
                 <div>
@@ -364,7 +364,7 @@ export default function AdminQuestionsPage() {
                   <RichTextEditor
                     value={form.explanation.es}
                     onChange={(v) => setForm({ ...form, explanation: { ...form.explanation, es: v } })}
-                    placeholder="Explicación en Español"
+                    placeholder={t("explanation_es_placeholder")}
                   />
                 </div>
               </div>
@@ -545,7 +545,7 @@ export default function AdminQuestionsPage() {
                       <Input
                         value={opt.text.en}
                         onChange={(e) => setOption(i, "text", { ...opt.text, en: e.target.value })}
-                        placeholder={`${t("option")} ${i + 1} (EN)`}
+                        placeholder={t("option_en_placeholder", { num: i + 1 })}
                         className={cn(
                           "flex-1 bg-muted/10 hover:bg-muted/20 border border-border/60 focus:border-primary/50 transition-all duration-300 rounded-lg px-4 h-9 text-sm outline-none",
                           isCorrect && "bg-background focus:border-emerald-500/60 border-emerald-500/20"
@@ -554,7 +554,7 @@ export default function AdminQuestionsPage() {
                       <Input
                         value={opt.text.es}
                         onChange={(e) => setOption(i, "text", { ...opt.text, es: e.target.value })}
-                        placeholder={`${t("option")} ${i + 1} (ES)`}
+                        placeholder={t("option_es_placeholder", { num: i + 1 })}
                         className={cn(
                           "flex-1 bg-muted/10 hover:bg-muted/20 border border-border/60 focus:border-primary/50 transition-all duration-300 rounded-lg px-4 h-9 text-sm outline-none",
                           isCorrect && "bg-background focus:border-emerald-500/60 border-emerald-500/20"

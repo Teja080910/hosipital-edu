@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
             </motion.div>
             {sent ? (
               <>
-                <CardTitle className="text-2xl font-bold tracking-tight">{t("check_email") || "Check your email"}</CardTitle>
+                <CardTitle className="text-2xl font-bold tracking-tight">{t("check_email")}</CardTitle>
                 <CardDescription className="text-sm mt-1.5">{t("forgot_subtitle")}</CardDescription>
               </>
             ) : (

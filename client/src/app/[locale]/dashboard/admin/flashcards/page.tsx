@@ -300,7 +300,7 @@ export default function AdminFlashcardsPage() {
                     onChange={(e) => setForm({ ...form, front: { ...form.front, en: e.target.value } })}
                     rows={3}
                     className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm min-h-[80px]"
-                    placeholder="Front (English)"
+                    placeholder={t("flashcard_front_en_placeholder")}
                   />
                 </div>
                 <div>
@@ -310,7 +310,7 @@ export default function AdminFlashcardsPage() {
                     onChange={(e) => setForm({ ...form, front: { ...form.front, es: e.target.value } })}
                     rows={3}
                     className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm min-h-[80px]"
-                    placeholder="Frente (Español)"
+                    placeholder={t("flashcard_front_es_placeholder")}
                   />
                 </div>
               </div>
@@ -326,7 +326,7 @@ export default function AdminFlashcardsPage() {
                     onChange={(e) => setForm({ ...form, back: { ...form.back, en: e.target.value } })}
                     rows={3}
                     className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm min-h-[80px]"
-                    placeholder="Back (English)"
+                    placeholder={t("flashcard_back_en_placeholder")}
                   />
                 </div>
                 <div>
@@ -336,7 +336,7 @@ export default function AdminFlashcardsPage() {
                     onChange={(e) => setForm({ ...form, back: { ...form.back, es: e.target.value } })}
                     rows={3}
                     className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm min-h-[80px]"
-                    placeholder="Reverso (Español)"
+                    placeholder={t("flashcard_back_es_placeholder")}
                   />
                 </div>
               </div>
@@ -488,7 +488,7 @@ export default function AdminFlashcardsPage() {
               onChange={(e) => setImportText(e.target.value)}
               rows={10}
               className="w-full bg-muted/20 border border-border/80 rounded-xl px-4 py-3 text-sm font-mono"
-              placeholder={`front\tback\nExample question\tExample answer`}
+              placeholder={t("flashcard_import_placeholder")}
             />
             <p className="text-xs text-muted-foreground">
               {t("import_format_hint")}

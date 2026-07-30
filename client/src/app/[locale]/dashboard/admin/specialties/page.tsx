@@ -184,10 +184,10 @@ export default function AdminSpecialtiesPage() {
                   <Button variant="outline" onClick={async () => {
                     try {
                       const { data } = await examsApi.copyQuestions(mirExam.id, selectedExamId);
-                      toast.success(data.message || `Copied ${data.copied} questions`);
-                    } catch { toast.error("Failed to copy questions"); }
+                      toast.success(data.message || t("copy_questions_success", { count: data.copied }));
+                    } catch { toast.error(t("copy_questions_failed")); }
                   }}>
-                    <Loader2 className="h-4 w-4 mr-2" /> Copy questions from MIR
+                    <Loader2 className="h-4 w-4 mr-2" /> {t("copy_from_mir")}
                   </Button>
                 );
               })()}

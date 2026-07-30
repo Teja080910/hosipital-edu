@@ -410,7 +410,7 @@ export default function AdminCourseContentPage() {
                   {uploadingFile ? (
                     <span className="flex items-center gap-2 min-w-0 w-full"><Loader2 className="h-4 w-4 shrink-0 animate-spin" /><span className="truncate">{uploadingFile}</span></span>
                   ) : (
-                    <span className="truncate">{"Choose file"}</span>
+                    <span className="truncate">{t("choose_file")}</span>
                   )}
                 </label>
                 {lessonForm.pdfUrl && (
@@ -441,7 +441,7 @@ export default function AdminCourseContentPage() {
                   {uploadingFile ? (
                     <span className="flex items-center gap-2 min-w-0 w-full"><Loader2 className="h-4 w-4 shrink-0 animate-spin" /><span className="truncate">{uploadingFile}</span></span>
                   ) : (
-                    <span className="truncate">{"Choose file"}</span>
+                    <span className="truncate">{t("choose_file")}</span>
                   )}
                 </label>
                 {lessonForm.imageUrl && (
@@ -485,7 +485,7 @@ export default function AdminCourseContentPage() {
             <div className="space-y-4 py-4">
               <div>
                 <label className="text-sm font-medium">{t("title_english")}</label>
-                <Input value={quizForm.title} onChange={(e) => setQuizForm((p) => ({ ...p, title: e.target.value }))} placeholder="Course Post-Test" />
+                <Input value={quizForm.title} onChange={(e) => setQuizForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("course_post_test_placeholder")} />
               </div>
               <div>
                 <label className="text-sm font-medium">{t("passing_score")}</label>

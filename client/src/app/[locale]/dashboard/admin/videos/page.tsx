@@ -222,7 +222,7 @@ export default function AdminVideosPage() {
                     >
                       <div>
                         <p className="font-medium text-sm">{mod.title?.en ?? mod.title}</p>
-                        <p className="text-xs text-muted-foreground">{mod.lessons?.length || 0} lessons</p>
+                        <p className="text-xs text-muted-foreground">{mod.lessons?.length || 0} {t("lessons_count")}</p>
                       </div>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEditModule(mod); }}>

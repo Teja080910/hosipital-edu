@@ -18,6 +18,7 @@ import { useParams } from "next/navigation";
 export default function ReviewPage({ params }: { params: { id: string; attemptId: string; locale: string } }) {
   const { attemptId, locale } = params;
   const t = useTranslations("exams");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [attempt, setAttempt] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -118,7 +119,7 @@ export default function ReviewPage({ params }: { params: { id: string; attemptId
               {currentAnswer.timeSpent > 0 && <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{currentAnswer.timeSpent}s {t("spent")}</span></div>}
               {question.explanation && (<div className="rounded-2xl border border-border bg-muted/40 px-4 py-3 overflow-hidden mt-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/10"><span className="text-xs text-blue-600 dark:text-blue-400 font-bold">i</span></div>
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/10"><span className="text-xs text-blue-600 dark:text-blue-400 font-bold">{tc("info_icon")}</span></div>
                   <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">{t("explanation")}</p>
                 </div>
                 {/* <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 pb-2 border-b border-border">{t("explanation")}</p> */}

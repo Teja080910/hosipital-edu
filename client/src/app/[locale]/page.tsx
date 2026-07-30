@@ -318,7 +318,7 @@ const sb = useTranslations("subscribe");
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/50 shadow-lg">
                   <DropdownMenuItem onSelect={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} className="rounded-lg">
-                    {mounted && (resolvedTheme === "dark" ? <><Sun className="h-4 w-4 mr-2" /> Light mode</> : <><Moon className="h-4 w-4 mr-2" /> Dark mode</>)}
+                    {mounted && (resolvedTheme === "dark" ? <><Sun className="h-4 w-4 mr-2" /> {t("light_mode")}</> : <><Moon className="h-4 w-4 mr-2" /> {t("dark_mode")}</>)}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => switchLocale("en")} className="rounded-lg" disabled={currentLocale === "en"}>
                     🇺🇸 {c("en")} {currentLocale === "en" && <span className="ml-auto text-xs text-primary">{c("active")}</span>}
@@ -557,7 +557,7 @@ const sb = useTranslations("subscribe");
               const pPopular = plan.isPopular;
               const pPeriod = plan.interval === "year" ? t("period_year") : plan.interval === "quarter" ? t("period_quarter") : t("period_month");
               const pDesc = plan.description?.[currentLocale] || plan.description?.en || "";
-              const features = pDesc ? pDesc.split("\n").filter(Boolean) : (planFeatures[plan.interval] || ["Full question bank access", "Basic analytics"]);
+              const features = pDesc ? pDesc.split("\n").filter(Boolean) : (planFeatures[plan.interval] || [t("full_question_bank"), t("basic_analytics")]);
               return (
               <motion.div key={plan.id || pName} {...stagger(i)}>
                 <Card className={cn(
@@ -643,7 +643,7 @@ const sb = useTranslations("subscribe");
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <Image
                   src="/hero-2.jpg"
-                  alt="MD Exam Mobile View"
+                  alt={t("mobile_view_alt")}
                   width={900}
                   height={1280}
                   className="w-[450px] max-w-[450px] h-[550px] rounded-xl border border-border/50 shadow-lg group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-500 relative mx-auto"
