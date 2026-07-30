@@ -815,7 +815,7 @@ const sb = useTranslations("subscribe");
               <Link href="/content/terms" className="hover:text-foreground transition-colors">{t("terms")}</Link>
               <Link href="/content/privacy" className="hover:text-foreground transition-colors">{t("privacy")}</Link>
               <Link href="/content/faq" className="hover:text-foreground transition-colors">{t("faq_title")}</Link>
-              <Link href="/verify-certificate" className="hover:text-foreground transition-colors">Verify Certificate</Link>
+              <Link href="/verify-certificate" className="hover:text-foreground transition-colors">{t("verify_certificate")}</Link>
             </div>
             <div className="flex items-center gap-4">
               <a href={footer.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
