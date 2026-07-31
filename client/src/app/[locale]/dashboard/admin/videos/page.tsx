@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { streamApi, examsApi } from "@/lib/api";
 import { FolderOpen, Loader2, Pencil, Play, Plus, Trash2, Video, X } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -23,7 +24,7 @@ export default function AdminVideosPage() {
   const [loading, setLoading] = useState(true);
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<any | null>(null);
-  const [moduleForm, setModuleForm] = useState({ title: "", description: "" });
+  const [moduleForm, setModuleForm] = useState({ title: "", description: "", language: "es" });
   const [savingModule, setSavingModule] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [deleteType, setDeleteType] = useState<"module" | "lesson">("module");
@@ -57,14 +58,14 @@ export default function AdminVideosPage() {
 
   const openCreateModule = () => {
     setEditingModule(null);
-    setModuleForm({ title: "", description: "" });
+    setModuleForm({ title: "", description: "", language: "es" });
     setExamIds([]);
     setModuleDialogOpen(true);
   };
 
   const openEditModule = (mod: any) => {
     setEditingModule(mod);
-    setModuleForm({ title: mod.title?.en ?? mod.title ?? "", description: mod.description?.en ?? mod.description ?? "" });
+    setModuleForm({ title: mod.title?.en ?? mod.title ?? "", description: mod.description?.en ?? mod.description ?? "", language: mod.language || "es" });
     setExamIds(mod.examIds || []);
     setModuleDialogOpen(true);
   };
@@ -75,6 +76,7 @@ export default function AdminVideosPage() {
       const payload: any = {
         title: { en: moduleForm.title },
         description: { en: moduleForm.description },
+        language: moduleForm.language,
         examIds,
       };
       if (editingModule) {
@@ -179,6 +181,7 @@ export default function AdminVideosPage() {
   const renderTitle = (v: any) => (typeof v === "string" ? v : v?.en ?? v?.es ?? "");
   const moduleColumns = [
     { key: "title", label: t("title_label"), render: renderTitle },
+    { key: "language", label: t("language"), render: (v: string) => v === "en" ? "English" : "Español" },
     { key: "lessons", label: t("lessons_label"), render: (v: any[]) => v?.length || 0 },
   ];
 
@@ -222,7 +225,7 @@ export default function AdminVideosPage() {
                     >
                       <div>
                         <p className="font-medium text-sm">{mod.title?.en ?? mod.title}</p>
-                        <p className="text-xs text-muted-foreground">{mod.lessons?.length || 0} {t("lessons_count")}</p>
+                        <p className="text-xs text-muted-foreground">{t("lessons_count", { count: mod.lessons?.length || 0 })}</p>
                       </div>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEditModule(mod); }}>
@@ -300,6 +303,19 @@ export default function AdminVideosPage() {
               <div>
                 <label className="text-sm font-medium">{t("description_label")}</label>
                 <Textarea value={moduleForm.description} onChange={(e) => setModuleForm((p) => ({ ...p, description: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">{t("language")}</label>
+                <Select value={moduleForm.language} onValueChange={(v) => setModuleForm((p) => ({ ...p, language: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="es">Español</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">{t("language_desc")}</p>
               </div>
               <div>
                 <label className="text-sm font-medium">{t("exams_optional_label")}</label>
