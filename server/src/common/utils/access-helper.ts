@@ -17,19 +17,32 @@ export async function getAccessibleExamId(
     .limit(1);
 
   if (sub) {
-    if (sub.examId) return sub.examId;
     const planExamRows = await db
       .select({ examId: planExams.examId })
       .from(planExams)
-      .where(eq(planExams.planId, sub.planId))
-      .limit(1);
-    if (planExamRows.length > 0) return planExamRows[0].examId;
-    const [user] = await db
+      .where(eq(planExams.planId, sub.planId));
+    const planExamIds = planExamRows.map((r: any) => r.examId);
+
+    if (planExamIds.length > 0) {
+      const [planUser] = await db
+        .select({ targetExamId: users.targetExamId })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (planUser?.targetExamId && planExamIds.includes(planUser.targetExamId)) {
+        return planUser.targetExamId;
+      }
+      return planUser?.targetExamId || planExamIds[0];
+    }
+
+    if (sub.examId) return sub.examId;
+
+    const [planUser] = await db
       .select({ targetExamId: users.targetExamId })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
-    if (user?.targetExamId) return user.targetExamId;
+    if (planUser?.targetExamId) return planUser.targetExamId;
     return null;
   }
 

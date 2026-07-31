@@ -348,6 +348,7 @@ export const videoModules = pgTable("video_modules", {
   title: jsonb("title").notNull(),
   description: jsonb("description").notNull(),
   maxWatching: integer("max_watching"),
+  language: text("language").default("es"),
   sortOrder: integer("sort_order").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
