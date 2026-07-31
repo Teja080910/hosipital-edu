@@ -1,6 +1,6 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
-import { videoModules, videoModuleExams, videoLessons, userVideoProgress, userSubscriptions, subscriptionPlans, users } from "../database/schema";
+import { videoModules, videoModuleExams, videoLessons, userVideoProgress, userSubscriptions, subscriptionPlans, exams, users } from "../database/schema";
 import { eq, asc, and, inArray, gt } from "drizzle-orm";
 import { getAccessibleExamId } from "../common/utils/access-helper";
 
@@ -50,7 +50,8 @@ export class VideosService {
             .where(eq(subscriptionPlans.id, sub.planId))
             .limit(1);
           if (plan && parseFloat(plan.price || "0") === 0) {
-            subExamIds = "__all__";
+            subExamIds = await getAccessibleExamId(this.db, user.id);
+            if (!subExamIds) return [];
           } else {
             subExamIds = await getAccessibleExamId(this.db, user.id);
           }
@@ -87,10 +88,23 @@ export class VideosService {
     }
 
     const result: Array<Record<string, unknown>> = [];
+    let isUSMLE = false;
+    if (subExamIds !== null && subExamIds !== "__all__") {
+      const [reqExam] = await this.db
+        .select({ slug: exams.slug })
+        .from(exams)
+        .where(eq(exams.id, subExamIds))
+        .limit(1);
+      isUSMLE = reqExam?.slug?.startsWith("usmle") || false;
+    }
     for (const mod of modules) {
       const examLinks = examLinksByModule.get(mod.id) || [];
       const modExamIds = examLinks.map((l: any) => l.examId);
       if (subExamIds !== null && subExamIds !== "__all__" && modExamIds.length > 0 && !modExamIds.includes(subExamIds)) continue;
+      if (subExamIds !== null && subExamIds !== "__all__") {
+        if (isUSMLE && mod.language !== "en") continue;
+        if (!isUSMLE && mod.language === "en") continue;
+      }
       const lessons = lessonsByModule.get(mod.id) || [];
       result.push({ ...mod, lessons, examIds: modExamIds });
     }
