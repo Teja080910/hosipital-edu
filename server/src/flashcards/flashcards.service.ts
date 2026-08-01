@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, HttpException, HttpStatus, Inject } from "@nestjs/common";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
+import { getAccessibleExamId } from "../common/utils/access-helper";
 import { DRIZZLE } from "../database/database.provider";
 import {
   flashcards,
@@ -56,13 +57,16 @@ export class FlashcardsService {
             .where(eq(subscriptionPlans.id, activeSub.planId))
             .limit(1);
           if (plan && parseFloat(plan.price || "0") > 0) {
-            // has paid plan, allow access
           } else {
             return { data: [], total: 0, page, limit };
           }
         } else {
           return { data: [], total: 0, page, limit };
         }
+      }
+      if (!isAdmin) {
+        const accessId = await getAccessibleExamId(this.db, user.id);
+        if (!accessId) return { data: [], total: 0, page, limit };
       }
     }
 
@@ -137,6 +141,16 @@ export class FlashcardsService {
   }
 
   async findDue(userId: string, limit = 20, specialtyId?: string) {
+    const [userCheck] = await this.db
+      .select({ role: users.role, targetExamId: users.targetExamId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const isAdmin = userCheck && (userCheck.role === "admin" || userCheck.role === "super_admin");
+    if (!isAdmin) {
+      const accessId = await getAccessibleExamId(this.db, userId);
+      if (!accessId) return [];
+    }
     const [u] = await this.db
       .select({ accountType: users.accountType })
       .from(users)
@@ -394,6 +408,8 @@ export class FlashcardsService {
   }
 
   async getSpecialties(userId: string) {
+    const accessId = await getAccessibleExamId(this.db, userId);
+    if (!accessId) return [];
     const [user] = await this.db
       .select({ role: users.role, accountType: users.accountType, targetExamId: users.targetExamId })
       .from(users)
