@@ -11,12 +11,12 @@ import { FlashcardCard } from "@/components/flashcards/flashcard-card";
 import { FlashcardReview } from "@/components/flashcards/flashcard-review";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Library, RefreshCw } from "lucide-react";
+import { Library, RefreshCw, Crown } from "lucide-react";
 import { flashcardsApi } from "@/lib/api/flashcards";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "@/routing";
 
 const PAGE_SIZE = 20;
-
 interface FlashcardData {
   id: string;
   front: string;
@@ -45,6 +45,7 @@ function shuffle<T>(array: T[]): T[] {
 export default function FlashcardsPage() {
   const t = useTranslations("flashcards");
   const c = useTranslations("common");
+  const router = useRouter();
   const [cards, setCards] = useState<FlashcardData[]>([]);
   const [totalDue, setTotalDue] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -286,7 +287,13 @@ export default function FlashcardsPage() {
             {isFlipped && <FlashcardReview onRate={handleRate} />}
           </div>
         ) : (
-          <EmptyState icon={Library} title={t("all_caught_up")} description={t("no_cards")} />
+          <div className="flex flex-col items-center gap-4 py-12">
+            <EmptyState icon={Library} title={t("all_caught_up")} description={t("no_cards")} />
+            <Button onClick={() => router.push("/dashboard/subscribe")}>
+              <Crown className="mr-2 h-4 w-4" />
+              {t("subscribe")}
+            </Button>
+          </div>
         )}
       </div>
     </PageTransition>
