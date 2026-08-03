@@ -730,6 +730,7 @@
     "content_spanish": "Content (Spanish)",
     "article_content_placeholder": "Write your article content here...",
     "article_content_placeholder_es": "Escribe el contenido aquí...",
+    "content_image": "Featured Image",
     "published_label": "Published",
     "published_desc": "Make this article visible to users",
     "delete_article_title": "Delete Article",

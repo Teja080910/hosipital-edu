@@ -73,6 +73,10 @@ export default function ArticlePage() {
 
           <h1 className="text-4xl font-bold tracking-tight mb-1">{lTitle}</h1>
 
+          {article.contentImage && (
+            <img src={article.contentImage} alt="" className="w-full rounded-xl my-4" />
+          )}
+
           {lExcerpt && (
             <p className="text-base text-muted-foreground mb-1">{lExcerpt}</p>
           )}
