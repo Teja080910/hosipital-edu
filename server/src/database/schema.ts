@@ -727,6 +727,7 @@ export const articles = pgTable("articles", {
   title: jsonb("title").notNull(),
   excerpt: jsonb("excerpt"),
   content: jsonb("content").notNull(),
+  contentImage: text("content_image"),
   coverImage: text("cover_image"),
   isPublished: boolean("is_published").default(false).notNull(),
   publishedAt: timestamp("published_at"),
