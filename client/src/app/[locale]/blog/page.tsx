@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { articlesApi } from "@/lib/api";
+import { pickLocale } from "@/lib/utils/localized-text";
 import { Loader2, Calendar, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
@@ -14,6 +16,8 @@ export default function BlogPage() {
   const t = useTranslations("blog");
   const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
 
   useEffect(() => {
     articlesApi.list().then(({ data }) => setArticles(data)).catch(() => {}).finally(() => setLoading(false));
@@ -52,14 +56,14 @@ export default function BlogPage() {
                       </span>
                     )}
                   </div>
-                  <CardTitle className="text-xl">{article.title?.en || article.title}</CardTitle>
-                  {article.excerpt?.en && (
-                    <CardDescription className="line-clamp-2">{article.excerpt.en}</CardDescription>
+                  <CardTitle className="text-xl">{pickLocale(article.title, locale)}</CardTitle>
+                  {article.excerpt && pickLocale(article.excerpt, locale) && (
+                    <CardDescription className="line-clamp-2">{pickLocale(article.excerpt, locale)}</CardDescription>
                   )}
                 </CardHeader>
                 <CardContent>
                   <Button variant="link" className="p-0 h-auto text-sm gap-1" asChild>
-                    <Link href={`/blog/${article.slug}`}>
+                    <Link href={`/${locale}/blog/${article.slug}`}>
                       {t("read_more")} <ArrowRight className="h-3 w-3" />
                     </Link>
                   </Button>
