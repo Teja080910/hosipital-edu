@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Sun, Moon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 
 export function PublicNav() {
   const t = useTranslations("nav");
   const s = useTranslations("sidebar");
   const { theme, setTheme } = useTheme();
   const { user, isLoading } = useAuth();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -20,7 +23,7 @@ export function PublicNav() {
           <span className="text-lg font-bold tracking-tight">{s("brand")}</span>
         </Link>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild><Link href="/blog">{t("blog")}</Link></Button>
+              <Button variant="ghost" size="sm" asChild><Link href={`/${locale}/blog`}>{t("blog")}</Link></Button>
           <Button variant="ghost" size="icon-sm" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>

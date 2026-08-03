@@ -40,8 +40,11 @@ export default function AdminArticlesPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     title: "",
+    titleEs: "",
     content: "",
+    contentEs: "",
     excerpt: "",
+    excerptEs: "",
     isPublished: false,
   });
 
@@ -60,7 +63,7 @@ export default function AdminArticlesPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ title: "", content: "", excerpt: "", isPublished: false });
+    setForm({ title: "", titleEs: "", content: "", contentEs: "", excerpt: "", excerptEs: "", isPublished: false });
     setDialogOpen(true);
   };
 
@@ -68,8 +71,11 @@ export default function AdminArticlesPage() {
     setEditing(a);
     setForm({
       title: a.title?.en || a.title || "",
+      titleEs: a.title?.es || "",
       content: a.content?.en || a.content || "",
+      contentEs: a.content?.es || "",
       excerpt: a.excerpt?.en || a.excerpt || "",
+      excerptEs: a.excerpt?.es || "",
       isPublished: a.isPublished ?? false,
     });
     setDialogOpen(true);
@@ -80,9 +86,9 @@ export default function AdminArticlesPage() {
     setSaving(true);
     try {
       const payload = {
-        title: { en: form.title },
-        content: { en: form.content },
-        excerpt: { en: form.excerpt },
+        title: { en: form.title, es: form.titleEs },
+        content: { en: form.content, es: form.contentEs },
+        excerpt: { en: form.excerpt, es: form.excerptEs },
         slug: form.title
           .toLowerCase()
           .normalize("NFD")
@@ -216,7 +222,7 @@ export default function AdminArticlesPage() {
             </div>
           </DialogHeader>
 
-          <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
+          <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("title_english")}</label>
               <Input
@@ -225,6 +231,15 @@ export default function AdminArticlesPage() {
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
                 placeholder={t("article_title_placeholder")}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("title_spanish")}</label>
+              <Input
+                value={form.titleEs}
+                onChange={(e) => setForm({ ...form, titleEs: e.target.value })}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                placeholder={t("article_title_placeholder_es")}
               />
             </div>
 
@@ -237,56 +252,36 @@ export default function AdminArticlesPage() {
                 placeholder={t("short_description_placeholder")}
               />
             </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("excerpt_spanish")}</label>
+              <Input
+                value={form.excerptEs}
+                onChange={(e) => setForm({ ...form, excerptEs: e.target.value })}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                placeholder={t("short_description_placeholder_es")}
+              />
+            </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content")}</label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={uploading}
-                    onClick={() => fileRef.current?.click()}
-                    className="h-8 gap-1.5 rounded-lg text-xs"
-                  >
-                    {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-                    {uploading ? c("loading") : t("add_image")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPreview(!preview)}
-                    className="h-8 gap-1.5 rounded-lg text-xs"
-                  >
-                    {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    {preview ? c("edit") : t("preview")}
-                  </Button>
-                </div>
-              </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageUpload}
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content")}</label>
+              <Textarea
+                ref={contentRef}
+                value={form.content}
+                onChange={(e) => setForm({ ...form, content: e.target.value })}
+                rows={6}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[120px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                placeholder={t("article_content_placeholder")}
               />
-              {preview ? (
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none w-full min-h-[200px] p-4 rounded-xl border border-border/80 bg-background"
-                  dangerouslySetInnerHTML={{ __html: form.content || `<p class='text-muted-foreground/50 italic'>${t("no_content_yet")}</p>` }}
-                />
-              ) : (
-                <Textarea
-                  ref={contentRef}
-                  value={form.content}
-                  onChange={(e) => setForm({ ...form, content: e.target.value })}
-                  rows={8}
-                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[200px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                  placeholder={t("article_content_placeholder")}
-                />
-              )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content_spanish")}</label>
+              <Textarea
+                value={form.contentEs}
+                onChange={(e) => setForm({ ...form, contentEs: e.target.value })}
+                rows={6}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[120px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                placeholder={t("article_content_placeholder_es")}
+              />
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border/60">
