@@ -38,6 +38,10 @@ class CreateArticleDto {
   imageUrl?: string;
 
   @IsOptional()
+  @IsString()
+  contentImage?: string;
+
+  @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
 
@@ -66,6 +70,10 @@ class UpdateArticleDto {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  contentImage?: string;
 
   @IsOptional()
   @IsBoolean()

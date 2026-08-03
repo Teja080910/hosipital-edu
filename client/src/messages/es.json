@@ -123,7 +123,8 @@
     "back_to_blog": "Volver al Blog",
     "not_found": "Artículo no encontrado",
     "nav_blog": "Blog",
-    "nav_dashboard": "Panel"
+    "nav_dashboard": "Panel",
+    "brand_name": "MD Exam"
   },
   "auth": {
     "login_title": "Bienvenido de nuevo",
@@ -716,9 +717,16 @@
     "edit_article": "Editar Artículo",
     "configure_article": "Completa los campos para configurar el artículo",
     "article_title_placeholder": "Ingresa el título del artículo...",
+    "title_spanish": "Título (Español)",
+    "article_title_placeholder_es": "Introduce el título en español...",
     "excerpt": "Extracto",
+    "excerpt_spanish": "Extracto (Español)",
+    "short_description_placeholder_es": "Resumen breve en español...",
     "content": "Contenido",
+    "content_spanish": "Contenido (Español)",
     "article_content_placeholder": "Escribe el contenido de tu artículo aquí...",
+    "article_content_placeholder_es": "Escribe el contenido en español aquí...",
+    "content_image": "Imagen Destacada",
     "published_label": "Publicado",
     "published_desc": "Hacer visible este artículo para los usuarios",
     "delete_article_title": "Eliminar Artículo",

@@ -21,7 +21,7 @@ import { PageTransition } from "@/components/page-transition";
 import { DataGrid } from "@/components/admin/data-grid";
 import { articlesApi, uploadApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, ImagePlus, Loader2, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, ImagePlus, Loader2 } from "lucide-react";
 
 export default function AdminArticlesPage() {
   const t = useTranslations("admin");
@@ -35,13 +35,16 @@ export default function AdminArticlesPage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     title: "",
+    titleEs: "",
     content: "",
+    contentEs: "",
     excerpt: "",
+    excerptEs: "",
+    contentImage: "",
     isPublished: false,
   });
 
@@ -60,7 +63,7 @@ export default function AdminArticlesPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ title: "", content: "", excerpt: "", isPublished: false });
+    setForm({ title: "", titleEs: "", content: "", contentEs: "", excerpt: "", excerptEs: "", contentImage: "", isPublished: false });
     setDialogOpen(true);
   };
 
@@ -68,8 +71,12 @@ export default function AdminArticlesPage() {
     setEditing(a);
     setForm({
       title: a.title?.en || a.title || "",
+      titleEs: a.title?.es || "",
       content: a.content?.en || a.content || "",
+      contentEs: a.content?.es || "",
       excerpt: a.excerpt?.en || a.excerpt || "",
+      excerptEs: a.excerpt?.es || "",
+      contentImage: a.contentImage || "",
       isPublished: a.isPublished ?? false,
     });
     setDialogOpen(true);
@@ -80,9 +87,10 @@ export default function AdminArticlesPage() {
     setSaving(true);
     try {
       const payload = {
-        title: { en: form.title },
-        content: { en: form.content },
-        excerpt: { en: form.excerpt },
+        title: { en: form.title, es: form.titleEs },
+        content: { en: form.content, es: form.contentEs },
+        excerpt: { en: form.excerpt, es: form.excerptEs },
+        contentImage: form.contentImage || null,
         slug: form.title
           .toLowerCase()
           .normalize("NFD")
@@ -122,18 +130,7 @@ export default function AdminArticlesPage() {
       const ext = file.name.split(".").pop() || "png";
       const key = `article-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { data } = await uploadApi.uploadFile(key, base64, file.type);
-      const imgTag = `<img src="${data.url}" alt="" />`;
-      const ta = contentRef.current;
-      if (ta) {
-        const start = ta.selectionStart;
-        const end = ta.selectionEnd;
-        const before = form.content.slice(0, start);
-        const after = form.content.slice(end);
-        setForm({ ...form, content: before + imgTag + after });
-        requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + imgTag.length; ta.focus(); });
-      } else {
-        setForm({ ...form, content: form.content + imgTag });
-      }
+      setForm({ ...form, contentImage: data.url });
       toast.success(t("image_uploaded"));
     } catch {
       toast.error(t("image_upload_failed"));
@@ -216,7 +213,7 @@ export default function AdminArticlesPage() {
             </div>
           </DialogHeader>
 
-          <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
+          <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto pr-3 scrollbar-thin">
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("title_english")}</label>
               <Input
@@ -225,6 +222,15 @@ export default function AdminArticlesPage() {
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
                 placeholder={t("article_title_placeholder")}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("title_spanish")}</label>
+              <Input
+                value={form.titleEs}
+                onChange={(e) => setForm({ ...form, titleEs: e.target.value })}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                placeholder={t("article_title_placeholder_es")}
               />
             </div>
 
@@ -237,55 +243,53 @@ export default function AdminArticlesPage() {
                 placeholder={t("short_description_placeholder")}
               />
             </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("excerpt_spanish")}</label>
+              <Input
+                value={form.excerptEs}
+                onChange={(e) => setForm({ ...form, excerptEs: e.target.value })}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                placeholder={t("short_description_placeholder_es")}
+              />
+            </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content")}</label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={uploading}
-                    onClick={() => fileRef.current?.click()}
-                    className="h-8 gap-1.5 rounded-lg text-xs"
-                  >
-                    {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-                    {uploading ? c("loading") : t("add_image")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPreview(!preview)}
-                    className="h-8 gap-1.5 rounded-lg text-xs"
-                  >
-                    {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    {preview ? c("edit") : t("preview")}
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content")}</label>
+              <Textarea
+                ref={contentRef}
+                value={form.content}
+                onChange={(e) => setForm({ ...form, content: e.target.value })}
+                rows={6}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[120px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                placeholder={t("article_content_placeholder")}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content_spanish")}</label>
+              <Textarea
+                value={form.contentEs}
+                onChange={(e) => setForm({ ...form, contentEs: e.target.value })}
+                rows={6}
+                className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[120px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
+                placeholder={t("article_content_placeholder_es")}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{t("content_image")}</label>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              {form.contentImage ? (
+                <div className="relative w-full rounded-xl border border-border/80 overflow-hidden">
+                  <img src={form.contentImage} alt="" className="w-full max-h-48 object-cover" />
+                  <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => setForm({ ...form, contentImage: "" })}>
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-              </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageUpload}
-              />
-              {preview ? (
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none w-full min-h-[200px] p-4 rounded-xl border border-border/80 bg-background"
-                  dangerouslySetInnerHTML={{ __html: form.content || `<p class='text-muted-foreground/50 italic'>${t("no_content_yet")}</p>` }}
-                />
               ) : (
-                <Textarea
-                  ref={contentRef}
-                  value={form.content}
-                  onChange={(e) => setForm({ ...form, content: e.target.value })}
-                  rows={8}
-                  className="w-full bg-muted/20 hover:bg-muted/40 border border-border/80 focus:border-primary/50 focus:bg-background transition-all duration-300 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/50 min-h-[200px] resize-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-[0_0_0_3px_rgb(37_99_235_/_0.12)] shadow-none"
-                  placeholder={t("article_content_placeholder")}
-                />
+                <Button type="button" variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()} className="w-full h-24 gap-2 rounded-xl border-dashed">
+                  {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+                  {uploading ? c("loading") : t("add_image")}
+                </Button>
               )}
             </div>
 
