@@ -1,5 +1,6 @@
 export function pickLocale(value: any, locale = "en"): string {
   if (!value) return "";
   if (typeof value === "string") return value;
-  return value[locale] || value.en || Object.values(value)[0] || "";
+  const result = value[locale] || value.en || Object.values(value)[0] || "";
+  return typeof result === "string" ? result : pickLocale(result, locale);
 }
