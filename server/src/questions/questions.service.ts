@@ -8,7 +8,7 @@ import { DRIZZLE } from "../database/database.provider";
 import { questions, questionExams, questionOptions, questionImages, userSubscriptions, subscriptionPlans, users } from "../database/schema";
 import { and, eq, isNull, ilike, asc, inArray, sql } from "drizzle-orm";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
-import { getAccessibleExamId } from "../common/utils/access-helper";
+import { getAccessibleExamIds } from "../common/utils/access-helper";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -64,10 +64,10 @@ export class QuestionsService {
       }
     }
 
-    let subExamId: string | null = null;
+    let subExamIds: string[] | null = null;
     if (user && !isAdmin) {
       if (isCourseOnly) {
-        subExamId = "none";
+        return { data: [], total: 0, page, limit };
       } else {
         const [sub] = await this.db
           .select({ planId: userSubscriptions.planId })
@@ -84,22 +84,26 @@ export class QuestionsService {
             return { data: [], total: 0, page, limit };
           }
         }
-        subExamId = await this.getSubscriptionExamId(user.id);
+        subExamIds = await getAccessibleExamIds(this.db, user.id);
       }
     }
 
-    if (subExamId) {
-      if (subExamId !== "__all__") {
-        const subQIds = await this.db
-          .select({ questionId: questionExams.questionId })
-          .from(questionExams)
-          .where(eq(questionExams.examId, subExamId));
-        const subIds = subQIds.map((r: any) => r.questionId);
+    if (subExamIds && subExamIds.length > 0) {
+      const subQIds = await this.db
+        .select({ questionId: questionExams.questionId })
+        .from(questionExams)
+        .where(inArray(questionExams.examId, subExamIds));
+      const subIds = subQIds.map((r: any) => r.questionId);
+      if (subIds.length > 0) {
         conditions.push(inArray(questions.id, subIds));
-        if (examId && examId !== subExamId) {
-          return { data: [], total: 0, page, limit };
-        }
+      } else {
+        return { data: [], total: 0, page, limit };
       }
+      if (examId && !subExamIds.includes(examId)) {
+        return { data: [], total: 0, page, limit };
+      }
+    } else if (subExamIds && subExamIds.length === 0) {
+      return { data: [], total: 0, page, limit };
     } else if (examId) {
       if (user && !isAdmin) {
         const [sub] = await this.db
@@ -215,12 +219,12 @@ export class QuestionsService {
         throw new ForbiddenException(this.i18n.t("questions.notFound"));
       }
       if (!isAdmin) {
-        const subExamId = await this.getSubscriptionExamId(user.id);
-        if (subExamId && subExamId !== "__all__") {
+        const subExamIds = await getAccessibleExamIds(this.db, user.id);
+        if (subExamIds && subExamIds.length > 0) {
           const links = await this.db
             .select()
             .from(questionExams)
-            .where(and(eq(questionExams.questionId, id), eq(questionExams.examId, subExamId)))
+            .where(and(eq(questionExams.questionId, id), inArray(questionExams.examId, subExamIds)))
             .limit(1);
           if (!links.length) {
             throw new NotFoundException("Question not found");
@@ -336,9 +340,5 @@ export class QuestionsService {
       .returning();
     if (!question) throw new NotFoundException(this.i18n.t("questions.notFound"));
     return { message: this.i18n.t("questions.deleted") };
-  }
-
-  private async getSubscriptionExamId(userId: string): Promise<string | null> {
-    return getAccessibleExamId(this.db, userId);
   }
 }

@@ -2,14 +2,14 @@ import { Injectable, Inject } from "@nestjs/common";
 import { DRIZZLE } from "../database/database.provider";
 import { videoModules, videoModuleExams, videoLessons, userVideoProgress, userSubscriptions, subscriptionPlans, exams, users } from "../database/schema";
 import { eq, asc, and, inArray, gt } from "drizzle-orm";
-import { getAccessibleExamId } from "../common/utils/access-helper";
+import { getAccessibleExamIds } from "../common/utils/access-helper";
 
 @Injectable()
 export class VideosService {
   constructor(@Inject(DRIZZLE) private db: any) {}
 
   async findAll(user?: any) {
-    let subExamIds: string | null = null;
+    let subExamIds: string[] | null = null;
     if (user) {
       const [u] = await this.db
         .select({ accountType: users.accountType, role: users.role })
@@ -40,9 +40,9 @@ export class VideosService {
           .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"]), gt(userSubscriptions.currentPeriodEnd, new Date())))
           .limit(1);
         if (!sub) {
-          const accessId = await getAccessibleExamId(this.db, user.id);
-          if (!accessId) return [];
-          subExamIds = accessId;
+          const accessIds = await getAccessibleExamIds(this.db, user.id);
+          if (!accessIds || accessIds.length === 0) return [];
+          subExamIds = accessIds;
         } else {
           const [plan] = await this.db
             .select({ price: subscriptionPlans.price })
@@ -50,10 +50,11 @@ export class VideosService {
             .where(eq(subscriptionPlans.id, sub.planId))
             .limit(1);
           if (plan && parseFloat(plan.price || "0") === 0) {
-            subExamIds = await getAccessibleExamId(this.db, user.id);
-            if (!subExamIds) return [];
+            const accessIds = await getAccessibleExamIds(this.db, user.id);
+            if (!accessIds || accessIds.length === 0) return [];
+            subExamIds = accessIds;
           } else {
-            subExamIds = await getAccessibleExamId(this.db, user.id);
+            subExamIds = await getAccessibleExamIds(this.db, user.id);
           }
         }
       }
@@ -87,24 +88,34 @@ export class VideosService {
       lessonsByModule.get(lesson.moduleId)!.push(lesson);
     }
 
-    const result: Array<Record<string, unknown>> = [];
-    let isUSMLE = false;
-    if (subExamIds !== null && subExamIds !== "__all__") {
-      const [reqExam] = await this.db
+    let hasUSMLE = false;
+    let hasNonUSMLE = false;
+    if (subExamIds && subExamIds.length > 0) {
+      const reqExams = await this.db
         .select({ slug: exams.slug })
         .from(exams)
-        .where(eq(exams.id, subExamIds))
-        .limit(1);
-      isUSMLE = reqExam?.slug?.startsWith("usmle") || false;
+        .where(inArray(exams.id, subExamIds));
+      for (const exam of reqExams) {
+        if (exam.slug?.startsWith("usmle")) {
+          hasUSMLE = true;
+        } else {
+          hasNonUSMLE = true;
+        }
+      }
     }
+
+    const result: Array<Record<string, unknown>> = [];
     for (const mod of modules) {
       const examLinks = examLinksByModule.get(mod.id) || [];
       const modExamIds = examLinks.map((l: any) => l.examId);
-      if (subExamIds !== null && subExamIds !== "__all__" && modExamIds.length > 0 && !modExamIds.includes(subExamIds)) continue;
-      if (subExamIds !== null && subExamIds !== "__all__") {
-        if (isUSMLE && mod.language !== "en") continue;
-        if (!isUSMLE && mod.language === "en") continue;
+
+      if (subExamIds && subExamIds.length > 0) {
+        if (modExamIds.length > 0 && !modExamIds.some((eid: string) => subExamIds!.includes(eid))) continue;
+
+        if (hasUSMLE && !hasNonUSMLE && mod.language !== "en") continue;
+        if (!hasUSMLE && hasNonUSMLE && mod.language === "en") continue;
       }
+
       const lessons = lessonsByModule.get(mod.id) || [];
       result.push({ ...mod, lessons, examIds: modExamIds });
     }
