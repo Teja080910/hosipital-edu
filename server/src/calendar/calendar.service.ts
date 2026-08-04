@@ -1,8 +1,8 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { stripTimestamps } from "../common/utils/strip-timestamps";
 import { DRIZZLE } from "../database/database.provider";
-import { calendarEvents } from "../database/schema";
-import { eq, and, gte, lte, type SQL } from "drizzle-orm";
+import { calendarEvents, userSubscriptions, subscriptionPlans } from "../database/schema";
+import { eq, and, gte, lte, gt, inArray, type SQL } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 
 @Injectable()
@@ -12,7 +12,16 @@ export class CalendarService {
     private i18n: I18nService,
   ) {}
 
-  async findAll(filters: { userId?: string; startDate?: Date; endDate?: Date }) {
+  async findAll(filters: { userId?: string; startDate?: Date; endDate?: Date }, user?: any) {
+    if (user && user.role !== "admin" && user.role !== "super_admin") {
+      const [sub] = await this.db
+        .select()
+        .from(userSubscriptions)
+        .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
+        .where(and(eq(userSubscriptions.userId, user.id), inArray(userSubscriptions.status, ["active", "cancelling"]), gt(userSubscriptions.currentPeriodEnd, new Date())))
+        .limit(1);
+      if (!sub?.subscription_plans?.hasCalendar) return [];
+    }
     const conditions: SQL[] = [];
     if (filters.userId) conditions.push(eq(calendarEvents.userId, filters.userId));
     if (filters.startDate) conditions.push(gte(calendarEvents.eventDate, filters.startDate));

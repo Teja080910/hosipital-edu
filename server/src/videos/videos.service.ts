@@ -45,16 +45,13 @@ export class VideosService {
           subExamIds = accessId;
         } else {
           const [plan] = await this.db
-            .select({ price: subscriptionPlans.price })
+            .select({ hasVideos: subscriptionPlans.hasVideos })
             .from(subscriptionPlans)
             .where(eq(subscriptionPlans.id, sub.planId))
             .limit(1);
-          if (plan && parseFloat(plan.price || "0") === 0) {
-            subExamIds = await getAccessibleExamId(this.db, user.id);
-            if (!subExamIds) return [];
-          } else {
-            subExamIds = await getAccessibleExamId(this.db, user.id);
-          }
+          if (!plan?.hasVideos) return [];
+          subExamIds = await getAccessibleExamId(this.db, user.id);
+          if (!subExamIds) return [];
         }
       }
     }

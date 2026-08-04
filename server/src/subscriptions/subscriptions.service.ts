@@ -139,6 +139,8 @@ export class SubscriptionsService {
           maxFlashcards: subscriptionPlans.maxFlashcards,
           maxFlashcardAttempts: subscriptionPlans.maxFlashcardAttempts,
           maxUses: subscriptionPlans.maxUses,
+          hasVideos: subscriptionPlans.hasVideos,
+          hasCalendar: subscriptionPlans.hasCalendar,
         },
       })
       .from(userSubscriptions)
