@@ -36,6 +36,8 @@ function CourseDetail() {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [isTrial, setIsTrial] = useState(false);
   const [progress, setProgress] = useState<{ completed: number; total: number; percentage: number; lessons: any[] } | null>(null);
   const [certificateId, setCertificateId] = useState<string | null>(null);
   const [generatingCert, setGeneratingCert] = useState(false);
@@ -57,6 +59,10 @@ function CourseDetail() {
           if (enrollment.enrolled) {
             coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
           }
+        }).catch(() => {});
+        coursesApi.checkAccess(slug).then(({ data: access }) => {
+          setHasAccess(access.hasAccess);
+          if (access.isTrial) setIsTrial(true);
         }).catch(() => {});
       }
     }).catch(() => toast.error(t("not_found"))).finally(() => setLoading(false));
@@ -314,13 +320,20 @@ function CourseDetail() {
           </div>
         )}
 
-        {!isEnrolled && (
+        {!isEnrolled && !hasAccess && (
           <Button size="lg" onClick={handleEnroll} disabled={enrolling}>
             {enrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {parseFloat(course.price) > 0 ? `${t("enroll")} - $${course.price}` : t("enroll_free")}
           </Button>
         )}
+        {isTrial && !isEnrolled && (
+          <Button size="lg" onClick={handleEnroll} disabled={enrolling} variant="outline">
+            {enrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {t("start_trial")}
+          </Button>
+        )}
         {isEnrolled && <Badge className="text-sm px-3 py-1">{t("enrolled_badge")}</Badge>}
+        {hasAccess && !isEnrolled && <Badge className="text-sm px-3 py-1 bg-blue-100 text-blue-700">{t("trial_access")}</Badge>}
         {progress && progressPct > 0 && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm">
@@ -331,7 +344,7 @@ function CourseDetail() {
           </div>
         )}
 
-        {isEnrolled && preTest && renderQuizCard(preTest, "pre_test")}
+        {(isEnrolled || hasAccess) && preTest && renderQuizCard(preTest, "pre_test")}
 
         {progress && allLessonsCompleted && course?.hasCertificate && (
           <div className="flex items-center gap-3 p-4 rounded-lg border border-primary/20 bg-primary/5">

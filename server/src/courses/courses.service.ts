@@ -62,6 +62,14 @@ export class CoursesService {
         isActive: courses.isActive,
         examId: courses.examId,
         createdAt: courses.createdAt,
+        introduction: courses.introduction,
+        objectives: courses.objectives,
+        targetAudience: courses.targetAudience,
+        prerequisites: courses.prerequisites,
+        whatYouWillLearn: courses.whatYouWillLearn,
+        preExamInstructions: courses.preExamInstructions,
+        postExamInstructions: courses.postExamInstructions,
+        certificateInstructions: courses.certificateInstructions,
         lessonCount: sql<number>`count(${courseLessons.id})::int`,
       })
       .from(courses)
@@ -295,6 +303,23 @@ export class CoursesService {
     }
 
     if (!stripePaymentId) {
+      const access = await this.checkAccess(userId, userRecord?.role || "", courseId);
+      if (access.hasAccess && access.isTrial) {
+        const [enrollment] = await this.db
+          .insert(userCourseEnrollments)
+          .values({
+            userId,
+            courseId,
+            accessExpiresAt: new Date(Date.now() + course.durationDays * 86400000),
+          })
+          .returning();
+        return enrollment;
+      }
+
+      if (isCourseOnly && !subCourseId) {
+        throw new BadRequestException(this.i18n.t("courses.subscribeFirst"));
+      }
+
       const appUrl = this.config.get<string>("APP_URL") || "http://localhost:4175";
       const session = await this.stripe.checkout.sessions.create({
         mode: "payment",
@@ -369,7 +394,11 @@ export class CoursesService {
           .where(eq(users.id, userId))
           .limit(1);
         if (planUser?.targetExamId && courseExamIds.includes(planUser.targetExamId)) return { hasAccess: true };
-        return { hasAccess: false };
+        if (!planUser?.targetExamId && parseFloat(plan.price) === 0) {
+          // free plan, course_only user with no target exam → fall through to trial
+        } else {
+          return { hasAccess: false };
+        }
       }
       if (parseFloat(plan.price) > 0) {
         return { hasAccess: true };
