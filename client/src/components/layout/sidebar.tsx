@@ -89,9 +89,9 @@ export function Sidebar({ isCollapsed, onToggle, mobileOpen, onMobileClose }: Si
   const isCourseOnly = user?.accountType === "course_only";
   const hasExams = activePlan ? (activePlan.maxExamAttempts != null || parseFloat(activePlan.price || "0") > 0) : false;
   const hasFlashcards = (!isCourseOnly && activePlan) ? (activePlan.maxFlashcards != null || activePlan?.maxFlashcardAttempts != null) : false;
-  const hasVideos = hasExams;
+  const hasVideos = activePlan?.hasVideos || false;
   const hasProgress = hasExams || hasFlashcards;
-  const hasCalendar = hasExams;
+  const hasCalendar = activePlan?.hasCalendar || false;
 
   const navItems = allNavItems.filter(item => {
     if (user?.role === "admin" || user?.role === "super_admin") return true;

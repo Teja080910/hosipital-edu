@@ -139,6 +139,8 @@ export class SubscriptionsService {
           maxFlashcards: subscriptionPlans.maxFlashcards,
           maxFlashcardAttempts: subscriptionPlans.maxFlashcardAttempts,
           maxUses: subscriptionPlans.maxUses,
+          hasVideos: subscriptionPlans.hasVideos,
+          hasCalendar: subscriptionPlans.hasCalendar,
         },
       })
       .from(userSubscriptions)
@@ -189,7 +191,7 @@ export class SubscriptionsService {
     const existingSub = await this.getUserSubscription(userId);
     const appUrl = this.config.get<string>("APP_URL");
 
-    if (existingSub && isRecurring) {
+    if (existingSub && existingSub.stripeSubscriptionId && isRecurring) {
       if (existingSub.stripeSubscriptionId) {
         const stripeSub = await this.stripe.subscriptions.retrieve(existingSub.stripeSubscriptionId);
         const currentItemId = stripeSub.items?.data?.[0]?.id;
