@@ -180,6 +180,15 @@ export class CoursesService {
 
   async create(data: any) {
     const { createdAt, updatedAt, deletedAt, examIds, ...cleanData } = data;
+    if (!cleanData.slug) {
+      const title = cleanData.title?.en || cleanData.title || "";
+      cleanData.slug = title
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
     const [course] = await this.db.insert(courses).values(cleanData).returning();
     if (examIds?.length) {
       try { await this.db.insert(courseExams).values(examIds.map((eId: string) => ({ courseId: course.id, examId: eId }))); } catch {}
