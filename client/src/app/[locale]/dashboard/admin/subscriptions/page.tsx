@@ -53,6 +53,8 @@ export default function AdminSubscriptionsPage() {
     maxUses: "",
     courseId: "",
     isPopular: false,
+    hasVideos: false,
+    hasCalendar: false,
   });
 
   useEffect(() => {
@@ -75,7 +77,7 @@ export default function AdminSubscriptionsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "0", interval: "month", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, maxExamAttempts: "", maxFlashcardAttempts: "", maxUses: "", courseId: "", isPopular: false });
+    setForm({ name: "", description: "", price: "0", interval: "month", currency: "USD", isVisible: true, examIds: [], isCourseOnly: false, maxDays: 0, maxExamAttempts: "", maxFlashcardAttempts: "", maxUses: "", courseId: "", isPopular: false, hasVideos: false, hasCalendar: false });
     setDialogOpen(true);
   };
 
@@ -96,6 +98,8 @@ export default function AdminSubscriptionsPage() {
       maxUses: p.maxUses?.toString() || "",
       courseId: p.courseId || "",
       isPopular: p.isPopular ?? false,
+      hasVideos: p.hasVideos ?? false,
+      hasCalendar: p.hasCalendar ?? false,
     });
     setDialogOpen(true);
   };
@@ -119,6 +123,8 @@ export default function AdminSubscriptionsPage() {
         maxUses: form.maxUses ? Number(form.maxUses) : null,
         courseId: form.courseId || null,
         isPopular: form.isPopular,
+        hasVideos: form.hasVideos,
+        hasCalendar: form.hasCalendar,
       };
       if (editing) {
         await subscriptionsApi.updatePlan(editing.id, payload);
@@ -344,6 +350,32 @@ export default function AdminSubscriptionsPage() {
               <div>
                 <label className="text-sm font-medium">{t("is_popular")}</label>
                 <p className="text-xs text-muted-foreground">{t("is_popular_desc")}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border/60">
+              <input
+                type="checkbox"
+                checked={form.hasVideos}
+                onChange={(e) => setForm({ ...form, hasVideos: e.target.checked })}
+                className="h-4 w-4 rounded border-border"
+              />
+              <div>
+                <label className="text-sm font-medium">{t("videos_access")}</label>
+                <p className="text-xs text-muted-foreground">{t("videos_access_desc")}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border/60">
+              <input
+                type="checkbox"
+                checked={form.hasCalendar}
+                onChange={(e) => setForm({ ...form, hasCalendar: e.target.checked })}
+                className="h-4 w-4 rounded border-border"
+              />
+              <div>
+                <label className="text-sm font-medium">{t("calendar_access")}</label>
+                <p className="text-xs text-muted-foreground">{t("calendar_access_desc")}</p>
               </div>
             </div>
 

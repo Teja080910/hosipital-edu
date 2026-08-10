@@ -64,6 +64,14 @@ class CreatePlanDto {
 
   @IsOptional()
   @IsBoolean()
+  hasVideos?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  hasCalendar?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   isCourseOnly?: boolean;
 
   @IsOptional()
@@ -148,6 +156,14 @@ class UpdatePlanDto {
   @IsOptional()
   @IsBoolean()
   isPopular?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  hasVideos?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  hasCalendar?: boolean;
 
   @IsOptional()
   @IsBoolean()

@@ -76,7 +76,9 @@ export class AuthService {
       .where(and(eq(subscriptionPlans.isDefault, true), eq(subscriptionPlans.isActive, true)))
       .limit(1);
 
-    if (defaultPlan) {
+    if (defaultPlan && dto.accountType === "course_only" && !defaultPlan.isCourseOnly) {
+      // course_only users should not get a general-purpose plan
+    } else if (defaultPlan) {
       await this.db.insert(userSubscriptions).values({
         userId: user.id,
         planId: defaultPlan.id,
