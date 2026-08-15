@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { VideoOff } from "lucide-react";
 import { streamApi, videosApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -15,12 +16,21 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
   const t = useTranslations("videos");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const savedRef = useRef<number>(0);
+  const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     if (!uid) return;
     let cancelled = false;
+    setMissing(false);
 
     (async () => {
+      try {
+        await streamApi.getVideo(uid);
+      } catch {
+        if (!cancelled) setMissing(true);
+        return;
+      }
+
       let seek = 0;
       if (lessonId) {
         try {
@@ -73,6 +83,15 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
   }, [uid, lessonId]);
 
   if (!uid) return null;
+
+  if (missing) {
+    return (
+      <div className={cn("relative aspect-video bg-muted rounded-lg overflow-hidden flex flex-col items-center justify-center gap-2 text-center p-4", className)}>
+        <VideoOff className="h-10 w-10 text-muted-foreground" />
+        <p className="text-sm font-medium text-muted-foreground">{t("video_not_found")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("relative aspect-video bg-black rounded-lg overflow-hidden", className)}>

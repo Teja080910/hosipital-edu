@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CourseQuiz } from "@/components/courses/course-quiz";
+import { StreamVideoPlayer } from "@/components/stream/stream-video-player";
 import { coursesApi } from "@/lib/api";
 import { ArrowLeft, CheckCircle, Clock, FileText, Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -153,10 +154,11 @@ export default function LessonPage() {
               );
             }
 
-            if (url.includes("cloudflarestream.com") && !url.includes("drive.google.com")) {
+            const cfUid = url.match(/^[a-f0-9]{32}$/);
+            if (cfUid || (url.includes("cloudflarestream.com") && !url.includes("drive.google.com"))) {
               return (
                 <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                  <iframe src={url} className="w-full h-full rounded-lg" allowFullScreen />
+                  <StreamVideoPlayer uid={cfUid ? cfUid[0] : url} lessonId={lesson.id} />
                 </div>
               );
             }

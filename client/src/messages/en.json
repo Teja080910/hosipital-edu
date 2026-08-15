@@ -962,6 +962,7 @@
     "video_ready": "Video ready!",
     "file_too_large": "File too large. Max 200MB.",
     "video_player": "Video player",
+    "video_not_found": "This video is no longer available",
     "cancel": "Cancel",
     "lessons_count": "{count} lessons",
     "video_placeholder": "Video placeholder",
