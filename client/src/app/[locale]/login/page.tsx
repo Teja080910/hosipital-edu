@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { useRouter, usePathname } from "@/routing";
+import { useRouter } from "@/routing";
 import { Link } from "@/routing";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 export default function LoginPage() {
   const t = useTranslations("auth");
   const router = useRouter();
-  const pathname = usePathname();
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const { login } = useAuth();
 
@@ -31,7 +31,6 @@ export default function LoginPage() {
     if (!raw) return null;
     const safe = raw.startsWith("/") && !raw.startsWith("//") ? raw : null;
     if (!safe || safe.startsWith("/login") || safe.startsWith("/register")) return null;
-    const locale = pathname.split("/")[1];
     if (locale && safe.startsWith(`/${locale}/`)) return safe.slice(locale.length + 1);
     return safe;
   })();
