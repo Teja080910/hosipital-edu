@@ -24,8 +24,10 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
     setMissing(false);
 
     (async () => {
+      let src = `https://iframe.cloudflarestream.com/${uid}`;
       try {
-        await streamApi.getVideo(uid);
+        const { data } = await streamApi.getSignedToken(uid);
+        src += `?token=${data.token}`;
       } catch {
         if (!cancelled) setMissing(true);
         return;
@@ -40,12 +42,6 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
       }
 
       if (cancelled) return;
-
-      let src = `https://iframe.cloudflarestream.com/${uid}`;
-      try {
-        const { data } = await streamApi.getSignedToken(uid);
-        src += `?token=${data.token}`;
-      } catch {}
 
       if (iframeRef.current) iframeRef.current.src = src;
 
