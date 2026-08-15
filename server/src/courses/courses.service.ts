@@ -520,7 +520,7 @@ export class CoursesService {
     return { message: this.i18n.t("courses.lessonDeleted") };
   }
 
-  async completeLesson(userId: string, courseId: string, lessonId: string) {
+  private async userHasCourseAccess(userId: string, courseId: string): Promise<boolean> {
     const [enrollment] = await this.db
       .select()
       .from(userCourseEnrollments)
@@ -532,7 +532,22 @@ export class CoursesService {
         ),
       )
       .limit(1);
-    if (!enrollment) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
+    if (enrollment) return true;
+
+    const [userRecord] = await this.db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (userRecord?.role === "admin" || userRecord?.role === "super_admin") return true;
+
+    const access = await this.checkAccess(userId, userRecord?.role || "", courseId);
+    return !!access?.hasAccess;
+  }
+
+  async completeLesson(userId: string, courseId: string, lessonId: string) {
+    const hasAccess = await this.userHasCourseAccess(userId, courseId);
+    if (!hasAccess) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
 
     const [existing] = await this.db
       .select()
@@ -576,18 +591,8 @@ export class CoursesService {
   }
 
   async incompleteLesson(userId: string, courseId: string, lessonId: string) {
-    const [enrollment] = await this.db
-      .select()
-      .from(userCourseEnrollments)
-      .where(
-        and(
-          eq(userCourseEnrollments.userId, userId),
-          eq(userCourseEnrollments.courseId, courseId),
-          eq(userCourseEnrollments.status, "active"),
-        ),
-      )
-      .limit(1);
-    if (!enrollment) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
+    const hasAccess = await this.userHasCourseAccess(userId, courseId);
+    if (!hasAccess) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
 
     const [existing] = await this.db
       .select()
