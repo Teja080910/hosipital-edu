@@ -25,8 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { leadsApi } from "@/lib/api/leads";
-import { subscriptionsApi, examsApi, parametersApi } from "@/lib/api";
-import { testimonialsApi } from "@/lib/api/testimonials";
+import { landingApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Link } from "@/routing";
 import { motion } from "framer-motion";
@@ -102,24 +101,6 @@ const sb = useTranslations("subscribe");
   const [leadLoading, setLeadLoading] = useState(false);
   const [leadMsg, setLeadMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    subscriptionsApi.plans().then(({ data }) => {
-      if (Array.isArray(data)) {
-        setPlans(data.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
-      }
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (user && user.role !== "admin" && user.role !== "super_admin") {
-      subscriptionsApi.mySubscription().then(({ data }) => {
-        if (data?.plan?.sortOrder !== undefined && data?.plan?.sortOrder !== null) {
-          setSubData({ planSortOrder: data.plan.sortOrder });
-        }
-      }).catch(() => {});
-    }
-  }, [user]);
-
   const features = Array.from({ length: 6 }, (_, i) => ({
     icon: [BookOpen, Brain, Video, Library, BarChart3, Calendar][i],
     title: t(`feature_${i}_title`),
@@ -143,31 +124,31 @@ const sb = useTranslations("subscribe");
     return val[locale] || val.en || fallback;
   };
 
-  useEffect(() => {
-    testimonialsApi.getAll().then(({ data }) => {
-      if (Array.isArray(data)) setTestimonialsData(data);
-    }).catch(() => {});
-    parametersApi.list().then(({ data }) => {
-      if (!Array.isArray(data)) return;
-      const paramMap: Record<string, any> = {};
-      data.forEach((p: any) => { paramMap[p.key] = p; });
-      setPromoVideoUrl(getParamValue(paramMap.promo_video_url, currentLocale, ""));
-      setFooter((f) => ({
-        facebookUrl: getParamValue(paramMap.footer_facebook_url, currentLocale, f.facebookUrl),
-        instagramUrl: getParamValue(paramMap.footer_instagram_url, currentLocale, f.instagramUrl),
-        youtubeUrl: getParamValue(paramMap.footer_youtube_url, currentLocale, f.youtubeUrl),
-        email: getParamValue(paramMap.footer_email, currentLocale, f.email),
-        brandName: getParamValue(paramMap.footer_brand_name, currentLocale, f.brandName),
-        rightsText: getParamValue(paramMap.footer_rights_text, currentLocale, f.rightsText),
-      }));
-    }).catch(() => {});
-  }, []);
-
   const [examSlugs, setExamSlugs] = useState<string[]>([]);
 
   useEffect(() => {
-    examsApi.list().then(({ data }) => {
-      const items = data || [];
+    landingApi.getData().then(({ data }) => {
+      if (Array.isArray(data?.plans)) {
+        setPlans(data.plans.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
+      }
+      if (data?.mySubscription?.plan?.sortOrder !== undefined && data?.mySubscription?.plan?.sortOrder !== null) {
+        setSubData({ planSortOrder: data.mySubscription.plan.sortOrder });
+      }
+      if (Array.isArray(data?.testimonials)) setTestimonialsData(data.testimonials);
+      if (Array.isArray(data?.parameters)) {
+        const paramMap: Record<string, any> = {};
+        data.parameters.forEach((p: any) => { paramMap[p.key] = p; });
+        setPromoVideoUrl(getParamValue(paramMap.promo_video_url, currentLocale, ""));
+        setFooter((f) => ({
+          facebookUrl: getParamValue(paramMap.footer_facebook_url, currentLocale, f.facebookUrl),
+          instagramUrl: getParamValue(paramMap.footer_instagram_url, currentLocale, f.instagramUrl),
+          youtubeUrl: getParamValue(paramMap.footer_youtube_url, currentLocale, f.youtubeUrl),
+          email: getParamValue(paramMap.footer_email, currentLocale, f.email),
+          brandName: getParamValue(paramMap.footer_brand_name, currentLocale, f.brandName),
+          rightsText: getParamValue(paramMap.footer_rights_text, currentLocale, f.rightsText),
+        }));
+      }
+      const items = data?.exams || [];
       const names = items.map((e: any) => e.name?.[currentLocale] || e.name?.en || e.slug || "");
       const unique = [...new Set(names.filter(Boolean))] as string[];
       if (unique.length > 0) setExamSlugs([...unique, "COURSES"]);
