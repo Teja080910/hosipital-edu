@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { subscriptionsApi } from "@/lib/api";
 import { useRouter, usePathname } from "@/routing";
+import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -11,6 +12,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   const { user, isLoading, refreshUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -20,7 +22,9 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
-      router.replace("/login");
+      const redirect = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : "");
+      const redirectParam = encodeURIComponent(`/${locale}${redirect}`);
+      router.replace(`/login?redirect=${redirectParam}`);
       return;
     }
     if (user.role === "admin" || user.role === "super_admin") {
