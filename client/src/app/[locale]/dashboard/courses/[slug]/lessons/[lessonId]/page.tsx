@@ -28,9 +28,18 @@ export default function LessonPage() {
 
   useEffect(() => {
     if (!slug || !lessonId) return;
-    coursesApi.checkEnrollment(slug).then(({ data }) => {
-      if (!data.enrolled) {
-        router.push(`/dashboard/courses/${slug}`);
+    coursesApi.checkEnrollment(slug).then(({ data: enrollment }) => {
+      if (!enrollment.enrolled) {
+        coursesApi.checkAccess(slug).then(({ data: access }) => {
+          if (!access?.hasAccess) {
+            router.push(`/dashboard/courses/${slug}`);
+            return;
+          }
+          setIsEnrolled(true);
+        }).catch(() => {
+          router.push(`/dashboard/courses/${slug}`);
+          return;
+        });
         return;
       }
       setIsEnrolled(true);
