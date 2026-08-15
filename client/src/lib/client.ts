@@ -62,14 +62,16 @@ api.interceptors.response.use(
           // Only force navigate to login if on a protected page
           if (isProtectedRoute()) {
             const locale = window.location.pathname.split("/")[1] || "en";
-            window.location.href = `/${locale}/login`;
+            const redirect = window.location.pathname + window.location.search;
+            window.location.href = `/${locale}/login?redirect=${encodeURIComponent(redirect)}`;
           }
         }
       } else {
         // No refresh token — only redirect if on a protected page
         if (isProtectedRoute()) {
           const locale = window.location.pathname.split("/")[1] || "en";
-          window.location.href = `/${locale}/login`;
+          const redirect = window.location.pathname + window.location.search;
+          window.location.href = `/${locale}/login?redirect=${encodeURIComponent(redirect)}`;
         }
       }
     }

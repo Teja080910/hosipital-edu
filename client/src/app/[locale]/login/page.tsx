@@ -2,7 +2,8 @@
 
 import { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/routing";
+import { useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "@/routing";
 import { Link } from "@/routing";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,19 @@ import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 export default function LoginPage() {
   const t = useTranslations("auth");
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
+
+  const redirectTo = (() => {
+    const raw = searchParams.get("redirect");
+    if (!raw) return null;
+    const safe = raw.startsWith("/") && !raw.startsWith("//") ? raw : null;
+    if (!safe || safe.startsWith("/login") || safe.startsWith("/register")) return null;
+    const locale = pathname.split("/")[1];
+    if (locale && safe.startsWith(`/${locale}/`)) return safe.slice(locale.length + 1);
+    return safe;
+  })();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,7 +59,7 @@ export default function LoginPage() {
       await login(email, password, turnstileToken!);
       toast.success(t("welcome_back"));
       setLoading(false);
-      router.push("/dashboard");
+      router.push(redirectTo ?? "/dashboard");
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || t("invalid_credentials");
       setErrorMsg(Array.isArray(msg) ? msg[0] : msg);
