@@ -303,7 +303,7 @@ export default function AdminCourseContentPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-muted-foreground">{mod.lessons?.length || 0} {t("lessons_count")}</span>
+                    <span className="text-sm text-muted-foreground">{t("lessons_count", { count: mod.lessons?.length || 0 })}</span>
                     <Button size="sm" variant="outline" onClick={() => openCreateLesson(mod.id)}>
                       <Plus className="mr-1 h-4 w-4" /> {t("add_lesson")}
                     </Button>
