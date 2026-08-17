@@ -512,6 +512,9 @@ export class CoursesService {
   }
 
   async deleteLesson(lessonId: string) {
+    await this.db.delete(userCourseProgress).where(eq(userCourseProgress.lessonId, lessonId));
+    await this.db.delete(courseComments).where(eq(courseComments.lessonId, lessonId));
+    await this.db.update(courseQuizzes).set({ lessonId: null }).where(eq(courseQuizzes.lessonId, lessonId));
     const [lesson] = await this.db
       .delete(courseLessons)
       .where(eq(courseLessons.id, lessonId))
