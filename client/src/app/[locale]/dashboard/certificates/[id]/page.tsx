@@ -161,41 +161,44 @@ export default function CertificatePage() {
 
       <div className="mx-auto max-w-4xl">
         <Card className="overflow-hidden shadow-2xl print:border-0 print:shadow-none" style={{ border: "2px solid rgba(59,130,246,0.2)" }}>
-          <div className="relative p-8 md:p-16 text-center" style={{ background: "linear-gradient(to bottom right, #f0f4ff, #ffffff, #eff6ff)" }}>
-            <div className="absolute top-4 left-4 right-4 bottom-4 rounded-lg pointer-events-none" style={{ border: "2px solid rgba(59,130,246,0.1)" }} />
+          <div className="relative p-6 md:p-10 text-center aspect-[1.6/1]" style={{ background: "linear-gradient(to bottom right, #f0f4ff, #ffffff, #eff6ff)" }}>
+            <div className="absolute top-3 left-3 right-3 bottom-3 rounded-lg pointer-events-none" style={{ border: "2px solid rgba(59,130,246,0.15)" }} />
+            <div className="absolute top-6 left-6 right-6 bottom-6 rounded pointer-events-none" style={{ border: "1px solid rgba(59,130,246,0.1)" }} />
 
-            <div className="flex flex-col items-center relative z-10">
-              <img src="/logo.png" alt="" className="w-auto h-[80px] object-contain mb-2 rounded-lg" />
-              <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gray-500">{t("certificate_of_completion")}</div>
+            <div className="flex flex-col items-center relative z-10 mb-2 md:mb-4">
+              <img src="/logo.png" alt="" className="w-auto h-[48px] md:h-[80px] object-contain mb-1 md:mb-2 rounded-lg" />
+              <div className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.25em] text-gray-500">{t("certificate_of_completion")}</div>
             </div>
 
-<div className="flex-1 flex flex-col items-center justify-evenly py-8 px-16 relative z-10 text-center">              <p className="text-sm text-gray-500 mb-0.5">{t("this_is_to_certify")}</p>
-<h1 className="text-6xl font-black text-slate-900 leading-none tracking-tight">
-                  {cert.studentName}
+            <div className="flex-1 flex flex-col items-center justify-center py-2 md:py-6 px-2 md:px-16 relative z-10 text-center">
+              <p className="text-xs md:text-sm text-gray-500 mb-0.5">{t("this_is_to_certify")}</p>
+              <h1 className="text-3xl md:text-6xl font-black text-slate-900 leading-none tracking-tight">
+                {cert.studentName}
               </h1>
-              <p className="text-sm text-gray-500 mb-0.5">{t("has_completed")}</p>
-<h2 className="text-3xl font-bold text-blue-600 max-w-4xl text-center">                {localizedText(cert.courseName)}
-              </h2>
+              <p className="text-xs md:text-sm text-gray-500 mb-0.5">{t("has_completed")}</p>
+              <h2 className="text-lg md:text-3xl font-bold text-blue-600 max-w-4xl text-center">{localizedText(cert.courseName)}</h2>
             </div>
 
-            <div className="my-8">
-              <p className="text-sm text-gray-600">{t("date_of_completion")}</p>
-              <p className="text-lg font-medium">{formatDate(cert.completionDate)}</p>
-            </div>
-
-            <div className="mt-12 flex items-center justify-center gap-8 text-sm text-gray-600">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-3 relative z-10">
               <div>
-                <p className="font-mono text-xs">{cert.certificateNumber}</p>
+                <p className="text-[11px] md:text-sm text-gray-600">{t("date_of_completion")}</p>
+                <p className="text-xs md:text-lg font-medium">{formatDate(cert.completionDate)}</p>
               </div>
-              <div className="h-8 w-px bg-gray-300" />
-              <div>
-                <p className="text-xs">{t("verification_label")}</p>
-                <p className="font-mono text-xs">{cert.verificationHash.slice(0, 12)}...</p>
+              <div className="hidden md:block h-8 w-px bg-gray-300" />
+              <div className="flex items-center gap-3 md:gap-8 text-[11px] md:text-sm text-gray-600">
+                <div>
+                  <p className="font-mono text-xs">{cert.certificateNumber}</p>
+                </div>
+                <div className="h-6 w-px bg-gray-300 md:hidden" />
+                <div>
+                  <p className="text-[10px] md:text-xs">{t("verification_label")}</p>
+                  <p className="font-mono text-xs">{cert.verificationHash.slice(0, 12)}...</p>
+                </div>
               </div>
             </div>
 
-            <div className="absolute top-6 right-6 text-green-500">
-              <CheckCircle2 className="h-8 w-8" />
+            <div className="absolute top-4 right-4 text-green-500">
+              <CheckCircle2 className="h-6 w-6 md:h-8 md:w-8" />
             </div>
           </div>
         </Card>
