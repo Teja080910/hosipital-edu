@@ -46,7 +46,8 @@ const en = {
     "quizAttemptNotFound": "Quiz attempt not found",
     "quizAlreadySubmitted": "Quiz already submitted",
     "quizDeleted": "Quiz deleted",
-    "postTestNotPassed": "Post-test not passed. You need at least 70% to obtain the certificate."
+    "postTestNotPassed": "Post-test not passed. You need at least 70% to obtain the certificate.",
+    "notCompleted": "Course not yet completed. Complete all lessons to obtain the certificate."
   },
   "questions": {
     "notFound": "Question not found",
