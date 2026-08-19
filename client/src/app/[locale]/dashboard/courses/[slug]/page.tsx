@@ -326,14 +326,28 @@ function CourseDetail() {
             {parseFloat(course.price) > 0 ? `${t("enroll")} - $${course.price}` : t("enroll_free")}
           </Button>
         )}
-        {isTrial && !isEnrolled && (
-          <Button size="lg" onClick={handleEnroll} disabled={enrolling} variant="outline">
-            {enrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {t("start_trial")}
-          </Button>
+        {(isTrial || isEnrolled || (hasAccess && !isEnrolled)) && (
+          <div className="flex flex-wrap items-center gap-3">
+            {isTrial && !isEnrolled && (
+              <Button
+                size="lg"
+                onClick={handleEnroll}
+                disabled={enrolling}
+                variant="outline"
+                className="cursor-pointer bg-blue-50/40 border-blue-300 text-blue-900 hover:bg-blue-50 hover:text-blue-900 hover:border-blue-400 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-100 dark:hover:bg-blue-950/60 dark:hover:text-blue-50 dark:hover:border-blue-700"
+              >
+                {enrolling && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {t("start_trial")}
+              </Button>
+            )}
+            {isEnrolled && <Badge className="text-sm px-3 py-1">{t("enrolled_badge")}</Badge>}
+            {hasAccess && !isEnrolled && (
+              <Badge className="text-sm px-3 py-1 bg-blue-50 text-blue-900 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-100 dark:border-blue-800">
+                {t("trial_access")}
+              </Badge>
+            )}
+          </div>
         )}
-        {isEnrolled && <Badge className="text-sm px-3 py-1">{t("enrolled_badge")}</Badge>}
-        {hasAccess && !isEnrolled && <Badge className="text-sm px-3 py-1 bg-blue-100 text-blue-700">{t("trial_access")}</Badge>}
         {progress && progressPct > 0 && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm">

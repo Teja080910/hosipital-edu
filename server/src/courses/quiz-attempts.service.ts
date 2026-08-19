@@ -38,19 +38,6 @@ export class QuizAttemptsService {
       .limit(1);
     if (!enrollment) throw new ForbiddenException(this.i18n.t("courses.notEnrolled"));
 
-    const [existing] = await this.db
-      .select()
-      .from(courseQuizAttempts)
-      .where(
-        and(
-          eq(courseQuizAttempts.userId, userId),
-          eq(courseQuizAttempts.quizId, quizId),
-          eq(courseQuizAttempts.passed, true),
-        ),
-      )
-      .limit(1);
-    if (existing) throw new BadRequestException(this.i18n.t("courses.quizAlreadyPassed"));
-
     const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
 
     const [attempt] = await this.db
