@@ -46,7 +46,8 @@ const es = {
     "quizAttemptNotFound": "Intento de cuestionario no encontrado",
     "quizAlreadySubmitted": "Cuestionario ya enviado",
     "quizDeleted": "Cuestionario eliminado",
-    "postTestNotPassed": "Post-test no aprobado. Necesitas al menos el 70% para obtener el certificado."
+    "postTestNotPassed": "Post-test no aprobado. Necesitas al menos el 70% para obtener el certificado.",
+    "notCompleted": "Curso aún no completado. Completa todas las lecciones para obtener el certificado."
   },
   "questions": {
     "notFound": "Pregunta no encontrada",

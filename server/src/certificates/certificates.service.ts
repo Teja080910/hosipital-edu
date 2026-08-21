@@ -93,7 +93,7 @@ export class CertificatesService {
         ),
       )
       .limit(1);
-    if (!enrollment) throw new BadRequestException("Not enrolled in this course");
+    if (!enrollment) throw new BadRequestException(this.i18n.t("courses.notEnrolled"));
 
     const progressRows = await this.db
       .select()
@@ -113,7 +113,7 @@ export class CertificatesService {
     const totalLessons = totalResult?.total || 0;
 
     if (totalLessons === 0 || completedCount < totalLessons) {
-      throw new BadRequestException("Course not yet completed");
+      throw new BadRequestException(this.i18n.t("courses.notCompleted"));
     }
 
     if (course.hasPostTest) {

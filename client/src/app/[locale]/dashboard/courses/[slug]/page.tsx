@@ -56,13 +56,13 @@ function CourseDetail() {
       if (user) {
         coursesApi.checkEnrollment(slug).then(({ data: enrollment }) => {
           setIsEnrolled(enrollment.enrolled);
-          if (enrollment.enrolled) {
-            coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
-          }
         }).catch(() => {});
         coursesApi.checkAccess(slug).then(({ data: access }) => {
           setHasAccess(access.hasAccess);
           if (access.isTrial) setIsTrial(true);
+          if (access.hasAccess) {
+            coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
+          }
         }).catch(() => {});
       }
     }).catch(() => toast.error(t("not_found"))).finally(() => setLoading(false));
@@ -380,7 +380,7 @@ function CourseDetail() {
           </div>
         )}
 
-        {isEnrolled && testResults?.pre_test && testResults?.post_test && (
+        {(isEnrolled || hasAccess) && testResults?.pre_test && testResults?.post_test && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -411,7 +411,7 @@ function CourseDetail() {
           </Card>
         )}
 
-        {isEnrolled && allLessonsCompleted && postTest && renderQuizCard(postTest, "post_test")}
+        {(isEnrolled || hasAccess) && allLessonsCompleted && postTest && renderQuizCard(postTest, "post_test")}
 
         <Separator />
 
