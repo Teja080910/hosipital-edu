@@ -56,13 +56,13 @@ function CourseDetail() {
       if (user) {
         coursesApi.checkEnrollment(slug).then(({ data: enrollment }) => {
           setIsEnrolled(enrollment.enrolled);
+          if (enrollment.enrolled) {
+            coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
+          }
         }).catch(() => {});
         coursesApi.checkAccess(slug).then(({ data: access }) => {
           setHasAccess(access.hasAccess);
           if (access.isTrial) setIsTrial(true);
-          if (access.hasAccess) {
-            coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
-          }
         }).catch(() => {});
       }
     }).catch(() => toast.error(t("not_found"))).finally(() => setLoading(false));
@@ -84,11 +84,11 @@ function CourseDetail() {
   }, [searchParams, slug, t]);
 
   useEffect(() => {
-    if (!isEnrolled || !slug) return;
+    if ((!isEnrolled && !hasAccess) || !slug) return;
     coursesApi.getPreTest(slug).then(({ data }) => setPreTest(data)).catch(() => {});
     coursesApi.getPostTest(slug).then(({ data }) => setPostTest(data)).catch(() => {});
     coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
-  }, [isEnrolled, slug]);
+  }, [isEnrolled, hasAccess, slug]);
 
   const autoGenerateCert = useRef(false);
   useEffect(() => {
@@ -116,7 +116,28 @@ function CourseDetail() {
       setCertificateId(data.id);
       toast.success(t("certificate_generated"));
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || t("certificate_failed"));
+      const msg = err?.response?.data?.message;
+      const notEnrolled =
+        typeof msg === "string" && /not enrolled|no estás inscrito/i.test(msg);
+      if (notEnrolled && (isTrial || hasAccess)) {
+        // Trial/access user without an enrollment row: enroll first, then retry.
+        try {
+          await coursesApi.enroll(slug);
+          setIsEnrolled(true);
+          const { data } = await certificatesApi.generate(course.id);
+          setCertificateId(data.id);
+          toast.success(t("certificate_generated"));
+        } catch (inner: any) {
+          toast.error(
+            inner?.response?.data?.message?.[0] ||
+              inner?.response?.data?.message ||
+              msg ||
+              t("certificate_failed"),
+          );
+        }
+      } else {
+        toast.error(msg || t("certificate_failed"));
+      }
     } finally {
       setGeneratingCert(false);
     }
@@ -380,7 +401,7 @@ function CourseDetail() {
           </div>
         )}
 
-        {(isEnrolled || hasAccess) && testResults?.pre_test && testResults?.post_test && (
+        {isEnrolled && testResults?.pre_test && testResults?.post_test && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -411,7 +432,7 @@ function CourseDetail() {
           </Card>
         )}
 
-        {(isEnrolled || hasAccess) && allLessonsCompleted && postTest && renderQuizCard(postTest, "post_test")}
+        {isEnrolled && allLessonsCompleted && postTest && renderQuizCard(postTest, "post_test")}
 
         <Separator />
 
