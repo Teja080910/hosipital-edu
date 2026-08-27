@@ -488,13 +488,12 @@ export class SubscriptionsService {
                 const [existingEnrollment] = await this.db
                   .select({ id: userCourseEnrollments.id })
                   .from(userCourseEnrollments)
-      .where(
-        and(
-          eq(userSubscriptions.userId, userId),
-          inArray(userSubscriptions.status, ["active", "cancelling"]),
-          gt(userSubscriptions.currentPeriodEnd, new Date()),
-        ),
-      )
+                  .where(
+                    and(
+                      eq(userCourseEnrollments.userId, userId),
+                      eq(userCourseEnrollments.courseId, courseId),
+                    ),
+                  )
                   .limit(1);
                 if (!existingEnrollment) {
                   await this.db.insert(userCourseEnrollments).values({
