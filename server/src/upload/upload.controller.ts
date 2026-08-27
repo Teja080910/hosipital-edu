@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Body, UseGuards, Req, HttpException, HttpStatus, BadRequestException } from "@nestjs/common";
+import { Controller, Get, Post, Put, Param, Body, UseGuards, Req, Query, HttpException, HttpStatus, BadRequestException } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { UploadService } from "./upload.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
@@ -24,9 +24,9 @@ export class UploadController {
     return this.uploadService.generatePresignedUrl(key, contentType);
   }
 
-  @Put("file/:key")
+  @Put("file")
   @ApiOperation({ summary: "Proxy upload file to R2" })
-  async uploadFile(@Param("key") key: string, @Body("base64") base64: string, @Body("contentType") contentType: string) {
+  async uploadFile(@Query("key") key: string, @Body("base64") base64: string, @Body("contentType") contentType: string) {
     const allowedFileTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
     if (!contentType || !allowedFileTypes.includes(contentType)) {
       throw new BadRequestException("Invalid file type. Only JPEG, PNG, GIF, WebP images, and PDF files are allowed.");
