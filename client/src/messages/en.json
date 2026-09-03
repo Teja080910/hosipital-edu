@@ -448,7 +448,8 @@
   "admin": {
     "dashboard_title": "Admin Dashboard",
     "dashboard_subtitle": "Platform overview and management",
-    "total_users": "Total: {count}",
+    "total_users": "Total Users",
+    "total_users_count": "Total: {count}",
     "questions": "Questions",
     "active_exams": "Active Exams",
     "revenue": "Revenue",

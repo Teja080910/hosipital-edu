@@ -445,7 +445,8 @@
   "admin": {
     "dashboard_title": "Panel de Administración",
     "dashboard_subtitle": "Visión general y gestión de la plataforma",
-    "total_users": "Total: {count}",
+    "total_users": "Usuarios Totales",
+    "total_users_count": "Total: {count}",
     "questions": "Preguntas",
     "active_exams": "Exámenes Activos",
     "revenue": "Ingresos",
