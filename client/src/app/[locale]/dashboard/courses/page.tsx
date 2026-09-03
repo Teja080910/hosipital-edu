@@ -45,53 +45,43 @@ export default function CoursesPage() {
       const { data } = await coursesApi.list();
       setCourses(data);
       if (user) {
-        const checks = await Promise.allSettled(
-          data.map((c: Course) => coursesApi.checkEnrollment(c.slug))
-        );
+        const [enrollRes, accessRes, progressRes] = await Promise.all([
+          Promise.allSettled(data.map((c: Course) => coursesApi.checkEnrollment(c.slug))),
+          Promise.allSettled(data.map((c: Course) => coursesApi.checkAccess(c.slug))),
+          Promise.allSettled(data.map((c: Course) => coursesApi.getProgress(c.slug))),
+        ]);
         const enrolled = new Set<string>();
-        const slugs: string[] = [];
-        checks.forEach((res, i) => {
+        enrollRes.forEach((res, i) => {
           if (res.status === "fulfilled" && res.value.data.enrolled) {
             enrolled.add(data[i].id);
-            slugs.push(data[i].slug);
           }
         });
         setEnrolledIds(enrolled);
 
-        const accessChecks = await Promise.allSettled(
-          data.map((c: Course) => coursesApi.checkAccess(c.slug))
-        );
         const locked = new Set<string>();
-        accessChecks.forEach((res, i) => {
-          if (res.status === "fulfilled" && !res.value.data.hasAccess && !enrolled.has(data[i].id)) {
-            locked.add(data[i].id);
+        const subscribed = new Set<string>(enrolled);
+        accessRes.forEach((res, i) => {
+          const c = data[i];
+          if (res.status === "fulfilled") {
+            if (!res.value.data.hasAccess && !enrolled.has(c.id)) {
+              locked.add(c.id);
+            }
+            if (res.value.data.hasAccess && !res.value.data.isTrial && !enrolled.has(c.id)) {
+              subscribed.add(c.id);
+            }
           }
         });
         setLockedSet(locked);
-
-        // if user has access via subscription (not trial), mark as enrolled
-        const subscribed = new Set<string>(enrolled);
-        accessChecks.forEach((res, i) => {
-          if (res.status === "fulfilled" && res.value.data.hasAccess && !res.value.data.isTrial && !enrolled.has(data[i].id)) {
-            subscribed.add(data[i].id);
-          }
-        });
         setEnrolledIds(subscribed);
 
-        const finalSlugs = data.filter((c: Course) => subscribed.has(c.id)).map((c: Course) => c.slug);
-        if (finalSlugs.length > 0) {
-          const progressResults = await Promise.allSettled(
-            finalSlugs.map((s: string) => coursesApi.getProgress(s))
-          );
-          const pmap: Record<string, number> = {};
-          progressResults.forEach((res, idx) => {
-            if (res.status === "fulfilled") {
-              const courseId = data.find((c: Course) => c.slug === finalSlugs[idx])?.id;
-              if (courseId) pmap[courseId] = res.value.data.percentage || 0;
-            }
-          });
-          setProgressMap(pmap);
-        }
+        const pmap: Record<string, number> = {};
+        progressRes.forEach((res, i) => {
+          const c = data[i];
+          if (res.status === "fulfilled" && subscribed.has(c.id)) {
+            pmap[c.id] = res.value.data.percentage || 0;
+          }
+        });
+        setProgressMap(pmap);
       }
     } catch {
       toast.error(t("load_failed"));
