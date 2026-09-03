@@ -163,7 +163,7 @@ export default function LessonPage() {
               );
             }
 
-            const cfUid = url.match(/^[a-f0-9]{32}$/);
+            const cfUid = url.match(/[a-f0-9]{32}/);
             if (cfUid || (url.includes("cloudflarestream.com") && !url.includes("drive.google.com"))) {
               return (
                 <div className="aspect-video bg-muted rounded-lg overflow-hidden">

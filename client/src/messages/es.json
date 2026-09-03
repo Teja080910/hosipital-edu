@@ -957,6 +957,8 @@
     "file_too_large": "Archivo demasiado grande. Máx. 200 MB.",
     "video_player": "Reproductor de video",
     "video_not_found": "Este video ya no está disponible",
+    "video_load_failed": "No se pudo cargar el video — inténtalo de nuevo",
+    "retry": "Reintentar",
     "cancel": "Cancelar",
     "lessons_count": "{count, plural, one {# lección} other {# lecciones}}",
     "video_placeholder": "Video de ejemplo",
