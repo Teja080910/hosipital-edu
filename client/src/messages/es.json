@@ -918,7 +918,9 @@
     "hour_ago": "hace {hrs} hora",
     "hours_ago": "hace {hrs} horas",
     "day_ago": "hace {days} día",
-    "days_ago": "hace {days} días"
+    "days_ago": "hace {days} días",
+    "video_upload_here": "Subir archivo de video",
+    "video_uploaded": "Video subido — ahora guarda la lección"
   },
   "progress": {
     "title": "Progreso",

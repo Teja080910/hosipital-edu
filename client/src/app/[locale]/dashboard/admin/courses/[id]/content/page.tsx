@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { coursesApi, uploadApi } from "@/lib/api";
+import { coursesApi, uploadApi, streamApi } from "@/lib/api";
 import { ChevronLeft, FileText, Film, FolderOpen, Loader2, Pencil, Plus, Trash2, Upload, ClipboardCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
@@ -35,6 +35,60 @@ export default function AdminCourseContentPage() {
   const [lessonForm, setLessonForm] = useState({ title: "", contentType: "video", content: "", videoUrl: "", pdfUrl: "", imageUrl: "", duration: "0" });
   const [savingLesson, setSavingLesson] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+
+  const uploadVideoToStream = async (file: File) => {
+    setUploadingFile(file.name);
+    let uid: string | null = null;
+    try {
+      const { data: upload } = await streamApi.getUploadUrl();
+      uid = upload.uid;
+      if (!uid || !upload.uploadURL) throw new Error(t("upload_failed"));
+
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(upload.uploadURL, { method: "POST", body: fd });
+      if (!res.ok) throw new Error(t("upload_failed"));
+
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      const poll = setInterval(async () => {
+        try {
+          const { data: video } = await streamApi.getVideo(uid!);
+          if (video.readyToStream) {
+            clearInterval(poll);
+            if (timeoutId) clearTimeout(timeoutId);
+            setLessonForm((p) => ({ ...p, videoUrl: `https://customer-s1tgyboloirfoxo0.cloudflarestream.com/${uid}/iframe` }));
+            setUploadingFile(null);
+            toast.success(`${file.name} uploaded. ${t("video_uploaded")}`);
+          } else if (video.status?.state === "error" || video.status?.errorReasonCode) {
+            clearInterval(poll);
+            if (timeoutId) clearTimeout(timeoutId);
+            await streamApi.deleteVideo(uid!).catch(() => {});
+            setUploadingFile(null);
+            toast.error(t("upload_failed"));
+          }
+        } catch {
+          clearInterval(poll);
+          if (timeoutId) clearTimeout(timeoutId);
+          await streamApi.deleteVideo(uid!).catch(() => {});
+          setUploadingFile(null);
+          toast.error(t("upload_failed"));
+        }
+      }, 2000);
+
+      timeoutId = setTimeout(() => {
+        clearInterval(poll);
+        setUploadingFile(null);
+        if (uid) {
+          streamApi.deleteVideo(uid).catch(() => {});
+          toast.error(t("upload_failed"));
+        }
+      }, 120000);
+    } catch {
+      if (uid) await streamApi.deleteVideo(uid).catch(() => {});
+      toast.error(t("upload_failed"));
+      setUploadingFile(null);
+    }
+  };
 
   const uploadFileToR2 = async (file: File, field: "pdfUrl" | "videoUrl" | "imageUrl") => {
     setUploadingFile(file.name);
@@ -391,6 +445,23 @@ export default function AdminCourseContentPage() {
               <div>
                 <label className="text-sm font-medium">{t("video_url")}</label>
                 <Input value={lessonForm.videoUrl} onChange={(e) => setLessonForm((p) => ({ ...p, videoUrl: e.target.value }))} placeholder={t("video_url_placeholder")} />
+                <label className="mt-2 flex h-10 w-full cursor-pointer items-center overflow-hidden rounded-lg border border-input bg-background px-3 py-2 text-sm text-muted-foreground">
+                  <input
+                    type="file"
+                    accept="video/mp4,video/quicktime,video/webm,video/*"
+                    disabled={uploadingFile !== null}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadVideoToStream(file);
+                    }}
+                  />
+                  {uploadingFile ? (
+                    <span className="flex items-center gap-2 min-w-0 w-full"><Loader2 className="h-4 w-4 shrink-0 animate-spin" /><span className="truncate">{uploadingFile}</span></span>
+                  ) : (
+                    <span className="flex items-center gap-2"><Upload className="h-4 w-4 shrink-0" /><span className="truncate">{t("video_upload_here")}</span></span>
+                  )}
+                </label>
               </div>
             )}
             {lessonForm.contentType === "pdf" && (

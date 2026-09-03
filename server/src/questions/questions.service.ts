@@ -256,6 +256,9 @@ export class QuestionsService {
 
   async create(data: any) {
     const { options, images, examIds, ...questionData } = data;
+    if (!questionData.explanation) {
+      questionData.explanation = {};
+    }
     const [question] = await this.db
       .insert(questions)
       .values(stripTimestamps(questionData))

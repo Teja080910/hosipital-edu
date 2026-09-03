@@ -923,7 +923,9 @@
     "hour_ago": "{hrs} hour ago",
     "hours_ago": "{hrs} hours ago",
     "day_ago": "{days} day ago",
-    "days_ago": "{days} days ago"
+    "days_ago": "{days} days ago",
+    "video_upload_here": "Upload video file",
+    "video_uploaded": "Video uploaded — now save the lesson"
   },
   "progress": {
     "title": "Progress",

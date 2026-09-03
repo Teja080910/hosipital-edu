@@ -162,6 +162,18 @@ export class ExamsService {
 
   async create(data: any) {
     const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
+    if (!cleanData.slug) {
+      const nameVal = (cleanData.name && (cleanData.name.en || Object.values(cleanData.name)[0])) || "";
+      cleanData.slug = String(nameVal)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+    if (!cleanData.description) {
+      cleanData.description = {};
+    }
     const [exam] = await this.db.insert(exams).values(cleanData).returning();
     return exam;
   }

@@ -68,8 +68,11 @@ export class StreamService {
       method: "DELETE",
       headers: this.headers,
     });
-    const json = await res.json();
-    if (!json.success) {
+    const json = await res.json().catch(() => null);
+    if (res.ok) {
+      return { success: true };
+    }
+    if (!json || !json.success) {
       throw new HttpException(this.i18n.t("stream.failedDeleteVideo"), HttpStatus.BAD_GATEWAY);
     }
     return json;

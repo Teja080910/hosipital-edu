@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { streamApi, uploadApi } from "@/lib/api";
+import { streamApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -29,46 +29,58 @@ export function VideoUploader({ open, onOpenChange, onUploadComplete }: VideoUpl
       return;
     }
 
+    let uid: string | null = null;
     setUploading(true);
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1] || "");
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const { data: upload } = await streamApi.getUploadUrl();
+      uid = upload.uid;
+      if (!uid || !upload.uploadURL) throw new Error("No upload URL returned");
 
-      const { data: result } = await uploadApi.uploadVideo("direct", base64, file.type);
-      const uid = result.uid;
-      if (!uid) throw new Error("No UID returned");
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(upload.uploadURL, { method: "POST", body: fd });
+      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
       toast.success(t("uploading_video"));
 
       setPolling(true);
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
       const poll = setInterval(async () => {
         try {
-          const { data: video } = await streamApi.getVideo(uid);
+          const { data: video } = await streamApi.getVideo(uid!);
           if (video.readyToStream) {
             clearInterval(poll);
+            if (timeoutId) clearTimeout(timeoutId);
             setPolling(false);
-            onUploadComplete({ uid, thumbnail: video.thumbnail, duration: video.duration });
+            onUploadComplete({ uid: uid!, thumbnail: video.thumbnail, duration: video.duration });
             onOpenChange(false);
             toast.success(t("video_ready"));
+          } else if (video.status?.state === "error" || video.status?.errorReasonCode) {
+            clearInterval(poll);
+            if (timeoutId) clearTimeout(timeoutId);
+            setPolling(false);
+            await streamApi.deleteVideo(uid!).catch(() => {});
+            toast.error(t("upload_failed"));
           }
         } catch {
           clearInterval(poll);
+          if (timeoutId) clearTimeout(timeoutId);
           setPolling(false);
+          await streamApi.deleteVideo(uid!).catch(() => {});
+          toast.error(t("upload_failed"));
         }
       }, 2000);
 
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         clearInterval(poll);
         setPolling(false);
-      }, 60000);
+        if (uid) {
+          streamApi.deleteVideo(uid).catch(() => {});
+          toast.error(t("upload_failed"));
+        }
+      }, 120000);
     } catch (err: any) {
-      toast.error(err?.message || t("upload_failed"));
+      if (uid) await streamApi.deleteVideo(uid).catch(() => {});
+      toast.error(err?.message?.replace(/Error: /, "") || t("upload_failed"));
     } finally {
       setUploading(false);
     }
