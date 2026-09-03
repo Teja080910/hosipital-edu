@@ -28,8 +28,10 @@ export class QuestionsService {
     limit?: number;
     search?: string;
   }, user?: any) {
-    const { examId, specialtyId, topicId, subtopicId, difficulty, page = 1, limit = 20, search } = filters;
-    const offset = (page - 1) * limit;
+    const { examId, specialtyId, topicId, subtopicId, difficulty, page, limit, search } = filters;
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(Math.max(1, Number(limit) || 20), 10000);
+    const offset = (pageNum - 1) * limitNum;
     const conditions = [eq(questions.isActive, true)];
 
     let isAdmin = false;
@@ -81,7 +83,7 @@ export class QuestionsService {
             .where(eq(subscriptionPlans.id, sub.planId))
             .limit(1);
           if (plan && plan.maxExamAttempts == null && parseFloat(plan.price || "0") === 0) {
-            return { data: [], total: 0, page, limit };
+            return { data: [], total: 0, page: pageNum, limit: limitNum };
           }
         }
         subExamId = await this.getSubscriptionExamId(user.id);
@@ -97,7 +99,7 @@ export class QuestionsService {
         const subIds = subQIds.map((r: any) => r.questionId);
         conditions.push(inArray(questions.id, subIds));
         if (examId && examId !== subExamId) {
-          return { data: [], total: 0, page, limit };
+          return { data: [], total: 0, page: pageNum, limit: limitNum };
         }
       }
     } else if (examId) {
@@ -114,7 +116,7 @@ export class QuestionsService {
             .where(eq(users.id, user.id))
             .limit(1);
           if (!u || !u.targetExamId || u.targetExamId !== examId || (Date.now() - new Date(u.createdAt).getTime()) > 86400000) {
-            return { data: [], total: 0, page, limit };
+            return { data: [], total: 0, page: pageNum, limit: limitNum };
           }
         }
       }
@@ -130,7 +132,7 @@ export class QuestionsService {
     if (topicId) conditions.push(eq(questions.topicId, topicId));
     if (subtopicId) conditions.push(eq(questions.subtopicId, subtopicId));
     if (difficulty) conditions.push(eq(questions.difficulty, difficulty));
-    if (search) conditions.push(ilike(questions.text, `%${search}%`));
+    if (search) conditions.push(ilike(sql`${questions.text}::text`, `%${search}%`));
 
     const [{ count }] = await this.db
       .select({ count: sql<number>`count(*)::int` })
@@ -141,10 +143,10 @@ export class QuestionsService {
       .select()
       .from(questions)
       .where(and(...conditions))
-      .limit(limit)
+      .limit(limitNum)
       .offset(offset);
 
-    if (!items.length) return { data: [], total: 0, page, limit };
+    if (!items.length) return { data: [], total: 0, page: pageNum, limit: limitNum };
 
     const qIds = items.map((q: any) => q.id);
     const allOptions = await this.db
@@ -190,8 +192,8 @@ export class QuestionsService {
         examIds: examIdsByQ.get(q.id) || [],
       })),
       total: count,
-      page,
-      limit,
+      page: pageNum,
+      limit: limitNum,
     };
   }
 

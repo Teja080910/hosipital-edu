@@ -120,7 +120,7 @@ export default function ExamTakingPage({ params }: { params: { id: string } }) {
         );
         setCombinedExams(results);
         const allQuestions = await Promise.all(
-          examIds.map((eid) => questionsApi.list({ examId: eid }).then((r) => r.data.data))
+          examIds.map((eid) => questionsApi.list({ examId: eid, limit: 10000 }).then((r) => r.data.data))
         );
         const merged = allQuestions.flat();
         setAllQuestions(merged);

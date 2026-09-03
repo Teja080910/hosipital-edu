@@ -15,6 +15,7 @@ import { QuestionCard } from "@/components/questions/question-card";
 import { ExamHistory } from "@/components/exams/exam-history";
 import { EmptyState } from "@/components/empty-state";
 import { examsApi, questionsApi } from "@/lib/api";
+import { pickLocale } from "@/lib/utils/localized-text";
 import type { Question } from "@/types";
 import { toast } from "sonner";
 import { FileQuestion, Search, Loader2, GraduationCap, Play } from "lucide-react";
@@ -50,7 +51,8 @@ export default function QuestionsPage() {
     if (filters.difficulty && filters.difficulty !== "all") params.difficulty = filters.difficulty;
     questionsApi.list(params)
       .then((res) => {
-        const data = Array.isArray(res.data) ? res.data : [];
+        const body = res.data;
+        const data = Array.isArray(body) ? body : (body?.data ?? []);
         setQuestions(data);
         setHasMore(data.length >= PAGE_SIZE);
       })
@@ -67,7 +69,8 @@ export default function QuestionsPage() {
     if (filters.difficulty && filters.difficulty !== "all") params.difficulty = filters.difficulty;
     questionsApi.list(params)
       .then((res) => {
-        const data = Array.isArray(res.data) ? res.data : [];
+        const body = res.data;
+        const data = Array.isArray(body) ? body : (body?.data ?? []);
         setQuestions((prev) => [...prev, ...data]);
         setPage(nextPage);
         setHasMore(data.length >= PAGE_SIZE);
@@ -78,7 +81,7 @@ export default function QuestionsPage() {
   const filtered = questions.filter(
     (q) =>
       !search ||
-      q.text.toLowerCase().includes(search.toLowerCase()) ||
+      pickLocale(q.text).toLowerCase().includes(search.toLowerCase()) ||
       (q.specialty || "").toLowerCase().includes(search.toLowerCase()) ||
       (q.topic || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -175,7 +178,7 @@ export default function QuestionsPage() {
                         <CardContent className="pt-6">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1">
-                              <p className="font-medium line-clamp-2">{q.text}</p>
+                              <p className="font-medium line-clamp-2">{pickLocale(q.text)}</p>
                               <div className="mt-2 flex flex-wrap gap-2">
                                 {q.specialty && <Badge variant="secondary">{q.specialty}</Badge>}
                                 {q.topic && <Badge variant="outline">{q.topic}</Badge>}
