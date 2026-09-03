@@ -387,6 +387,22 @@ export class CoursesService {
       )
       .limit(1);
 
+    const [enrollment] = await this.db
+      .select({ id: userCourseEnrollments.id })
+      .from(userCourseEnrollments)
+      .where(
+        and(
+          eq(userCourseEnrollments.userId, userId),
+          eq(userCourseEnrollments.courseId, courseId),
+          eq(userCourseEnrollments.status, "active"),
+          gt(userCourseEnrollments.accessExpiresAt, new Date()),
+        ),
+      )
+      .limit(1);
+    if (enrollment) {
+      return { hasAccess: true };
+    }
+
     if (sub) {
       const plan = sub.subscription_plans;
       if (plan.isCourseOnly) {
@@ -419,22 +435,6 @@ export class CoursesService {
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
-
-    const [enrollment] = await this.db
-      .select({ id: userCourseEnrollments.id })
-      .from(userCourseEnrollments)
-      .where(
-        and(
-          eq(userCourseEnrollments.userId, userId),
-          eq(userCourseEnrollments.courseId, courseId),
-          eq(userCourseEnrollments.status, "active"),
-          gt(userCourseEnrollments.accessExpiresAt, new Date()),
-        ),
-      )
-      .limit(1);
-    if (enrollment) {
-      return { hasAccess: true };
-    }
 
     if (user) {
       const hoursSinceRegistration = (Date.now() - new Date(user.createdAt).getTime()) / 3600000;
