@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { coursesApi, uploadApi, streamApi } from "@/lib/api";
 import { ChevronLeft, FileText, Film, FolderOpen, Loader2, Pencil, Plus, Trash2, Upload, ClipboardCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "@/routing";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
