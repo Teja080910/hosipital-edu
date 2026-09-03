@@ -78,7 +78,7 @@ export default function FlashcardsPage() {
       let items: FlashcardData[] = [];
       let total = 0;
       try {
-        const dueRes = await flashcardsApi.due({ limit: 10000, ...(specialty && specialty !== "all" ? { specialtyId: specialty } : {}) });
+        const dueRes = await flashcardsApi.due({ limit: 300, ...(specialty && specialty !== "all" ? { specialtyId: specialty } : {}) });
         items = dueRes.data ?? dueRes ?? [];
         total = items.length;
       } catch {}

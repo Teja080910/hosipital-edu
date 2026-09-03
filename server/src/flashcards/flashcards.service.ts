@@ -141,6 +141,7 @@ export class FlashcardsService {
   }
 
   async findDue(userId: string, limit = 20, specialtyId?: string) {
+    const cappedLimit = Math.min(Math.max(Number(limit) || 20, 1), 300);
     const [userCheck] = await this.db
       .select({ role: users.role, targetExamId: users.targetExamId })
       .from(users)
@@ -183,16 +184,22 @@ export class FlashcardsService {
       .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
       .leftJoin(topics, eq(flashcards.topicId, topics.id))
       .where(and(...conditions))
-      .limit(limit);
+      .limit(cappedLimit);
 
-    if (reviewedDue.length >= limit) return reviewedDue;
+    if (reviewedDue.length >= cappedLimit) return reviewedDue;
 
     const reviewedIds = reviewedDue.map((r: any) => r.id);
-    const unreviewedCount = limit - reviewedDue.length;
+    const unreviewedCount = cappedLimit - reviewedDue.length;
+
+    const allReviewedRows = await this.db
+      .select({ flashcardId: userFlashcardReviews.flashcardId })
+      .from(userFlashcardReviews)
+      .where(eq(userFlashcardReviews.userId, userId));
+    const allReviewedIds = allReviewedRows.map((r: any) => r.flashcardId);
 
     const unreviewedConditions = [eq(flashcards.isActive, true)];
     if (specialtyId) unreviewedConditions.push(eq(flashcards.specialtyId, specialtyId));
-    if (reviewedIds.length > 0) unreviewedConditions.push(notInArray(flashcards.id, reviewedIds));
+    if (allReviewedIds.length > 0) unreviewedConditions.push(notInArray(flashcards.id, allReviewedIds));
 
     const unreviewed = await this.db
       .select({
