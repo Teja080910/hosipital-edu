@@ -152,8 +152,8 @@ export class FlashcardsController {
   @AllowedAccountTypes("full")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get due flashcards for review" })
-  async findDue(@CurrentUser() user: any, @Query("limit") limit?: number, @Query("specialtyId") specialtyId?: string) {
-    return this.flashcardsService.findDue(user.id, limit, specialtyId);
+  async findDue(@CurrentUser() user: any, @Query("limit") limit?: number, @Query("specialtyId") specialtyId?: string, @Query("offset") offset?: number) {
+    return this.flashcardsService.findDue(user.id, limit, specialtyId, offset);
   }
 
   @Post()

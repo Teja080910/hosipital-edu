@@ -16,7 +16,7 @@ import { flashcardsApi } from "@/lib/api/flashcards";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/routing";
 
-const PAGE_SIZE = 20;
+const SESSION_PAGE = 20;
 interface FlashcardData {
   id: string;
   front: string;
@@ -59,18 +59,17 @@ export default function FlashcardsPage() {
   const pageRef = useRef(1);
   const loadingRef = useRef(false);
 
-  const fetchDueCards = useCallback(async (page: number, specialty?: string) => {
-    const params: Record<string, string | number> = { limit: PAGE_SIZE, page };
+  const fetchDueCards = useCallback(async (offset: number, specialty?: string) => {
+    const params: Record<string, string | number> = { limit: SESSION_PAGE, offset };
     if (specialty && specialty !== "all") params.specialtyId = specialty;
-    const { data } = await flashcardsApi.list(params);
+    const { data } = await flashcardsApi.due(params);
     return data;
   }, []);
 
   const loadCards = useCallback(async (specialty?: string, restoreIndex?: number) => {
     setLoading(true);
     setError(null);
-    pageRef.current = 1;
-    setAllLoaded(true);
+    pageRef.current = 0;
     try {
       const specsRes = await flashcardsApi.specialties();
       setSpecialties(specsRes.data ?? []);
@@ -78,21 +77,23 @@ export default function FlashcardsPage() {
       let items: FlashcardData[] = [];
       let total = 0;
       try {
-        const dueRes = await flashcardsApi.due({ limit: 300, ...(specialty && specialty !== "all" ? { specialtyId: specialty } : {}) });
-        items = dueRes.data ?? dueRes ?? [];
-        total = items.length;
+        const duePayload = await fetchDueCards(0, specialty);
+        items = duePayload?.data ?? [];
+        total = duePayload?.total ?? items.length;
       } catch {}
 
       if (items.length === 0) {
         try {
-          const cardsRes = await fetchDueCards(1, specialty);
-          items = cardsRes.data ?? [];
-          total = cardsRes.total ?? 0;
+          const cardsRes = await flashcardsApi.list({ limit: SESSION_PAGE, page: 1, ...(specialty && specialty !== "all" ? { specialtyId: specialty } : {}) });
+          items = cardsRes.data?.data ?? [];
+          total = cardsRes.data?.total ?? 0;
         } catch {}
       }
 
+      pageRef.current = items.length;
       setCards(items);
       setTotalDue(total);
+      setAllLoaded(items.length >= total);
       if (restoreIndex !== undefined && restoreIndex < items.length) {
         setCurrentIndex(restoreIndex);
       } else {
@@ -120,14 +121,14 @@ export default function FlashcardsPage() {
     loadingRef.current = true;
     setLoadingMore(true);
     try {
-      const nextPage = pageRef.current + 1;
-      const data = await fetchDueCards(nextPage, selectedSpecialty);
-      const items = data.data ?? [];
+      const nextOffset = pageRef.current;
+      const data = await fetchDueCards(nextOffset, selectedSpecialty);
+      const items = data?.data ?? [];
       if (items.length > 0) {
-        pageRef.current = nextPage;
+        pageRef.current = nextOffset + items.length;
         setCards((prev) => {
           const updated = [...prev, ...items];
-          setAllLoaded(updated.length >= (data.total ?? 0));
+          setAllLoaded(updated.length >= (data?.total ?? 0));
           return updated;
         });
       } else {
