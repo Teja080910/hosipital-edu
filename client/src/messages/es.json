@@ -781,6 +781,7 @@
     "type_topic": "Tema",
     "type_subtopic": "Subtema",
     "type_exam": "Examen",
+    "add_exam": "Añadir Examen",
     "edit_exam": "Editar Examen",
     "delete_exam": "Eliminar Examen",
     "force_delete_exam_title": "¿Forzar eliminación del examen?",

@@ -75,7 +75,7 @@ export default function AdminSpecialtiesPage() {
     else setExamData(null);
   }, [selectedExamId, loadExam]);
 
-  const openCreate = (type: "specialty" | "topic" | "subtopic", parentId = "") => {
+  const openCreate = (type: "exam" | "specialty" | "topic" | "subtopic", parentId = "") => {
     setDialogType(type);
     setEditing(null);
     setParentId(parentId);
@@ -107,7 +107,11 @@ export default function AdminSpecialtiesPage() {
         else await examsApi.updateSubtopic(editing.id, payload);
         toast.success(t("updated"));
       } else {
-        if (dialogType === "specialty") await examsApi.createSpecialty(selectedExamId, payload);
+        if (dialogType === "exam") {
+          const { data } = await examsApi.create(payload);
+          setSelectedExamId(data.id);
+        }
+        else if (dialogType === "specialty") await examsApi.createSpecialty(selectedExamId, payload);
         else if (dialogType === "topic") await examsApi.createTopic(parentId, payload);
         else await examsApi.createSubtopic(parentId, payload);
         toast.success(t("created"));
@@ -210,6 +214,7 @@ export default function AdminSpecialtiesPage() {
               </SelectContent>
             </Select>
           </div>
+          <Button onClick={() => openCreate("exam")}><Plus className="h-4 w-4 mr-2" /> {t("add_exam")}</Button>
           {selectedExamId && (
             <>
               <Button onClick={() => openCreate("specialty")}><Plus className="h-4 w-4 mr-2" /> {t("add_specialty")}</Button>

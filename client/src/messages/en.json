@@ -784,6 +784,7 @@
     "type_topic": "Topic",
     "type_subtopic": "Subtopic",
     "type_exam": "Exam",
+    "add_exam": "Add Exam",
     "edit_exam": "Edit Exam",
     "delete_exam": "Delete Exam",
     "force_delete_exam_title": "Force delete exam?",
