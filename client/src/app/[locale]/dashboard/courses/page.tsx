@@ -63,7 +63,7 @@ export default function CoursesPage() {
         accessRes.forEach((res, i) => {
           const c = data[i];
           if (res.status === "fulfilled") {
-            if (!res.value.data.hasAccess && !enrolled.has(c.id)) {
+            if ((!res.value.data.hasAccess || res.value.data.isTrial) && !enrolled.has(c.id)) {
               locked.add(c.id);
             }
             if (res.value.data.hasAccess && !res.value.data.isTrial && !enrolled.has(c.id)) {

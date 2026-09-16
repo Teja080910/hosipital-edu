@@ -62,7 +62,10 @@ function CourseDetail() {
         }).catch(() => {});
         coursesApi.checkAccess(slug).then(({ data: access }) => {
           setHasAccess(access.hasAccess);
-          if (access.isTrial) setIsTrial(true);
+          if (access.isTrial) {
+            setIsTrial(true);
+            router.replace("/dashboard/subscribe");
+          }
         }).catch(() => {});
       }
     }).catch(() => toast.error(t("not_found"))).finally(() => setLoading(false));
