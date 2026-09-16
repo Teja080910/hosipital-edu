@@ -1,8 +1,8 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { and, asc, count, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, questionExams, specialties, subscriptionPlans, planExams, subtopics, topics, userSubscriptions, users } from "../database/schema";
+import { examAttempts, exams, questionExams, questions, specialties, subscriptionPlans, planExams, subtopics, topics, userSubscriptions, users } from "../database/schema";
 
 @Injectable()
 export class ExamsService {
@@ -162,6 +162,18 @@ export class ExamsService {
 
   async create(data: any) {
     const { createdAt, updatedAt, deletedAt, ...cleanData } = data;
+    if (!cleanData.slug) {
+      const nameVal = (cleanData.name && (cleanData.name.en || Object.values(cleanData.name)[0])) || "";
+      cleanData.slug = String(nameVal)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+    if (!cleanData.description) {
+      cleanData.description = {};
+    }
     const [exam] = await this.db.insert(exams).values(cleanData).returning();
     return exam;
   }
@@ -177,13 +189,57 @@ export class ExamsService {
     return exam;
   }
 
+  async deleteExam(id: string, force = false) {
+    const [exam] = await this.db.select({ id: exams.id }).from(exams).where(eq(exams.id, id)).limit(1);
+    if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
+
+    const [{ c: attemptCount }] = await this.db
+      .select({ c: count() })
+      .from(examAttempts)
+      .where(eq(examAttempts.examId, id));
+
+    const [{ c: questionCount }] = await this.db
+      .select({ c: count() })
+      .from(questions)
+      .where(
+        sql`(${questions.specialtyId} IN (SELECT id FROM specialties WHERE exam_id = ${id})
+          OR ${questions.topicId} IN (SELECT id FROM topics WHERE specialty_id IN (SELECT id FROM specialties WHERE exam_id = ${id})))`,
+      );
+
+    if (!force && (attemptCount > 0 || questionCount > 0)) {
+      const key =
+        attemptCount > 0 && questionCount > 0
+          ? "exams.examInUseBoth"
+          : attemptCount > 0
+            ? "exams.examInUseAttempts"
+            : "exams.examInUseQuestions";
+      throw new ConflictException(this.i18n.t(key, { count: attemptCount || questionCount, attempts: attemptCount, questions: questionCount }));
+    }
+
+    if (attemptCount > 0) {
+      await this.db.delete(examAttempts).where(eq(examAttempts.examId, id));
+    }
+    if (questionCount > 0) {
+      await this.db
+        .update(questions)
+        .set({ specialtyId: null, topicId: null })
+        .where(
+          sql`(${questions.specialtyId} IN (SELECT id FROM specialties WHERE exam_id = ${id})
+            OR ${questions.topicId} IN (SELECT id FROM topics WHERE specialty_id IN (SELECT id FROM specialties WHERE exam_id = ${id})))`,
+        );
+    }
+
+    await this.db.delete(exams).where(eq(exams.id, id));
+    return { deleted: true, removedAttempts: attemptCount, detachedQuestions: questionCount };
+  }
+
   // ─── Specialty CRUD ───
 
   async createSpecialty(examId: string, data: any) {
     const { id, createdAt, ...clean } = data;
     const [spec] = await this.db
       .insert(specialties)
-      .values({ ...clean, examId, name: clean.name || { en: clean.nameEn || "" }, slug: clean.slug || (clean.nameEn || "").toLowerCase().replace(/\s+/g, "-") })
+      .values({ ...clean, examId, name: clean.name || { en: clean.nameEn || "" }, slug: clean.slug || (clean.name?.en || clean.nameEn || "").toLowerCase().replace(/\s+/g, "-") })
       .returning();
     return spec;
   }
@@ -200,6 +256,11 @@ export class ExamsService {
   }
 
   async deleteSpecialty(id: string) {
+    const [{ c: questionCount }] = await this.db
+      .select({ c: count() })
+      .from(questions)
+      .where(eq(questions.specialtyId, id));
+    if (questionCount > 0) throw new ConflictException(this.i18n.t("exams.specialtyInUse", { count: questionCount }));
     await this.db.delete(specialties).where(eq(specialties.id, id));
     return { deleted: true };
   }
@@ -210,7 +271,7 @@ export class ExamsService {
     const { id, createdAt, ...clean } = data;
     const [topic] = await this.db
       .insert(topics)
-      .values({ ...clean, specialtyId, name: clean.name || { en: clean.nameEn || "" }, slug: clean.slug || (clean.nameEn || "").toLowerCase().replace(/\s+/g, "-") })
+      .values({ ...clean, specialtyId, name: clean.name || { en: clean.nameEn || "" }, slug: clean.slug || (clean.name?.en || clean.nameEn || "").toLowerCase().replace(/\s+/g, "-") })
       .returning();
     return topic;
   }
@@ -227,6 +288,11 @@ export class ExamsService {
   }
 
   async deleteTopic(id: string) {
+    const [{ c: questionCount }] = await this.db
+      .select({ c: count() })
+      .from(questions)
+      .where(eq(questions.topicId, id));
+    if (questionCount > 0) throw new ConflictException(this.i18n.t("exams.topicInUse", { count: questionCount }));
     await this.db.delete(topics).where(eq(topics.id, id));
     return { deleted: true };
   }
@@ -237,7 +303,7 @@ export class ExamsService {
     const { id, createdAt, ...clean } = data;
     const [sub] = await this.db
       .insert(subtopics)
-      .values({ ...clean, topicId, name: clean.name || { en: clean.nameEn || "" }, slug: clean.slug || (clean.nameEn || "").toLowerCase().replace(/\s+/g, "-") })
+      .values({ ...clean, topicId, name: clean.name || { en: clean.nameEn || "" }, slug: clean.slug || (clean.name?.en || clean.nameEn || "").toLowerCase().replace(/\s+/g, "-") })
       .returning();
     return sub;
   }

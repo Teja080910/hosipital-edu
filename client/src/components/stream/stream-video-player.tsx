@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { VideoOff } from "lucide-react";
+import { RefreshCw, VideoOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { streamApi, videosApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -17,19 +18,36 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const savedRef = useRef<number>(0);
   const [missing, setMissing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retry, setRetry] = useState(0);
+
+  const normalizedUid = useMemo<string | undefined>(() => {
+    if (!uid) return undefined;
+    const s = String(uid);
+    if (/^[a-f0-9]{32}$/.test(s)) return s;
+    const m = s.match(/[a-f0-9]{32}/);
+    return m ? m[0] : undefined;
+  }, [uid]);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!normalizedUid) return;
     let cancelled = false;
     setMissing(false);
+    setLoadError(false);
 
     (async () => {
-      let src = `https://iframe.cloudflarestream.com/${uid}`;
+      let src = `https://iframe.cloudflarestream.com/${normalizedUid}`;
       try {
-        const { data } = await streamApi.getSignedToken(uid);
+        const { data } = await streamApi.getSignedToken(normalizedUid);
         src += `?token=${data.token}`;
-      } catch {
-        if (!cancelled) setMissing(true);
+      } catch (err: any) {
+        if (cancelled) return;
+        console.error("[StreamVideoPlayer] failed to load video", err);
+        if (err?.response?.status === 404) {
+          setMissing(true);
+        } else {
+          setLoadError(true);
+        }
         return;
       }
 
@@ -76,15 +94,27 @@ export function StreamVideoPlayer({ uid, lessonId, className }: StreamVideoPlaye
       cancelled = true;
       window.removeEventListener("message", onMessage);
     };
-  }, [uid, lessonId]);
+  }, [normalizedUid, lessonId, retry]);
 
-  if (!uid) return null;
+  if (!normalizedUid) return null;
 
   if (missing) {
     return (
       <div className={cn("relative aspect-video bg-muted rounded-lg overflow-hidden flex flex-col items-center justify-center gap-2 text-center p-4", className)}>
         <VideoOff className="h-10 w-10 text-muted-foreground" />
         <p className="text-sm font-medium text-muted-foreground">{t("video_not_found")}</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className={cn("relative aspect-video bg-muted rounded-lg overflow-hidden flex flex-col items-center justify-center gap-3 text-center p-4", className)}>
+        <VideoOff className="h-10 w-10 text-muted-foreground" />
+        <p className="text-sm font-medium text-muted-foreground">{t("video_load_failed")}</p>
+        <Button size="sm" variant="secondary" onClick={() => { setLoadError(false); setRetry((r) => r + 1); }}>
+          <RefreshCw className="h-4 w-4 mr-2" /> {t("retry")}
+        </Button>
       </div>
     );
   }

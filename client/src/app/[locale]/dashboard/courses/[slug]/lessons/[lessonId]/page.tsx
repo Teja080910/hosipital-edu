@@ -9,7 +9,8 @@ import { CourseQuiz } from "@/components/courses/course-quiz";
 import { StreamVideoPlayer } from "@/components/stream/stream-video-player";
 import { coursesApi } from "@/lib/api";
 import { ArrowLeft, CheckCircle, Clock, FileText, Loader2 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "@/routing";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { localizedText } from "@/lib/utils";
@@ -33,6 +34,10 @@ export default function LessonPage() {
         coursesApi.checkAccess(slug).then(({ data: access }) => {
           if (!access?.hasAccess) {
             router.push(`/dashboard/courses/${slug}`);
+            return;
+          }
+          if (access?.isTrial) {
+            router.push("/dashboard/subscribe");
             return;
           }
           setIsEnrolled(true);
@@ -163,7 +168,7 @@ export default function LessonPage() {
               );
             }
 
-            const cfUid = url.match(/^[a-f0-9]{32}$/);
+            const cfUid = url.match(/[a-f0-9]{32}/);
             if (cfUid || (url.includes("cloudflarestream.com") && !url.includes("drive.google.com"))) {
               return (
                 <div className="aspect-video bg-muted rounded-lg overflow-hidden">

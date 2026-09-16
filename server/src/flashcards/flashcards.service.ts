@@ -32,8 +32,10 @@ export class FlashcardsService {
     page?: number;
     limit?: number;
   }, user?: any) {
-    const { examId, specialtyId, topicId, search, page = 1, limit = 20 } = filters;
-    const offset = (page - 1) * limit;
+    const { examId, specialtyId, topicId, search, page, limit } = filters;
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(Math.max(1, Number(limit) || 20), 10000);
+    const offset = (pageNum - 1) * limitNum;
     const conditions = [eq(flashcards.isActive, true)];
 
     let isAdmin = false;
@@ -58,15 +60,15 @@ export class FlashcardsService {
             .limit(1);
           if (plan && parseFloat(plan.price || "0") > 0) {
           } else {
-            return { data: [], total: 0, page, limit };
+            return { data: [], total: 0, page: pageNum, limit: limitNum };
           }
         } else {
-          return { data: [], total: 0, page, limit };
+          return { data: [], total: 0, page: pageNum, limit: limitNum };
         }
       }
       if (!isAdmin) {
         const accessId = await getAccessibleExamId(this.db, user.id);
-        if (!accessId) return { data: [], total: 0, page, limit };
+        if (!accessId) return { data: [], total: 0, page: pageNum, limit: limitNum };
       }
     }
 
@@ -114,7 +116,7 @@ export class FlashcardsService {
       .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
       .leftJoin(topics, eq(flashcards.topicId, topics.id))
       .where(where)
-      .limit(limit)
+      .limit(limitNum)
       .offset(offset)
       .orderBy(desc(flashcards.createdAt));
 
@@ -135,12 +137,14 @@ export class FlashcardsService {
     return {
       data: rows.map((r: any) => ({ ...r, examIds: examIdsByF.get(r.id) || [] })),
       total: totalResult?.total ?? 0,
-      page,
-      limit,
+      page: pageNum,
+      limit: limitNum,
     };
   }
 
-  async findDue(userId: string, limit = 20, specialtyId?: string) {
+  async findDue(userId: string, limit = 300, specialtyId?: string, offset = 0) {
+    const cappedLimit = Math.min(Math.max(Number(limit) || 300, 1), 300);
+    const skip = Math.max(Number(offset) || 0, 0);
     const [userCheck] = await this.db
       .select({ role: users.role, targetExamId: users.targetExamId })
       .from(users)
@@ -149,14 +153,14 @@ export class FlashcardsService {
     const isAdmin = userCheck && (userCheck.role === "admin" || userCheck.role === "super_admin");
     if (!isAdmin) {
       const accessId = await getAccessibleExamId(this.db, userId);
-      if (!accessId) return [];
+      if (!accessId) return { total: 0, data: [] };
     }
     const [u] = await this.db
       .select({ accountType: users.accountType })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
-    if (u?.accountType === "course_only") return [];
+    if (u?.accountType === "course_only") return { total: 0, data: [] };
 
     const now = new Date();
 
@@ -167,51 +171,84 @@ export class FlashcardsService {
     ];
     if (specialtyId) conditions.push(eq(flashcards.specialtyId, specialtyId));
 
-    const reviewedDue = await this.db
-      .select({
-        id: flashcards.id,
-        front: flashcards.front,
-        back: flashcards.back,
-        reference: flashcards.reference,
-        specialtyId: flashcards.specialtyId,
-        topicId: flashcards.topicId,
-        specialty: specialties.name,
-        topic: topics.name,
-      })
+    const [{ total: reviewedDueCount }] = await this.db
+      .select({ total: count() })
       .from(userFlashcardReviews)
       .innerJoin(flashcards, eq(flashcards.id, userFlashcardReviews.flashcardId))
-      .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
-      .leftJoin(topics, eq(flashcards.topicId, topics.id))
-      .where(and(...conditions))
-      .limit(limit);
+      .where(and(...conditions));
 
-    if (reviewedDue.length >= limit) return reviewedDue;
-
-    const reviewedIds = reviewedDue.map((r: any) => r.id);
-    const unreviewedCount = limit - reviewedDue.length;
+    const allReviewedRows = await this.db
+      .select({ flashcardId: userFlashcardReviews.flashcardId })
+      .from(userFlashcardReviews)
+      .where(eq(userFlashcardReviews.userId, userId));
+    const allReviewedIds = allReviewedRows.map((r: any) => r.flashcardId);
 
     const unreviewedConditions = [eq(flashcards.isActive, true)];
     if (specialtyId) unreviewedConditions.push(eq(flashcards.specialtyId, specialtyId));
-    if (reviewedIds.length > 0) unreviewedConditions.push(notInArray(flashcards.id, reviewedIds));
+    if (allReviewedIds.length > 0) unreviewedConditions.push(notInArray(flashcards.id, allReviewedIds));
 
-    const unreviewed = await this.db
-      .select({
-        id: flashcards.id,
-        front: flashcards.front,
-        back: flashcards.back,
-        reference: flashcards.reference,
-        specialtyId: flashcards.specialtyId,
-        topicId: flashcards.topicId,
-        specialty: specialties.name,
-        topic: topics.name,
-      })
+    const [{ total: unreviewedCount }] = await this.db
+      .select({ total: count() })
       .from(flashcards)
-      .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
-      .leftJoin(topics, eq(flashcards.topicId, topics.id))
-      .where(and(...unreviewedConditions))
-      .limit(unreviewedCount);
+      .where(and(...unreviewedConditions));
 
-    return [...reviewedDue, ...unreviewed];
+    const total = Number(reviewedDueCount) + Number(unreviewedCount);
+    if (total === 0) return { total: 0, data: [] };
+
+    let remaining = cappedLimit;
+    let skipLeft = skip;
+    const results: any[] = [];
+
+    if (skipLeft < Number(reviewedDueCount)) {
+      const reviewedDue = await this.db
+        .select({
+          id: flashcards.id,
+          front: flashcards.front,
+          back: flashcards.back,
+          reference: flashcards.reference,
+          specialtyId: flashcards.specialtyId,
+          topicId: flashcards.topicId,
+          specialty: specialties.name,
+          topic: topics.name,
+        })
+        .from(userFlashcardReviews)
+        .innerJoin(flashcards, eq(flashcards.id, userFlashcardReviews.flashcardId))
+        .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+        .leftJoin(topics, eq(flashcards.topicId, topics.id))
+        .where(and(...conditions))
+        .orderBy(userFlashcardReviews.nextReviewAt, flashcards.id)
+        .limit(remaining)
+        .offset(skipLeft);
+      results.push(...reviewedDue);
+      remaining -= reviewedDue.length;
+      skipLeft = 0;
+    } else {
+      skipLeft -= Number(reviewedDueCount);
+    }
+
+    if (remaining > 0) {
+      const unreviewed = await this.db
+        .select({
+          id: flashcards.id,
+          front: flashcards.front,
+          back: flashcards.back,
+          reference: flashcards.reference,
+          specialtyId: flashcards.specialtyId,
+          topicId: flashcards.topicId,
+          specialty: specialties.name,
+          topic: topics.name,
+        })
+        .from(flashcards)
+        .leftJoin(specialties, eq(flashcards.specialtyId, specialties.id))
+        .leftJoin(topics, eq(flashcards.topicId, topics.id))
+        .where(and(...unreviewedConditions))
+        .orderBy(flashcards.id)
+        .limit(remaining)
+        .offset(skipLeft);
+      results.push(...unreviewed);
+    }
+
+    return { total, data: results };
   }
 
   async create(data: any) {

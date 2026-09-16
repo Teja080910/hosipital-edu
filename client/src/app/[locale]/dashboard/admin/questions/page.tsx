@@ -79,7 +79,7 @@ export default function AdminQuestionsPage() {
 
   const fetchQuestions = useCallback(async () => {
     try {
-      const { data } = await questionsApi.list();
+      const { data } = await questionsApi.list({ limit: 10000 });
       setQuestions(Array.isArray(data) ? data : data?.data ?? []);
     } catch {
       toast.error(t("load_failed_questions"));

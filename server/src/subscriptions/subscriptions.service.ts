@@ -359,6 +359,34 @@ export class SubscriptionsService {
           .returning();
       }
 
+      if (plan.isCourseOnly && plan.courseId) {
+        const [existingEnrollment] = await tx
+          .select({ id: userCourseEnrollments.id })
+          .from(userCourseEnrollments)
+          .where(
+            and(
+              eq(userCourseEnrollments.userId, data.userId),
+              eq(userCourseEnrollments.courseId, plan.courseId),
+              eq(userCourseEnrollments.status, "active"),
+            ),
+          )
+          .limit(1);
+
+        if (existingEnrollment) {
+          await tx
+            .update(userCourseEnrollments)
+            .set({ accessExpiresAt: periodEnd, updatedAt: new Date() })
+            .where(eq(userCourseEnrollments.id, existingEnrollment.id));
+        } else {
+          await tx.insert(userCourseEnrollments).values({
+            userId: data.userId,
+            courseId: plan.courseId,
+            accessExpiresAt: periodEnd,
+            status: "active",
+          });
+        }
+      }
+
       const [user] = await tx
         .select()
         .from(users)

@@ -193,7 +193,7 @@ const deleteUser = async () => {
             <h1 className="text-3xl font-bold tracking-tight">{t("user_mgmt_title")}</h1>
             <p className="text-muted-foreground">{t("user_mgmt_subtitle")}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              {t("total_users", { count: total })}
+              {t("total_users_count", { count: total })}
             </p>
           </div>
         </div>

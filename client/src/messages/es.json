@@ -445,7 +445,8 @@
   "admin": {
     "dashboard_title": "Panel de Administración",
     "dashboard_subtitle": "Visión general y gestión de la plataforma",
-    "total_users": "Total: {count}",
+    "total_users": "Usuarios Totales",
+    "total_users_count": "Total: {count}",
     "questions": "Preguntas",
     "active_exams": "Exámenes Activos",
     "revenue": "Ingresos",
@@ -779,6 +780,11 @@
     "type_specialty": "Especialidad",
     "type_topic": "Tema",
     "type_subtopic": "Subtema",
+    "type_exam": "Examen",
+    "add_exam": "Añadir Examen",
+    "edit_exam": "Editar Examen",
+    "delete_exam": "Eliminar Examen",
+    "force_delete_exam_title": "¿Forzar eliminación del examen?",
     "placeholder_name_english": "Ingresa el nombre en inglés...",
     "name_spanish": "Nombre (Español)",
     "placeholder_name_spanish": "Ingresa el nombre en español...",
@@ -918,7 +924,9 @@
     "hour_ago": "hace {hrs} hora",
     "hours_ago": "hace {hrs} horas",
     "day_ago": "hace {days} día",
-    "days_ago": "hace {days} días"
+    "days_ago": "hace {days} días",
+    "video_upload_here": "Subir archivo de video",
+    "video_uploaded": "Video subido — ahora guarda la lección"
   },
   "progress": {
     "title": "Progreso",
@@ -955,6 +963,8 @@
     "file_too_large": "Archivo demasiado grande. Máx. 200 MB.",
     "video_player": "Reproductor de video",
     "video_not_found": "Este video ya no está disponible",
+    "video_load_failed": "No se pudo cargar el video — inténtalo de nuevo",
+    "retry": "Reintentar",
     "cancel": "Cancelar",
     "lessons_count": "{count, plural, one {# lección} other {# lecciones}}",
     "video_placeholder": "Video de ejemplo",

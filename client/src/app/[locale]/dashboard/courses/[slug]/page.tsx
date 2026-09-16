@@ -62,7 +62,10 @@ function CourseDetail() {
         }).catch(() => {});
         coursesApi.checkAccess(slug).then(({ data: access }) => {
           setHasAccess(access.hasAccess);
-          if (access.isTrial) setIsTrial(true);
+          if (access.isTrial) {
+            setIsTrial(true);
+            router.replace("/dashboard/subscribe");
+          }
         }).catch(() => {});
       }
     }).catch(() => toast.error(t("not_found"))).finally(() => setLoading(false));
@@ -89,6 +92,23 @@ function CourseDetail() {
     coursesApi.getPostTest(slug).then(({ data }) => setPostTest(data)).catch(() => {});
     coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
   }, [isEnrolled, hasAccess, slug]);
+
+  const autoEnrollTried = useRef(false);
+  useEffect(() => {
+    if (!course || !hasAccess || isTrial || isEnrolled || autoEnrollTried.current) return;
+    autoEnrollTried.current = true;
+    coursesApi
+      .enroll(slug)
+      .then(({ data }) => {
+        if (data?.url) return;
+        setIsEnrolled(true);
+        coursesApi.getProgress(slug).then(({ data: p }) => setProgress(p)).catch(() => {});
+        coursesApi.getPreTest(slug).then(({ data }) => setPreTest(data)).catch(() => {});
+        coursesApi.getPostTest(slug).then(({ data }) => setPostTest(data)).catch(() => {});
+        coursesApi.getTestResults(slug).then(({ data }) => setTestResults(data)).catch(() => {});
+      })
+      .catch(() => {});
+  }, [course, hasAccess, isTrial, isEnrolled, slug]);
 
   const autoGenerateCert = useRef(false);
   useEffect(() => {
