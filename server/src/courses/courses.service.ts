@@ -313,7 +313,7 @@ export class CoursesService {
 
     if (!stripePaymentId) {
       const access = await this.checkAccess(userId, userRecord?.role || "", courseId);
-      if (access.hasAccess && access.isTrial) {
+      if (access.hasAccess) {
         const [enrollment] = await this.db
           .insert(userCourseEnrollments)
           .values({
