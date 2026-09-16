@@ -2,7 +2,7 @@ import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundExce
 import { and, asc, count, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { I18nService } from "../common/i18n/i18n.service";
 import { DRIZZLE } from "../database/database.provider";
-import { exams, questionExams, questions, specialties, subscriptionPlans, planExams, subtopics, topics, userSubscriptions, users } from "../database/schema";
+import { examAttempts, exams, questionExams, questions, specialties, subscriptionPlans, planExams, subtopics, topics, userSubscriptions, users } from "../database/schema";
 
 @Injectable()
 export class ExamsService {
@@ -187,6 +187,50 @@ export class ExamsService {
       .returning();
     if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
     return exam;
+  }
+
+  async deleteExam(id: string, force = false) {
+    const [exam] = await this.db.select({ id: exams.id }).from(exams).where(eq(exams.id, id)).limit(1);
+    if (!exam) throw new NotFoundException(this.i18n.t("exams.notFound"));
+
+    const [{ c: attemptCount }] = await this.db
+      .select({ c: count() })
+      .from(examAttempts)
+      .where(eq(examAttempts.examId, id));
+
+    const [{ c: questionCount }] = await this.db
+      .select({ c: count() })
+      .from(questions)
+      .where(
+        sql`(${questions.specialtyId} IN (SELECT id FROM specialties WHERE exam_id = ${id})
+          OR ${questions.topicId} IN (SELECT id FROM topics WHERE specialty_id IN (SELECT id FROM specialties WHERE exam_id = ${id})))`,
+      );
+
+    if (!force && (attemptCount > 0 || questionCount > 0)) {
+      const key =
+        attemptCount > 0 && questionCount > 0
+          ? "exams.examInUseBoth"
+          : attemptCount > 0
+            ? "exams.examInUseAttempts"
+            : "exams.examInUseQuestions";
+      throw new ConflictException(this.i18n.t(key, { count: attemptCount || questionCount, attempts: attemptCount, questions: questionCount }));
+    }
+
+    if (attemptCount > 0) {
+      await this.db.delete(examAttempts).where(eq(examAttempts.examId, id));
+    }
+    if (questionCount > 0) {
+      await this.db
+        .update(questions)
+        .set({ specialtyId: null, topicId: null })
+        .where(
+          sql`(${questions.specialtyId} IN (SELECT id FROM specialties WHERE exam_id = ${id})
+            OR ${questions.topicId} IN (SELECT id FROM topics WHERE specialty_id IN (SELECT id FROM specialties WHERE exam_id = ${id})))`,
+        );
+    }
+
+    await this.db.delete(exams).where(eq(exams.id, id));
+    return { deleted: true, removedAttempts: attemptCount, detachedQuestions: questionCount };
   }
 
   // ─── Specialty CRUD ───

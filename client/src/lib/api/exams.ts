@@ -5,6 +5,7 @@ export const examsApi = {
   get: (id: string) => api.get(`/exams/${id}`),
   create: (data: Record<string, unknown>) => api.post("/exams", data),
   update: (id: string, data: Record<string, unknown>) => api.patch(`/exams/${id}`, data),
+  removeExam: (id: string, force?: boolean) => api.delete(`/exams/${id}${force ? "?force=1" : ""}`),
   // Specialty CRUD
   createSpecialty: (examId: string, data: Record<string, unknown>) => api.post(`/exams/${examId}/specialties`, data),
   updateSpecialty: (id: string, data: Record<string, unknown>) => api.patch(`/exams/specialties/${id}`, data),

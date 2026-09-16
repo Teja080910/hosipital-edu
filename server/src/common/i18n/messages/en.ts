@@ -67,7 +67,10 @@ const en = {
     "attemptAlreadyCompleted": "This attempt has already been completed",
     "invalidOption": "Invalid answer option",
     "specialtyInUse": "Cannot delete this specialty: {count} question(s) still use it. Reassign or delete those questions first.",
-    "topicInUse": "Cannot delete this topic: {count} question(s) still use it. Reassign or delete those questions first."
+    "topicInUse": "Cannot delete this topic: {count} question(s) still use it. Reassign or delete those questions first.",
+    "examInUseAttempts": "This exam has {count} user attempt(s). Force delete will permanently remove them.",
+    "examInUseQuestions": "This exam has {count} question(s) linked to its specialties/topics. Force delete detaches them from the tree (questions stay in the bank).",
+    "examInUseBoth": "This exam has {attempts} user attempt(s) and {questions} question(s) linked to its specialties/topics. Force delete removes the attempts and detaches the questions."
   },
   "flashcards": {
     "notFound": "Flashcard not found",

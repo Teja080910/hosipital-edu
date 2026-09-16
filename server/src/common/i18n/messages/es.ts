@@ -67,7 +67,10 @@ const es = {
     "attemptAlreadyCompleted": "Este intento ya ha sido completado",
     "invalidOption": "Opción de respuesta inválida",
     "specialtyInUse": "No se puede eliminar esta especialidad: {count} pregunta(s) aún la usan. Reasigna o elimina esas preguntas primero.",
-    "topicInUse": "No se puede eliminar este tema: {count} pregunta(s) aún lo usan. Reasigna o elimina esas preguntas primero."
+    "topicInUse": "No se puede eliminar este tema: {count} pregunta(s) aún lo usan. Reasigna o elimina esas preguntas primero.",
+    "examInUseAttempts": "Este examen tiene {count} intento(s) de usuarios. La eliminación forzada los borrará permanentemente.",
+    "examInUseQuestions": "Este examen tiene {count} pregunta(s) vinculadas a sus especialidades/temas. La eliminación forzada las desvincula del árbol (las preguntas permanecen en el banco).",
+    "examInUseBoth": "Este examen tiene {attempts} intento(s) de usuarios y {questions} pregunta(s) vinculadas a sus especialidades/temas. La eliminación forzada borra los intentos y desvincula las preguntas."
   },
   "flashcards": {
     "notFound": "Tarjeta de estudio no encontrada",

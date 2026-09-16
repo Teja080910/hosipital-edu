@@ -5,6 +5,7 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
   Body,
   UseGuards,
   ParseUUIDPipe,
@@ -206,6 +207,15 @@ export class ExamsController {
     }
     delete payload.title;
     return this.examsService.update(id, payload);
+  }
+
+  @Delete(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete exam (admin). Blocked if attempts/questions exist unless ?force=1" })
+  async deleteExam(@Param("id", ParseUUIDPipe) id: string, @Query("force") force?: string) {
+    return this.examsService.deleteExam(id, force === "1" || force === "true");
   }
 
   // ─── Specialty CRUD ───

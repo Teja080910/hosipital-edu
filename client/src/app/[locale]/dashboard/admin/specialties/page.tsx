@@ -36,21 +36,26 @@ export default function AdminSpecialtiesPage() {
   const [loading, setLoading] = useState(true);
   const [loadingExam, setLoadingExam] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<"specialty" | "topic" | "subtopic">("specialty");
+  const [dialogType, setDialogType] = useState<"exam" | "specialty" | "topic" | "subtopic">("specialty");
   const [editing, setEditing] = useState<any | null>(null);
   const [parentId, setParentId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string; name: string } | null>(null);
+  const [forceTarget, setForceTarget] = useState<{ id: string; message: string } | null>(null);
   const [expandedSpecs, setExpandedSpecs] = useState<Set<string>>(new Set());
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({ nameEn: "", nameEs: "", sortOrder: 0 });
 
-  useEffect(() => {
+  const loadExams = useCallback(() => {
     examsApi.list().then(({ data }) => {
       setExams(Array.isArray(data) ? data : []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadExams();
+  }, [loadExams]);
 
   const loadExam = useCallback(async (examId: string) => {
     if (!examId) { setExamData(null); return; }
@@ -78,7 +83,7 @@ export default function AdminSpecialtiesPage() {
     setDialogOpen(true);
   };
 
-  const openEdit = (type: "specialty" | "topic" | "subtopic", item: any, parentId = "") => {
+  const openEdit = (type: "exam" | "specialty" | "topic" | "subtopic", item: any, parentId = "") => {
     setDialogType(type);
     setEditing(item);
     setParentId(parentId);
@@ -96,7 +101,8 @@ export default function AdminSpecialtiesPage() {
     try {
       const payload = { name: { en: form.nameEn, es: form.nameEs || form.nameEn }, sortOrder: form.sortOrder };
       if (editing) {
-        if (dialogType === "specialty") await examsApi.updateSpecialty(editing.id, payload);
+        if (dialogType === "exam") await examsApi.update(selectedExamId, payload);
+        else if (dialogType === "specialty") await examsApi.updateSpecialty(editing.id, payload);
         else if (dialogType === "topic") await examsApi.updateTopic(editing.id, payload);
         else await examsApi.updateSubtopic(editing.id, payload);
         toast.success(t("updated"));
@@ -108,6 +114,7 @@ export default function AdminSpecialtiesPage() {
       }
       setDialogOpen(false);
       loadExam(selectedExamId);
+      if (dialogType === "exam") loadExams();
     } catch {
       toast.error(t("failed_to_save"));
     } finally {
@@ -118,15 +125,43 @@ export default function AdminSpecialtiesPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      if (deleteTarget.type === "specialty") await examsApi.deleteSpecialty(deleteTarget.id);
+      if (deleteTarget.type === "exam") await examsApi.removeExam(deleteTarget.id);
+      else if (deleteTarget.type === "specialty") await examsApi.deleteSpecialty(deleteTarget.id);
       else if (deleteTarget.type === "topic") await examsApi.deleteTopic(deleteTarget.id);
       else await examsApi.deleteSubtopic(deleteTarget.id);
       toast.success(t("deleted"));
+      if (deleteTarget.type === "exam") {
+        setSelectedExamId("");
+        setExamData(null);
+        loadExams();
+      } else {
+        loadExam(selectedExamId);
+      }
       setDeleteTarget(null);
-      loadExam(selectedExamId);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message?.[0] || err?.response?.data?.message || t("failed_to_delete");
+      if (deleteTarget.type === "exam" && err?.response?.status === 409) {
+        setForceTarget({ id: deleteTarget.id, message: msg });
+        setDeleteTarget(null);
+        return;
+      }
+      toast.error(msg);
+    }
+  };
+
+  const handleForceDelete = async () => {
+    if (!forceTarget) return;
+    try {
+      await examsApi.removeExam(forceTarget.id, true);
+      toast.success(t("deleted"));
+      setForceTarget(null);
+      setSelectedExamId("");
+      setExamData(null);
+      loadExams();
     } catch (err: any) {
       const msg = err?.response?.data?.message?.[0] || err?.response?.data?.message || t("failed_to_delete");
       toast.error(msg);
+      setForceTarget(null);
     }
   };
 
@@ -192,6 +227,20 @@ export default function AdminSpecialtiesPage() {
                   </Button>
                 );
               })()}
+              <div className="ml-auto flex items-center gap-2">
+                <Button variant="outline" className="rounded-xl" onClick={() => {
+                  const ex = exams.find((e: any) => e.id === selectedExamId);
+                  if (ex) openEdit("exam", ex);
+                }}>
+                  <Pencil className="h-4 w-4 mr-2" /> {t("edit_exam")}
+                </Button>
+                <Button variant="outline" className="rounded-xl text-destructive" onClick={() => {
+                  const ex = exams.find((e: any) => e.id === selectedExamId);
+                  setDeleteTarget({ type: "exam", id: selectedExamId, name: ex?.name?.en || ex?.slug || "" });
+                }}>
+                  <Trash2 className="h-4 w-4 mr-2" /> {t("delete_exam")}
+                </Button>
+              </div>
             </>
           )}
         </div>
@@ -306,7 +355,7 @@ export default function AdminSpecialtiesPage() {
               </div>
               <div className="text-left">
                 <DialogTitle className="text-xl font-bold tracking-tight">
-                  {editing ? c("edit") : c("create")} {dialogType === "specialty" ? t("type_specialty") : dialogType === "topic" ? t("type_topic") : t("type_subtopic")}
+                  {editing ? c("edit") : c("create")} {dialogType === "exam" ? t("type_exam") : dialogType === "specialty" ? t("type_specialty") : dialogType === "topic" ? t("type_topic") : t("type_subtopic")}
                 </DialogTitle>
               </div>
             </div>
@@ -363,6 +412,16 @@ export default function AdminSpecialtiesPage() {
         confirmLabel={c("delete")}
         variant="destructive"
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={!!forceTarget}
+        onOpenChange={(o) => !o && setForceTarget(null)}
+        title={t("force_delete_exam_title")}
+        description={forceTarget?.message || ""}
+        confirmLabel={c("delete")}
+        variant="destructive"
+        onConfirm={handleForceDelete}
       />
     </PageTransition>
   );
