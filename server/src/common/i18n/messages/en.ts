@@ -65,7 +65,9 @@ const en = {
     "duplicateActiveAttempt": "You already have an active attempt for this exam",
     "notSubscribed": "You need an active subscription to access this feature",
     "attemptAlreadyCompleted": "This attempt has already been completed",
-    "invalidOption": "Invalid answer option"
+    "invalidOption": "Invalid answer option",
+    "specialtyInUse": "Cannot delete this specialty: {count} question(s) still use it. Reassign or delete those questions first.",
+    "topicInUse": "Cannot delete this topic: {count} question(s) still use it. Reassign or delete those questions first."
   },
   "flashcards": {
     "notFound": "Flashcard not found",

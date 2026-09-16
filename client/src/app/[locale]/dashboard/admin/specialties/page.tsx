@@ -124,8 +124,9 @@ export default function AdminSpecialtiesPage() {
       toast.success(t("deleted"));
       setDeleteTarget(null);
       loadExam(selectedExamId);
-    } catch {
-      toast.error(t("failed_to_delete"));
+    } catch (err: any) {
+      const msg = err?.response?.data?.message?.[0] || err?.response?.data?.message || t("failed_to_delete");
+      toast.error(msg);
     }
   };
 
